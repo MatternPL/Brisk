@@ -1,0 +1,250 @@
+using System;
+using System.Collections.Generic;
+using System.Management;
+
+namespace Vaktmester
+{
+    public class DriverUpdate
+    {
+        public string Title;
+        public string Driver;
+        public long Size;
+        public bool Selected = true;
+        public object Update;        // IUpdate (COM)
+    }
+
+    public class ProblemDevice
+    {
+        public string Name;
+        public string DeviceId;
+        public int ErrorCode;
+        public string ErrorText;
+    }
+
+    public static class DriverTools
+    {
+        // Microsoft Update-tjenesten. Gir tilgang til driveroppdateringer,
+        // ikke bare Windows-oppdateringer.
+        const string MicrosoftUpdateServiceId = "7971f918-a847-4430-9279-4a52d1efe18d";
+
+        // ---------------------------------------------------------------
+        // Enheter som Windows melder feil på — typisk manglende driver.
+        public static List<ProblemDevice> FindProblemDevices()
+        {
+            List<ProblemDevice> list = new List<ProblemDevice>();
+            try
+            {
+                using (ManagementObjectSearcher s = new ManagementObjectSearcher(
+                    "SELECT Name, DeviceID, ConfigManagerErrorCode FROM Win32_PnPEntity WHERE ConfigManagerErrorCode <> 0"))
+                {
+                    foreach (ManagementObject mo in s.Get())
+                    {
+                        try
+                        {
+                            ProblemDevice d = new ProblemDevice();
+                            d.Name = Convert.ToString(mo["Name"]);
+                            d.DeviceId = Convert.ToString(mo["DeviceID"]);
+                            d.ErrorCode = Convert.ToInt32(mo["ConfigManagerErrorCode"]);
+                            d.ErrorText = ErrorText(d.ErrorCode);
+                            if (string.IsNullOrEmpty(d.Name)) d.Name = "(ukjent enhet)";
+                            list.Add(d);
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch (Exception ex) { Util.Log("Kunne ikke lese enhetsliste: " + ex.Message); }
+            return list;
+        }
+
+        static string ErrorText(int code)
+        {
+            switch (code)
+            {
+                case 1: return "Enheten er ikke riktig konfigurert";
+                case 3: return "Driveren kan være ødelagt, eller systemet er tomt for minne";
+                case 10: return "Enheten kan ikke starte";
+                case 12: return "Finner ikke nok ledige ressurser";
+                case 14: return "Krever omstart for å virke";
+                case 18: return "Driveren må installeres på nytt";
+                case 19: return "Registeret er skadet for denne enheten";
+                case 21: return "Windows fjerner enheten";
+                case 22: return "Enheten er deaktivert";
+                case 24: return "Enheten er ikke til stede eller virker ikke";
+                case 28: return "Driveren er ikke installert";
+                case 31: return "Windows finner ikke driver som virker";
+                case 45: return "Enheten er ikke koblet til nå";
+                default: return "Feilkode " + code;
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Registrerer Microsoft Update som kilde. Krever administrator.
+        public static bool EnsureMicrosoftUpdate()
+        {
+            try
+            {
+                Type t = Type.GetTypeFromProgID("Microsoft.Update.ServiceManager");
+                if (t == null) return false;
+                dynamic mgr = Activator.CreateInstance(t);
+                foreach (dynamic s in mgr.Services)
+                {
+                    try
+                    {
+                        if (string.Equals(Convert.ToString(s.ServiceID), MicrosoftUpdateServiceId,
+                                StringComparison.OrdinalIgnoreCase))
+                            return true;
+                    }
+                    catch { }
+                }
+                // 7 = AllowPendingRegistration | AllowOnlineRegistration | RegisterServiceWithAU
+                mgr.AddService2(MicrosoftUpdateServiceId, 7, "");
+                Util.Log("Registrerte Microsoft Update som oppdateringskilde.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Util.Log("Kunne ikke registrere Microsoft Update: " + ex.Message);
+                return false;
+            }
+        }
+
+        public static List<DriverUpdate> SearchDrivers(out string note)
+        {
+            note = "";
+            List<DriverUpdate> list = new List<DriverUpdate>();
+            try
+            {
+                bool mu = EnsureMicrosoftUpdate();
+
+                Type t = Type.GetTypeFromProgID("Microsoft.Update.Session");
+                dynamic session = Activator.CreateInstance(t);
+                session.ClientApplicationID = "Vaktmester";
+                dynamic searcher = session.CreateUpdateSearcher();
+                searcher.Online = true;
+
+                dynamic result = null;
+                if (mu)
+                {
+                    try
+                    {
+                        searcher.ServerSelection = 3;                 // ssOthers
+                        searcher.ServiceID = MicrosoftUpdateServiceId;
+                        result = searcher.Search("IsInstalled=0 and Type='Driver' and IsHidden=0");
+                    }
+                    catch (Exception ex)
+                    {
+                        Util.Log("Søk mot Microsoft Update feilet, prøver standardkilde: " + ex.Message);
+                        result = null;
+                    }
+                }
+                if (result == null)
+                {
+                    dynamic s2 = session.CreateUpdateSearcher();
+                    s2.Online = true;
+                    result = s2.Search("IsInstalled=0 and Type='Driver' and IsHidden=0");
+                }
+
+                foreach (dynamic u in result.Updates)
+                {
+                    try
+                    {
+                        DriverUpdate d = new DriverUpdate();
+                        d.Title = Convert.ToString(u.Title);
+                        d.Update = u;
+                        try { d.Size = Convert.ToInt64(u.MaxDownloadSize); } catch { }
+                        try
+                        {
+                            string man = Convert.ToString(u.DriverManufacturer);
+                            string cls = Convert.ToString(u.DriverClass);
+                            d.Driver = (man + " " + cls).Trim();
+                        }
+                        catch { d.Driver = ""; }
+                        list.Add(d);
+                    }
+                    catch { }
+                }
+
+                if (list.Count == 0)
+                    note = "Windows Update har ingen nye drivere til denne maskinen akkurat nå. " +
+                           "Det betyr som regel at driverne allerede er oppdaterte.";
+            }
+            catch (Exception ex)
+            {
+                note = "Driversøket feilet: " + ex.Message;
+                Util.Log(note);
+            }
+            return list;
+        }
+
+        // Returnerer antall installerte og setter rebootRequired.
+        public static int InstallDrivers(List<DriverUpdate> chosen, out bool rebootRequired,
+            Action<string> progress)
+        {
+            rebootRequired = false;
+            if (chosen == null || chosen.Count == 0) return 0;
+            try
+            {
+                Type ts = Type.GetTypeFromProgID("Microsoft.Update.Session");
+                dynamic session = Activator.CreateInstance(ts);
+                session.ClientApplicationID = "Vaktmester";
+
+                Type tc = Type.GetTypeFromProgID("Microsoft.Update.UpdateColl");
+                dynamic coll = Activator.CreateInstance(tc);
+                foreach (DriverUpdate d in chosen)
+                {
+                    dynamic u = d.Update;
+                    try
+                    {
+                        if (!(bool)u.EulaAccepted) u.AcceptEula();
+                    }
+                    catch { }
+                    coll.Add(u);
+                }
+
+                if (progress != null) progress("Laster ned " + coll.Count + " driver(e)…");
+                dynamic dl = session.CreateUpdateDownloader();
+                dl.Updates = coll;
+                dynamic dres = dl.Download();
+                if (progress != null) progress("Nedlasting ferdig (kode " + Convert.ToString(dres.ResultCode) + ").");
+
+                Type tc2 = Type.GetTypeFromProgID("Microsoft.Update.UpdateColl");
+                dynamic ready = Activator.CreateInstance(tc2);
+                foreach (dynamic u in coll)
+                {
+                    try { if ((bool)u.IsDownloaded) ready.Add(u); }
+                    catch { }
+                }
+                if (ready.Count == 0)
+                {
+                    if (progress != null) progress("Ingen drivere ble lastet ned.");
+                    return 0;
+                }
+
+                if (progress != null) progress("Installerer…");
+                dynamic inst = session.CreateUpdateInstaller();
+                inst.Updates = ready;
+                dynamic ires = inst.Install();
+                rebootRequired = (bool)ires.RebootRequired;
+                int ok = 0;
+                for (int i = 0; i < ready.Count; i++)
+                {
+                    try
+                    {
+                        int rc = Convert.ToInt32(ires.GetUpdateResult(i).ResultCode);
+                        if (rc == 2 || rc == 3) ok++;      // 2 = vellykket, 3 = vellykket med feil
+                    }
+                    catch { }
+                }
+                Util.Log("Installerte " + ok + " driver(e). Omstart nødvendig: " + rebootRequired);
+                return ok;
+            }
+            catch (Exception ex)
+            {
+                if (progress != null) progress("Installasjon feilet: " + ex.Message);
+                Util.Log("Driverinstallasjon feilet: " + ex.Message);
+                return 0;
+            }
+        }
+    }
+}
