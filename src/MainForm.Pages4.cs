@@ -14,6 +14,7 @@ namespace Brisk
         // ==============================================================
         ListView lvDrives, lvCrash;
         Label lblBattery;
+        List<DumpAnalysis> crashDumps = new List<DumpAnalysis>();
 
         Panel PageHealth()
         {
@@ -44,12 +45,21 @@ namespace Brisk
             split.Panel1.Controls.Add(SectionLabel(L.T("Disker")));
 
             lvCrash = ListIn(split.Panel2, false,
-                L.T("Når"), "180", L.T("Stoppkode"), "130", L.T("Sannsynlig årsak"), "560");
-            split.Panel2.Controls.Add(SectionLabel(L.T("Blåskjermer")));
+                L.T("Når"), "150", L.T("Stoppkode"), "210", L.T("Sannsynlig årsak"), "230",
+                L.T("Hva som skjedde"), "440");
+            lvCrash.DoubleClick += delegate { OpenCrash(); };
+            split.Panel2.Controls.Add(SectionLabel(
+                L.T("Blåskjermer — dobbeltklikk for full analyse")));
 
             p.Controls.Add(split);
             p.Controls.Add(bar);
             SetSplit(split, 260);
+
+            FlatBtn bOpen = new FlatBtn(L.T("Åpne analysen")); bOpen.Width = 150;
+            bOpen.Click += delegate { OpenCrash(); };
+            bar.Controls.Add(bOpen);
+            bOpen.Location = new Point(bRep.Left + bRep.Width + 10, bRep.Top);
+            Tip(bOpen, "Leser dumpfila fra kræsjet og viser hvilken driver som feilet.");
 
             bRef.Click += async delegate { await LoadHealth(new Control[] { bRef, bRep }); };
             bRep.Click += async delegate
@@ -81,6 +91,14 @@ namespace Brisk
                 Status(L.T("Leser hendelseslogg …"));
                 crashes = HealthTools.Crashes(30);
                 bat = HealthTools.Battery();
+
+                Status(L.T("Analyserer dumpfiler …"));
+                crashDumps.Clear();
+                foreach (string f in DumpTools.Find())
+                {
+                    crashDumps.Add(DumpTools.Analyse(f));
+                    if (crashDumps.Count >= 20) break;
+                }
             });
 
             // --- disker ---
@@ -127,16 +145,38 @@ namespace Brisk
             // --- kræsj ---
             lvCrash.BeginUpdate();
             lvCrash.Items.Clear();
-            if (crashes != null && crashes.Count > 0)
+
+            foreach (DumpAnalysis d in crashDumps)
+            {
+                ListViewItem li = new ListViewItem(d.Time.ToString("yyyy-MM-dd HH:mm"));
+                li.SubItems.Add(d.CodeText);
+                li.SubItems.Add(d.LikelyCause != null ? d.LikelyCause.Name
+                              : d.Culprit != null ? d.Culprit.Name : "—");
+                li.SubItems.Add(d.Error.Length > 0 ? d.Error : d.Meaning);
+                li.Tag = d;
+                bool fersk = (DateTime.Now - d.Time).TotalDays < 30;
+                li.ForeColor = d.LikelyCause != null && !d.LikelyCause.IsMicrosoft ? Theme.Warn
+                             : fersk ? Theme.Text : Theme.Muted;
+                lvCrash.Items.Add(li);
+            }
+
+            // Hendelser uten dumpfil — dumpen kan være slettet eller avslått.
+            if (crashes != null)
                 foreach (CrashEvent c in crashes)
                 {
+                    bool har = false;
+                    foreach (DumpAnalysis d in crashDumps)
+                        if (Math.Abs((d.Time - c.Time).TotalMinutes) < 10) { har = true; break; }
+                    if (har) continue;
                     ListViewItem li = new ListViewItem(c.Time.ToString("yyyy-MM-dd HH:mm"));
                     li.SubItems.Add(c.Code);
-                    li.SubItems.Add(c.Meaning);
-                    li.ForeColor = (DateTime.Now - c.Time).TotalDays < 30 ? Theme.Warn : Theme.Muted;
+                    li.SubItems.Add("—");
+                    li.SubItems.Add(c.Meaning + "  (" + L.T("ingen dumpfil") + ")");
+                    li.ForeColor = Theme.Muted;
                     lvCrash.Items.Add(li);
                 }
-            else
+
+            if (lvCrash.Items.Count == 0)
             {
                 ListViewItem li = new ListViewItem(L.T("Ingen blåskjermer i loggen."));
                 li.ForeColor = Theme.Good;
@@ -154,6 +194,20 @@ namespace Brisk
             }
 
             Status("");
+        }
+
+        void OpenCrash()
+        {
+            DumpAnalysis d = null;
+            if (lvCrash.SelectedItems.Count > 0)
+                d = lvCrash.SelectedItems[0].Tag as DumpAnalysis;
+            if (d == null && crashDumps.Count > 0) d = crashDumps[0];
+            if (d == null) { Status(L.T("Ingen dumpfil å analysere.")); return; }
+            try
+            {
+                using (CrashDialog dlg = new CrashDialog(d)) dlg.ShowDialog(this);
+            }
+            catch (Exception ex) { Status(L.T("Kunne ikke vise analysen: ") + ex.Message); }
         }
 
         void SaveReport(string text)

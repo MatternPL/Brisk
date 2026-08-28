@@ -40,7 +40,7 @@ red deletes.
 | **Disk space** | Three modes. *Largest* shows where the space sits, *Duplicates* finds identical files by content, *Forgotten files* lists big files you haven't touched in six months. Deletes nothing. |
 | **Startup** | Everything that starts with Windows, with **how many seconds each one adds to boot** — read from Windows' own measurements, not guesswork. |
 | **Memory** | What is actually using RAM, and an honest note about why "RAM boosters" don't help. |
-| **Health** | Drive wear and temperature, blue screens with the stop code translated into plain language, battery capacity on laptops. |
+| **Health** | Drive wear and temperature, battery capacity on laptops, and a **blue screen analyser** that reads the crash dump and names the driver that failed. |
 | **Network** | Adapter, gateway, internet, DNS, Wi-Fi signal, and a check of the hosts file and proxy — the two things malware likes to hijack. |
 | **Updates** | Drivers and Windows updates from Microsoft's own catalog through the Windows Update API. |
 | **Software** | winget updates, plus every installed program sorted by size, with uninstall. |
@@ -54,6 +54,22 @@ red deletes.
 * **No registry cleaning.** It has never produced a measurable speedup.
 * **No third-party driver scraping.** Drivers come from Microsoft, signed.
 * **No CPU temperature.** That needs a kernel driver. Not worth it.
+
+### Reading a blue screen
+
+Double-click a crash under Health and Brisk parses the kernel dump Windows wrote
+(`PAGEDU64`), pulls out the stop code, the loaded module list and the call stack, and
+maps the fault address to a module. It then tells you which driver is the likely cause,
+where each driver came from, and what to do about it — with a *Copy summary* button for
+when you need to ask someone else.
+
+The parsing is self-checking: the stop code and its four parameters must match what
+Windows logged, and module 0 must be `ntoskrnl.exe`. If either fails, it says it could
+not read the dump rather than guessing.
+
+Crash dumps are therefore **excluded from the automatic cleanup** and unticked by
+default — deleting them throws away the evidence. Brisk also reads the real dump path
+from the registry rather than assuming the default, since Windows does not always use it.
 
 ### Safety
 
@@ -125,6 +141,8 @@ src/
   StartupTools.cs     startup entries and scheduled tasks
   BootTools.cs        boot time and what delays it, from the event log
   HealthTools.cs      drive wear, blue screens, battery
+  DumpTools.cs        kernel crash dump parser
+  CrashDialog.cs      the blue screen analysis window
   NetTools.cs         connectivity, hosts file, proxy
   SystemTools.cs      memory, winget, disk health, maintenance
   DriverTools.cs      drivers via Windows Update

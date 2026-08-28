@@ -109,11 +109,17 @@ namespace Brisk
                 "Oppdateringer mellomlagret for deling på nettverket.")
                 .Dir("%SystemRoot%\\ServiceProfiles\\NetworkService\\AppData\\Local\\Microsoft\\Windows\\DeliveryOptimization"));
 
-            t.Add(new CleanTarget("Krasjdumper",
-                "Dumpfiler fra kræsj og blåskjerm.")
-                .Dir("%LOCALAPPDATA%\\CrashDumps")
-                .Dir("%SystemRoot%\\Minidump")
-                .Files("%SystemRoot%", "MEMORY.DMP"));
+            // Dumpene er grunnlaget for blåskjermanalysen under Helse, så de
+            // er merket og tas aldri av den automatiske ryddingen.
+            CleanTarget dumps = new CleanTarget("Krasjdumper",
+                "Dumpfiler fra kræsj og blåskjerm. Sletter du dem, mister Helse grunnlaget for å analysere blåskjermene dine.");
+            dumps.Risk = Risk.Merk;
+            dumps.DefaultChecked = false;
+            dumps.Dir("%LOCALAPPDATA%\\CrashDumps");
+            dumps.Dir(DumpTools.MinidumpFolder());
+            dumps.Files(System.IO.Path.GetDirectoryName(DumpTools.FullDumpFile()),
+                        System.IO.Path.GetFileName(DumpTools.FullDumpFile()));
+            t.Add(dumps);
 
             t.Add(new CleanTarget("Feilrapportering",
                 "Rapporter som lå i kø til Microsoft.")
