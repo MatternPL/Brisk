@@ -3,7 +3,7 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Vaktmester
+namespace Brisk
 {
     // Spør om oppdatering, laster ned og starter installasjonen.
     public class UpdateDialog : Form
@@ -40,7 +40,7 @@ namespace Vaktmester
                 using (Pen p = new Pen(Theme.Line))
                     e.Graphics.DrawLine(p, 0, head.Height - 1, head.Width, head.Height - 1);
             };
-            Label h = Theme.Lbl(L.F("Vaktmester {0}", u.Version),
+            Label h = Theme.Lbl(L.F("Brisk {0}", u.Version),
                 new Font("Segoe UI Light", 17f), Theme.Text);
             h.Location = new Point(102, 28);
             Label sub = Theme.Lbl(L.F("Du har {0}", Updater.CurrentVersion) +

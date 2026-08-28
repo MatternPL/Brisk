@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Win32;
 
-namespace Vaktmester
+namespace Brisk
 {
     public class UpdateInfo
     {
@@ -23,11 +23,11 @@ namespace Vaktmester
     public static class Updater
     {
         // Standardadresse. Kan overstyres uten å bygge på nytt ved å sette
-        // HKCU\Software\Vaktmester\OppdateringsUrl til en annen https-adresse.
+        // HKCU\Software\Brisk\OppdateringsUrl til en annen https-adresse.
         public const string DefaultManifestUrl =
             "https://raw.githubusercontent.com/MatternPL/Vaktmester/main/oppdatering.json";
 
-        const string SettingsKey = @"Software\Vaktmester";
+        const string SettingsKey = @"Software\Brisk";
 
         // ---------------------------------------------------------------
         public static string CurrentVersion
@@ -113,7 +113,7 @@ namespace Vaktmester
                     SecurityProtocolType.Tls12 | (SecurityProtocolType)3072;
                 using (WebClient wc = new WebClient())
                 {
-                    wc.Headers.Add("User-Agent", "Vaktmester/" + CurrentVersion);
+                    wc.Headers.Add("User-Agent", "Brisk/" + CurrentVersion);
                     wc.Encoding = Encoding.UTF8;
                     json = wc.DownloadString(url + (url.IndexOf('?') >= 0 ? "&" : "?") +
                                              "t=" + DateTime.UtcNow.Ticks);
@@ -215,13 +215,13 @@ namespace Vaktmester
         {
             error = null;
             string path = Path.Combine(Path.GetTempPath(),
-                "Vaktmester-" + u.Version + "-installer.exe");
+                "Brisk-" + u.Version + "-installer.exe");
             try
             {
                 ServicePointManager.SecurityProtocol =
                     SecurityProtocolType.Tls12 | (SecurityProtocolType)3072;
                 HttpWebRequest req = (HttpWebRequest)WebRequest.Create(u.Url);
-                req.UserAgent = "Vaktmester/" + CurrentVersion;
+                req.UserAgent = "Brisk/" + CurrentVersion;
                 req.Timeout = 30000;
                 using (HttpWebResponse res = (HttpWebResponse)req.GetResponse())
                 using (Stream src = res.GetResponseStream())
@@ -302,7 +302,7 @@ namespace Vaktmester
             {
                 string dir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "Programs", "Vaktmester");
+                    "Programs", "Brisk");
                 string me = Path.GetFullPath(Util.ExePath());
                 return me.StartsWith(Path.GetFullPath(dir), StringComparison.OrdinalIgnoreCase);
             }

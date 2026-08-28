@@ -3,9 +3,9 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Vaktmester;
+using Brisk;
 
-namespace VaktmesterSetup
+namespace BriskSetup
 {
     public class SetupForm : Form
     {
@@ -21,7 +21,7 @@ namespace VaktmesterSetup
         {
             uninstallMode = uninstall;
 
-            Text = L.T(uninstall ? "Avinstaller Vaktmester" : "Installer Vaktmester");
+            Text = L.T(uninstall ? "Avinstaller Brisk" : "Installer Brisk");
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
@@ -50,7 +50,7 @@ namespace VaktmesterSetup
                     e.Graphics.DrawLine(p, 0, head.Height - 1, head.Width, head.Height - 1);
             };
 
-            lblHead = Theme.Lbl(uninstallMode ? L.T("Avinstaller Vaktmester") : "Vaktmester",
+            lblHead = Theme.Lbl(uninstallMode ? L.T("Avinstaller Brisk") : "Brisk",
                 new Font("Segoe UI Light", 22f), Theme.Text);
             lblHead.Location = new Point(132, 34);
             lblSub = Theme.Lbl(uninstallMode
@@ -233,16 +233,16 @@ namespace VaktmesterSetup
             }
             else if (uninstallMode)
             {
-                lblHead.Text = L.T("Vaktmester er fjernet");
+                lblHead.Text = L.T("Brisk er fjernet");
                 lblSub.Text = "";
                 primary.Text = L.T("Lukk");
             }
             else
             {
                 lblHead.Text = L.T("Ferdig installert");
-                lblSub.Text = L.T("Du finner Vaktmester i Start-menyen.");
+                lblSub.Text = L.T("Du finner Brisk i Start-menyen.");
                 primary.Text = (chkLaunch != null && chkLaunch.Checked)
-                    ? L.T("Start Vaktmester") : L.T("Lukk");
+                    ? L.T("Start Brisk") : L.T("Lukk");
             }
         }
 

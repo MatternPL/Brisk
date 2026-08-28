@@ -1,6 +1,6 @@
 # Byggeresultater - lages av bygg.cmd, hentes fra Releases
-Vaktmester.exe
-Vaktmester-Installer.exe
-vaktmester.ico
-vaktmester.png
+Brisk.exe
+Brisk-Installer.exe
+brisk.ico
+brisk.png
 tools/*.exe

@@ -6,12 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Vaktmester
+namespace Brisk
 {
     public partial class MainForm : Form
     {
         Panel side, content, host, statusBar;
         Label lblTitle, lblSubtitle, lblStatus;
+        Bar busyBar;
         List<NavBtn> navs = new List<NavBtn>();
         Dictionary<string, Panel> pages = new Dictionary<string, Panel>();
         string current = "";
@@ -22,19 +23,19 @@ namespace Vaktmester
 
         public MainForm(string startPage)
         {
-            Text = "Vaktmester";
+            Text = "Brisk";
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(1120, 760);
-            MinimumSize = new Size(960, 640);
+            ClientSize = new Size(1180, 780);
+            MinimumSize = new Size(1000, 740);
             BackColor = Theme.Bg;
             ForeColor = Theme.Text;
             Font = Theme.F;
             DoubleBuffered = true;
             Theme.ApplyIcon(this);
 
-            tips.AutoPopDelay = 12000;
-            tips.InitialDelay = 500;
-            tips.ReshowDelay = 200;
+            tips.AutoPopDelay = 15000;
+            tips.InitialDelay = 400;
+            tips.ReshowDelay = 150;
 
             BuildShell();
             Show(string.IsNullOrEmpty(startPage) ? "oversikt" : startPage);
@@ -65,25 +66,30 @@ namespace Vaktmester
             content = new Panel();
             content.Dock = DockStyle.Fill;
             content.BackColor = Theme.Bg;
-            content.Padding = new Padding(28, 22, 28, 0);
+            content.Padding = new Padding(30, 22, 30, 0);
             Controls.Add(content);
 
             side = new Panel();
             side.Dock = DockStyle.Left;
-            side.Width = 218;
+            side.Width = 224;
             side.BackColor = Theme.Side;
             Controls.Add(side);
 
             statusBar = new Panel();
             statusBar.Dock = DockStyle.Bottom;
-            statusBar.Height = 30;
+            statusBar.Height = 34;
             statusBar.BackColor = Theme.Bg;
+            busyBar = new Bar();
+            busyBar.Height = 3;
+            busyBar.Dock = DockStyle.Top;
+            busyBar.Visible = false;
             lblStatus = Theme.Lbl("", Theme.FSmall, Theme.Muted);
-            lblStatus.Location = new Point(2, 8);
+            lblStatus.Location = new Point(2, 12);
             lblStatus.AutoSize = false;
-            lblStatus.Size = new Size(900, 18);
+            lblStatus.Size = new Size(960, 18);
             lblStatus.AutoEllipsis = true;
             statusBar.Controls.Add(lblStatus);
+            statusBar.Controls.Add(busyBar);
             content.Controls.Add(statusBar);
 
             host = new Panel();
@@ -94,7 +100,7 @@ namespace Vaktmester
 
             Panel header = new Panel();
             header.Dock = DockStyle.Top;
-            header.Height = 74;
+            header.Height = 70;
             header.BackColor = Theme.Bg;
             lblTitle = Theme.Lbl("", Theme.FTitle, Theme.Text);
             lblTitle.Location = new Point(0, 0);
@@ -107,37 +113,38 @@ namespace Vaktmester
             // --- sidemeny ---
             Panel adminBox = new Panel();
             adminBox.Dock = DockStyle.Bottom;
-            adminBox.Height = Util.IsAdmin() ? 40 : 76;
+            adminBox.Height = Util.IsAdmin() ? 36 : 74;
             adminBox.BackColor = Theme.Side;
             if (Util.IsAdmin())
             {
                 Label ok = Theme.Lbl("● " + L.T("Administrator"), Theme.FSmall, Theme.Good);
-                ok.Location = new Point(16, 8);
+                ok.Location = new Point(20, 6);
                 adminBox.Controls.Add(ok);
             }
             else
             {
-                Label w = Theme.Lbl("● " + L.T("Begrenset"), Theme.FSmall, Theme.Warn);
-                w.Location = new Point(16, 6);
+                Label w = Theme.Lbl("● " + L.T("Begrenset tilgang"), Theme.FSmall, Theme.Warn);
+                w.Location = new Point(20, 4);
                 adminBox.Controls.Add(w);
                 FlatBtn b = new FlatBtn(L.T("Kjør som administrator"));
-                b.Height = 28;
-                b.Width = 186;
-                b.Location = new Point(16, 28);
+                b.Warn();
+                b.Height = 30; b.Width = 184;
+                b.Location = new Point(20, 26);
                 b.Font = Theme.FSmall;
                 b.Click += delegate { if (Util.RelaunchAsAdmin()) Application.Exit(); };
                 adminBox.Controls.Add(b);
+                Tip(b, "Rydding av systemfiler, drivere og reparasjon krever administrator.");
             }
             side.Controls.Add(adminBox);
 
             Panel langBox = new Panel();
             langBox.Dock = DockStyle.Bottom;
-            langBox.Height = 44;
+            langBox.Height = 42;
             langBox.BackColor = Theme.Side;
             FlatBtn bEn = new FlatBtn("English");
             FlatBtn bNo = new FlatBtn("Norsk");
-            bEn.Width = 91; bEn.Height = 28; bEn.Location = new Point(16, 8); bEn.Font = Theme.FSmall;
-            bNo.Width = 91; bNo.Height = 28; bNo.Location = new Point(111, 8); bNo.Font = Theme.FSmall;
+            bEn.Width = 90; bEn.Height = 28; bEn.Location = new Point(20, 6); bEn.Font = Theme.FSmall;
+            bNo.Width = 90; bNo.Height = 28; bNo.Location = new Point(114, 6); bNo.Font = Theme.FSmall;
             if (L.IsNorwegian) bNo.Primary(); else bEn.Primary();
             EventHandler bytt = delegate(object s2, EventArgs e2)
             {
@@ -169,10 +176,11 @@ namespace Vaktmester
             navHost.BringToFront();
 
             // Omvendt rekkefølge — Dock.Top stabler nedenfra.
-            AddNav(navHost, "logg", L.T("Logg"));
             AddNav(navHost, "vedlikehold", L.T("Vedlikehold"));
             AddNav(navHost, "programmer", L.T("Programvare"));
             AddNav(navHost, "drivere", L.T("Oppdateringer"));
+            AddNav(navHost, "nettverk", L.T("Nettverk"));
+            AddNav(navHost, "helse", L.T("Helse"));
             AddNav(navHost, "minne", L.T("Minne"));
             AddNav(navHost, "oppstart", L.T("Oppstart"));
             AddNav(navHost, "diskplass", L.T("Diskplass"));
@@ -181,16 +189,16 @@ namespace Vaktmester
 
             Panel brand = new Panel();
             brand.Dock = DockStyle.Top;
-            brand.Height = 100;
+            brand.Height = 96;
             brand.BackColor = Theme.Side;
             brand.Paint += delegate(object s, PaintEventArgs e)
             {
-                Logo.Paint(e.Graphics, 18, 28, 40, true);
+                Logo.Paint(e.Graphics, 20, 26, 40, true);
             };
-            Label b1 = Theme.Lbl("Vaktmester", new Font("Segoe UI Light", 16f), Theme.Text);
-            b1.Location = new Point(68, 26);
+            Label b1 = Theme.Lbl("Brisk", new Font("Segoe UI Light", 19f), Theme.Text);
+            b1.Location = new Point(70, 24);
             Label b2 = Theme.Lbl("v" + Updater.CurrentVersion, Theme.FSmall, Theme.Muted);
-            b2.Location = new Point(70, 58);
+            b2.Location = new Point(72, 58);
             brand.Controls.Add(b1);
             brand.Controls.Add(b2);
             navHost.Controls.Add(brand);
@@ -199,13 +207,14 @@ namespace Vaktmester
         void AddNav(Panel parent, string key, string text)
         {
             NavBtn n = new NavBtn(text);
+            n.Key = key;
             n.Click += delegate { Show(key); };
             n.Tag = key;
             parent.Controls.Add(n);
             navs.Add(n);
         }
 
-        void Show(string key)
+        public void Show(string key)
         {
             if (current == key) return;
             current = key;
@@ -238,6 +247,8 @@ namespace Vaktmester
                 case "diskplass": return L.T("Diskplass");
                 case "oppstart": return L.T("Oppstart");
                 case "minne": return L.T("Minne");
+                case "helse": return L.T("Helse");
+                case "nettverk": return L.T("Nettverk");
                 case "drivere": return L.T("Oppdateringer");
                 case "programmer": return L.T("Programvare");
                 case "vedlikehold": return L.T("Vedlikehold");
@@ -254,9 +265,11 @@ namespace Vaktmester
                 case "diskplass": return L.T("Hvor plassen har blitt av.");
                 case "oppstart": return L.T("Det som starter med Windows.");
                 case "minne": return L.T("Hva RAM-en brukes til.");
+                case "helse": return L.T("Disker, kræsj og batteri.");
+                case "nettverk": return L.T("Er tilkoblingen som den skal?");
                 case "drivere": return L.T("Fra Windows Update.");
                 case "programmer": return L.T("Oppdater eller fjern programmer.");
-                case "vedlikehold": return L.T("Reparasjon og diskhelse.");
+                case "vedlikehold": return L.T("Reparasjon og verktøy.");
                 default: return L.T("Alt som er gjort.");
             }
         }
@@ -270,6 +283,8 @@ namespace Vaktmester
                 case "diskplass": return PageDisk();
                 case "oppstart": return PageStartup();
                 case "minne": return PageMemory();
+                case "helse": return PageHealth();
+                case "nettverk": return PageNetwork();
                 case "drivere": return PageDrivers();
                 case "programmer": return PageApps();
                 case "vedlikehold": return PageMaint();
@@ -321,6 +336,19 @@ namespace Vaktmester
             lblStatus.Text = s;
         }
 
+        public void Busy(bool on)
+        {
+            if (IsHandleCreated && InvokeRequired)
+            {
+                BeginInvoke((Action)delegate { Busy(on); });
+                return;
+            }
+            try { busyBar.Pulse(on); }
+            catch { }
+            Cursor = on ? Cursors.AppStarting : Cursors.Default;
+            if (!on) Status("");
+        }
+
         void SetNavEnabled(bool on)
         {
             foreach (NavBtn n in navs) n.Enabled = on;
@@ -344,12 +372,25 @@ namespace Vaktmester
             return p;
         }
 
+        // Overskrift over en liste.
+        static Label SectionLabel(string text)
+        {
+            Label l = Theme.Lbl(text, Theme.FBold, Theme.Text);
+            l.Dock = DockStyle.Top;
+            l.Height = 26;
+            return l;
+        }
+
         // ==============================================================
         //  OVERSIKT
         // ==============================================================
+        Label ovVerdict, ovVerdictSub;
+        Panel heroCard;
+        Color heroColor = Theme.Good;
         Label ovRam, ovRamSub, ovDisk, ovDiskSub, ovStart, ovStartSub, ovJunk, ovJunkSub;
         Bar ovRamBar, ovDiskBar;
         ListView lvFindings;
+        FlatBtn btnScan, btnCleanNow;
         long junkFound = -1;
 
         Panel PageOverview()
@@ -358,13 +399,54 @@ namespace Vaktmester
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
+            // --- hovedkort ---
+            Panel heroHost = new Panel();
+            heroHost.Dock = DockStyle.Top;
+            heroHost.Height = 116;
+            heroHost.BackColor = Theme.Bg;
+
+            heroCard = Theme.MakeCard();
+            heroCard.Dock = DockStyle.Fill;
+            heroCard.Paint += delegate(object s, PaintEventArgs e)
+            {
+                using (SolidBrush b = new SolidBrush(heroColor))
+                    e.Graphics.FillRectangle(b, 0, 0, 4, heroCard.Height);
+            };
+
+            ovVerdict = Theme.Lbl("", new Font("Segoe UI Light", 21f), Theme.Text);
+            ovVerdict.Location = new Point(28, 24);
+            ovVerdictSub = Theme.Lbl("", Theme.F, Theme.Muted);
+            ovVerdictSub.Location = new Point(30, 62);
+
+            btnScan = new FlatBtn(L.T("Sjekk PC-en"));
+            btnScan.Primary().Big();
+            btnScan.Width = 170;
+            btnScan.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            Tip(btnScan, "Måler søppelfiler og ser etter ting som er verdt å gjøre noe med. Endrer ingenting.");
+
+            btnCleanNow = new FlatBtn(L.T("Rydd opp"));
+            btnCleanNow.Good().Big();
+            btnCleanNow.Width = 170;
+            btnCleanNow.Visible = false;
+            btnCleanNow.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            Tip(btnCleanNow, "Sletter bare det som er merket trygt. Windows.old og dine egne filer røres aldri.");
+
+            heroCard.Controls.Add(ovVerdict);
+            heroCard.Controls.Add(ovVerdictSub);
+            heroCard.Controls.Add(btnScan);
+            heroCard.Controls.Add(btnCleanNow);
+            heroCard.Resize += delegate { LayoutHero(); };
+            heroHost.Controls.Add(heroCard);
+
+            // --- fire tall ---
             Panel cards = new Panel();
             cards.Dock = DockStyle.Top;
-            cards.Height = 152;
+            cards.Height = 140;
             cards.BackColor = Theme.Bg;
+            cards.Padding = new Padding(0, 14, 0, 0);
 
             Panel c1 = StatCard(out ovRam, out ovRamSub, L.T("Minne"), out ovRamBar);
-            Panel c2 = StatCard(out ovDisk, out ovDiskSub, L.T("Ledig på systemdisken"), out ovDiskBar);
+            Panel c2 = StatCard(out ovDisk, out ovDiskSub, L.T("Ledig plass"), out ovDiskBar);
             Panel c3 = StatCard(out ovStart, out ovStartSub, L.T("Starter med Windows"), null);
             Panel c4 = StatCard(out ovJunk, out ovJunkSub, L.T("Søppel"), null);
 
@@ -381,48 +463,39 @@ namespace Vaktmester
             grid.Controls.Add(Wrap(c4), 3, 0);
             cards.Controls.Add(grid);
 
-            Panel actions = Row(58);
-            FlatBtn scan = new FlatBtn(L.T("Kjør sjekk"));
-            scan.Primary();
-            scan.Width = 140;
-            scan.Location = new Point(0, 12);
-            FlatBtn refresh = new FlatBtn(L.T("Oppdater"));
-            refresh.Width = 120;
-            refresh.Location = new Point(152, 12);
-            actions.Controls.Add(scan);
-            actions.Controls.Add(refresh);
-            Tip(scan, "Måler søppelfiler og ser etter ting som er verdt å gjøre noe med.");
-
-            Label h = Theme.Lbl(L.T("Verdt å se på"), Theme.FBold, Theme.Text);
-            h.Dock = DockStyle.Top;
-            h.Height = 26;
-
+            // --- funn ---
             Panel listHost = new Panel();
             listHost.Dock = DockStyle.Fill;
             listHost.BackColor = Theme.Bg;
-            lvFindings = ListIn(listHost, false, L.T("Funn"), "620", L.T("Hva du kan gjøre"), "420");
-            lvFindings.DoubleClick += delegate
-            {
-                if (lvFindings.SelectedItems.Count == 0) return;
-                string key = Convert.ToString(lvFindings.SelectedItems[0].Tag);
-                if (!string.IsNullOrEmpty(key)) Show(key);
-            };
-            listHost.Controls.Add(h);
+            listHost.Padding = new Padding(0, 14, 0, 0);
+            lvFindings = ListIn(listHost, false, L.T("Funn"), "640", L.T("Hva du kan gjøre"), "420");
+            lvFindings.DoubleClick += delegate { OpenFinding(); };
+            listHost.Controls.Add(SectionLabel(L.T("Verdt å se på")));
 
             p.Controls.Add(listHost);
-            p.Controls.Add(actions);
             p.Controls.Add(cards);
+            p.Controls.Add(heroHost);
 
-            scan.Click += async delegate
-            {
-                scan.Enabled = false; refresh.Enabled = false;
-                await FullScan();
-                scan.Enabled = true; refresh.Enabled = true;
-            };
-            refresh.Click += delegate { RefreshOverview(); };
+            btnScan.Click += async delegate { await FullScan(); };
+            btnCleanNow.Click += async delegate { await QuickClean(); };
 
-            Defer(delegate { RefreshOverview(); });
+            Defer(delegate { LayoutHero(); RefreshOverview(); });
             return p;
+        }
+
+        void LayoutHero()
+        {
+            if (heroCard == null) return;
+            int right = heroCard.Width - 28;
+            btnScan.Location = new Point(right - btnScan.Width, 36);
+            btnCleanNow.Location = new Point(right - btnScan.Width - btnCleanNow.Width - 12, 36);
+        }
+
+        void OpenFinding()
+        {
+            if (lvFindings.SelectedItems.Count == 0) return;
+            string key = Convert.ToString(lvFindings.SelectedItems[0].Tag);
+            if (!string.IsNullOrEmpty(key)) Show(key);
         }
 
         static Panel Wrap(Panel inner)
@@ -430,7 +503,7 @@ namespace Vaktmester
             Panel w = new Panel();
             w.Dock = DockStyle.Fill;
             w.BackColor = Theme.Bg;
-            w.Padding = new Padding(0, 0, 12, 0);
+            w.Padding = new Padding(0, 0, 14, 0);
             inner.Dock = DockStyle.Fill;
             w.Controls.Add(inner);
             return w;
@@ -440,14 +513,14 @@ namespace Vaktmester
         {
             Panel c = Theme.MakeCard();
             Label cap = Theme.Lbl(caption, Theme.FSmall, Theme.Muted);
-            cap.Location = new Point(16, 14);
+            cap.Location = new Point(18, 14);
             big = Theme.Lbl("—", Theme.FBig, Theme.Text);
-            big.Location = new Point(13, 34);
+            big.Location = new Point(15, 34);
             sub = Theme.Lbl("", Theme.FSmall, Theme.Muted);
-            sub.Location = new Point(16, 96);
+            sub.Location = new Point(18, 96);
             bar = new Bar();
-            bar.Location = new Point(16, 82);
-            bar.Width = 180;
+            bar.Location = new Point(18, 82);
+            bar.Width = 170;
             c.Controls.Add(cap);
             c.Controls.Add(big);
             c.Controls.Add(sub);
@@ -460,17 +533,20 @@ namespace Vaktmester
             Bar b;
             Panel p = StatCard(out big, out sub, caption, out b);
             b.Visible = false;
-            sub.Location = new Point(16, 84);
+            sub.Location = new Point(18, 84);
             return p;
         }
 
-        void AddFinding(Color dot, string text, string action, string page)
+        int findingWorst;
+
+        void AddFinding(int level, string text, string action, string page)
         {
-            ListViewItem li = new ListViewItem("● " + text);
+            ListViewItem li = new ListViewItem("●  " + text);
             li.SubItems.Add(action);
-            li.ForeColor = dot;
+            li.ForeColor = level >= 2 ? Theme.Bad : level == 1 ? Theme.Warn : Theme.Muted;
             li.Tag = page;
             lvFindings.Items.Add(li);
+            if (level > findingWorst) findingWorst = level;
         }
 
         void RefreshOverview()
@@ -501,31 +577,29 @@ namespace Vaktmester
                 ovStart.Text = active.ToString();
                 ovStartSub.Text = L.F("av {0}", total);
 
-                if (junkFound >= 0)
-                {
-                    ovJunk.Text = Util.Bytes(junkFound);
-                    ovJunkSub.Text = "";
-                }
+                ovJunk.Text = junkFound >= 0 ? Util.Bytes(junkFound) : "—";
+                ovJunkSub.Text = junkFound >= 0 ? "" : L.T("ikke målt");
 
                 // --- funn ---
+                findingWorst = 0;
                 lvFindings.BeginUpdate();
                 lvFindings.Items.Clear();
 
                 if (freePct < 0.15)
-                    AddFinding(freePct < 0.08 ? Theme.Bad : Theme.Warn,
+                    AddFinding(freePct < 0.08 ? 2 : 1,
                         L.F("Bare {0} ledig på {1}", Util.Bytes(sys.AvailableFreeSpace), sys.Name),
                         L.T("Rydd, eller se hva som tar plassen"), "diskplass");
 
                 if (junkFound > 1024L * 1024 * 1024)
-                    AddFinding(Theme.Warn, L.F("{0} søppelfiler", Util.Bytes(junkFound)),
-                        L.T("Rens dem"), "rydding");
+                    AddFinding(1, L.F("{0} søppelfiler", Util.Bytes(junkFound)),
+                        L.T("Trykk «Rydd opp»"), "rydding");
 
                 if (active > 8)
-                    AddFinding(Theme.Warn, L.F("{0} programmer starter med Windows", active),
+                    AddFinding(1, L.F("{0} programmer starter med Windows", active),
                         L.T("Slå av det du ikke trenger"), "oppstart");
 
                 if (m.LoadPercent > 85)
-                    AddFinding(Theme.Warn, L.F("Minnet er {0} % fullt", m.LoadPercent),
+                    AddFinding(1, L.F("Minnet er {0} % fullt", m.LoadPercent),
                         L.T("Se hva som bruker det"), "minne");
 
                 try
@@ -535,60 +609,133 @@ namespace Vaktmester
                     foreach (ProblemDevice d in devs)
                         if (d.ErrorCode != 22 && d.ErrorCode != 45) real++;
                     if (real > 0)
-                        AddFinding(Theme.Bad, L.F("{0} enheter melder feil", real),
+                        AddFinding(2, L.F("{0} enheter melder feil", real),
                             L.T("Se etter drivere"), "drivere");
                 }
                 catch { }
 
                 try
                 {
-                    string wold = Util.Expand("%SystemDrive%\\Windows.old");
-                    if (Directory.Exists(wold))
-                        AddFinding(Theme.Warn, L.T("Windows.old ligger igjen etter en oppgradering"),
+                    if (Directory.Exists(Util.Expand("%SystemDrive%\\Windows.old")))
+                        AddFinding(1, L.T("Windows.old ligger igjen etter en oppgradering"),
                             L.T("Kan slettes under Rydding"), "rydding");
                 }
                 catch { }
 
                 foreach (DiskInfo d in MaintenanceTools.PhysicalDisks())
                     if (d.Health != "Frisk" && d.Health != "Ukjent")
-                        AddFinding(Theme.Bad, L.F("Disken {0} melder «{1}»", d.Name, L.T(d.Health)),
-                            L.T("Ta sikkerhetskopi nå"), "vedlikehold");
+                        AddFinding(2, L.F("Disken {0} melder «{1}»", d.Name, L.T(d.Health)),
+                            L.T("Ta sikkerhetskopi nå"), "helse");
+
+                try
+                {
+                    List<CrashEvent> cr = HealthTools.Crashes(20);
+                    int recent = 0;
+                    foreach (CrashEvent c in cr)
+                        if ((DateTime.Now - c.Time).TotalDays < 30) recent++;
+                    if (recent > 0)
+                        AddFinding(recent > 2 ? 2 : 1,
+                            L.F("{0} blåskjermer siste måned", recent),
+                            L.T("Se detaljene under Helse"), "helse");
+                }
+                catch { }
 
                 if (lvFindings.Items.Count == 0)
                 {
-                    ListViewItem li = new ListViewItem("● " + L.T("Ingenting å påpeke."));
-                    li.SubItems.Add(junkFound < 0 ? L.T("Kjør en sjekk for å måle søppelfiler") : "");
+                    ListViewItem li = new ListViewItem("●  " + L.T("Ingenting å påpeke."));
+                    li.SubItems.Add(junkFound < 0 ? L.T("Trykk «Sjekk PC-en» for å måle søppelfiler") : "");
                     li.ForeColor = Theme.Good;
                     lvFindings.Items.Add(li);
                 }
                 lvFindings.EndUpdate();
+
+                SetVerdict();
             }
             catch (Exception ex) { Status(L.T("Kunne ikke lese systemtall: ") + ex.Message); }
         }
 
+        void SetVerdict()
+        {
+            int n = 0;
+            foreach (ListViewItem li in lvFindings.Items)
+                if (li.Tag != null) n++;
+
+            if (n == 0)
+            {
+                heroColor = Theme.Good;
+                ovVerdict.ForeColor = Theme.Good;
+                ovVerdict.Text = L.T("Alt ser bra ut");
+                ovVerdictSub.Text = junkFound < 0
+                    ? L.T("Kjør en sjekk for å være sikker.")
+                    : L.T("Ingenting trenger oppmerksomhet nå.");
+            }
+            else
+            {
+                heroColor = findingWorst >= 2 ? Theme.Bad : Theme.Warn;
+                ovVerdict.ForeColor = heroColor;
+                ovVerdict.Text = n == 1
+                    ? L.T("Én ting er verdt å se på")
+                    : L.F("{0} ting er verdt å se på", n);
+                ovVerdictSub.Text = L.T("Dobbeltklikk en rad under for å gå dit.");
+            }
+
+            btnCleanNow.Visible = junkFound > 50L * 1024 * 1024;
+            if (btnCleanNow.Visible)
+                btnCleanNow.Text = L.F("Rydd opp {0}", Util.Bytes(junkFound));
+            LayoutHero();
+            heroCard.Invalidate();
+        }
+
         async Task FullScan()
         {
-            Status(L.T("Måler …"));
             long total = 0;
             List<CleanTarget> targets = Cleaner.BuildTargets();
-            CancellationTokenSource c = new CancellationTokenSource();
-            try
+            cts = new CancellationTokenSource();
+            CancellationToken ct = cts.Token;
+            await Job(new Control[] { btnScan, btnCleanNow }, delegate
             {
-                await Task.Run(delegate
+                foreach (CleanTarget t in targets)
                 {
-                    foreach (CleanTarget t in targets)
-                    {
-                        Status(L.T(t.Name));
-                        Cleaner.Scan(t, c.Token, null);
-                        total += t.FoundBytes;
-                    }
-                });
-                junkFound = total;
-                RefreshOverview();
-                Status(L.F("{0} kan ryddes bort.", Util.Bytes(total)));
-                Util.Log("Sjekk: " + Util.Bytes(total) + " søppel funnet.");
-            }
-            catch (Exception ex) { Status(L.T("Avbrutt: ") + ex.Message); }
+                    Status(L.T(t.Name));
+                    Cleaner.Scan(t, ct, null);
+                    total += t.FoundBytes;
+                }
+            });
+            junkFound = total;
+            RefreshOverview();
+            Status(L.F("{0} kan ryddes bort.", Util.Bytes(total)));
+            Util.Log("Sjekk: " + Util.Bytes(total) + " søppel funnet.");
+        }
+
+        // Rydder bare de trygge kategoriene, med tydelig bekreftelse først.
+        async Task QuickClean()
+        {
+            if (MessageBox.Show(this,
+                    L.F("Sletter {0} søppelfiler.", Util.Bytes(junkFound)) + "\n\n" +
+                    L.T("Dine egne filer, bilder, passord og bokmerker røres ikke.") + "\n\n" +
+                    L.T("Fortsette?"),
+                    L.T("Rydd opp"), MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question) != DialogResult.Yes) return;
+
+            cts = new CancellationTokenSource();
+            CancellationToken ct = cts.Token;
+            long freed = 0;
+            int deleted = 0, skipped = 0;
+            await Job(new Control[] { btnScan, btnCleanNow }, delegate
+            {
+                foreach (CleanTarget t in Cleaner.BuildTargets())
+                {
+                    if (t.Risk != Risk.Trygg) continue;
+                    Status(L.T(t.Name));
+                    Cleaner.CleanResult r = Cleaner.Clean(t, ct, null);
+                    freed += r.Freed; deleted += r.Deleted; skipped += r.Skipped;
+                }
+            });
+            junkFound = 0;
+            RefreshOverview();
+            Status(L.F("Frigjorde {0}. {1} filer slettet, {2} var i bruk.",
+                Util.Bytes(freed), deleted.ToString("N0"), skipped));
+            Util.Log("Hurtigrydding: " + Util.Bytes(freed) + " frigjort.");
         }
 
         // ==============================================================
@@ -602,12 +749,12 @@ namespace Vaktmester
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
-            Panel bar = Row(50);
+            Panel bar = Row(52);
             FlatBtn open = new FlatBtn(L.T("Åpne loggfil"));
-            open.Width = 130; open.Location = new Point(0, 8);
+            open.Width = 140; open.Location = new Point(0, 8);
             open.Click += delegate { Util.OpenPath(Util.LogPath); };
             FlatBtn clear = new FlatBtn(L.T("Tøm visning"));
-            clear.Width = 120; clear.Location = new Point(142, 8);
+            clear.Width = 130; clear.Location = new Point(152, 8);
             clear.Click += delegate { logBox.Clear(); };
             bar.Controls.Add(open);
             bar.Controls.Add(clear);

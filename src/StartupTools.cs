@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Microsoft.Win32;
 
-namespace Vaktmester
+namespace Brisk
 {
     public enum StartupKind { RegistryHKCU, RegistryHKLM, RegistryHKLM32, Folder, Task }
 

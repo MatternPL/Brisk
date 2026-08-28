@@ -4,7 +4,7 @@ using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace Vaktmester
+namespace Brisk
 {
     static class Theme
     {
@@ -114,7 +114,7 @@ namespace Vaktmester
             try
             {
                 using (System.IO.Stream st = System.Reflection.Assembly
-                           .GetExecutingAssembly().GetManifestResourceStream("vaktmester.icon"))
+                           .GetExecutingAssembly().GetManifestResourceStream("brisk.icon"))
                     if (st != null) appIcon = new Icon(st);
             }
             catch { }
@@ -293,6 +293,30 @@ namespace Vaktmester
             return this;
         }
 
+        public FlatBtn Good()
+        {
+            Base = Color.FromArgb(0x1E, 0x4A, 0x35);
+            Hover = Color.FromArgb(0x27, 0x60, 0x44);
+            ForeColor = Color.FromArgb(0xB6, 0xF0, 0xD1);
+            return this;
+        }
+
+        public FlatBtn Warn()
+        {
+            Base = Color.FromArgb(0x4A, 0x3C, 0x1C);
+            Hover = Color.FromArgb(0x60, 0x4D, 0x24);
+            ForeColor = Color.FromArgb(0xFF, 0xDF, 0xA8);
+            return this;
+        }
+
+        // Stor variant til hovedhandlingen paa en side.
+        public FlatBtn Big()
+        {
+            Height = 44;
+            Font = new Font("Segoe UI Semibold", 11f);
+            return this;
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             Color c = !Enabled ? Color.FromArgb(0x22, 0x25, 0x2C)
@@ -311,12 +335,12 @@ namespace Vaktmester
     {
         public bool Active;
         bool over;
-        public string Sub = "";
+        public string Key = "";
 
         public NavBtn(string text)
         {
             Text = text;
-            Height = 44;
+            Height = 46;
             Dock = DockStyle.Top;
             Cursor = Cursors.Hand;
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
@@ -334,18 +358,39 @@ namespace Vaktmester
                 using (SolidBrush b = new SolidBrush(Theme.Accent))
                     g.FillRectangle(b, 0, 8, 3, Height - 16);
 
+            Color fg = Active ? Theme.Text : Theme.Muted;
+            Icons.Draw(g, Key, new RectangleF(20, (Height - 18) / 2f, 18, 18),
+                Active ? Theme.Accent : fg);
+
             TextRenderer.DrawText(g, Text, Active ? Theme.FBold : Theme.F,
-                new Rectangle(18, 0, Width - 24, Height),
-                Active ? Theme.Text : Theme.Muted,
+                new Rectangle(52, 0, Width - 58, Height), fg,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
         }
     }
 
-    // Enkel horisontal måler.
+    // Enkel horisontal måler. Indeterminate gir en vandrende stripe naar
+    // vi ikke vet hvor langt vi har kommet.
     class Bar : Control
     {
         public double Value;                     // 0..1
         public Color Fill = Theme.Accent;
+        public bool Indeterminate;
+        int phase;
+        System.Windows.Forms.Timer anim;
+
+        public void Pulse(bool on)
+        {
+            Indeterminate = on;
+            if (anim == null)
+            {
+                anim = new System.Windows.Forms.Timer();
+                anim.Interval = 40;
+                anim.Tick += delegate { phase = (phase + 6) % 260; Invalidate(); };
+            }
+            if (on) anim.Start(); else anim.Stop();
+            Visible = on || Value > 0;
+            Invalidate();
+        }
 
         public Bar()
         {
@@ -361,6 +406,14 @@ namespace Vaktmester
             g.Clear(Parent != null ? Parent.BackColor : Theme.Card);
             using (SolidBrush b = new SolidBrush(Color.FromArgb(0x2A, 0x2F, 0x3A)))
                 g.FillRectangle(b, 0, 0, Width, Height);
+            if (Indeterminate)
+            {
+                int bw = Math.Max(60, Width / 5);
+                int x = (int)((phase / 260.0) * (Width + bw)) - bw;
+                using (SolidBrush b = new SolidBrush(Fill))
+                    g.FillRectangle(b, x, 0, bw, Height);
+                return;
+            }
             int w = (int)Math.Round(Math.Max(0, Math.Min(1, Value)) * Width);
             if (w > 0)
                 using (SolidBrush b = new SolidBrush(Fill))

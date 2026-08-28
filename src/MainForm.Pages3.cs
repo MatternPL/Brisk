@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Vaktmester
+namespace Brisk
 {
     public partial class MainForm
     {

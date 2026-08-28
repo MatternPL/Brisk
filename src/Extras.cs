@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.Win32;
 
-namespace Vaktmester
+namespace Brisk
 {
     // ==================================================================
     //  WINDOWS-OPPDATERINGER (ikke drivere)
@@ -31,7 +31,7 @@ namespace Vaktmester
             {
                 Type t = Type.GetTypeFromProgID("Microsoft.Update.Session");
                 dynamic session = Activator.CreateInstance(t);
-                session.ClientApplicationID = "Vaktmester";
+                session.ClientApplicationID = "Brisk";
                 dynamic searcher = session.CreateUpdateSearcher();
                 searcher.Online = true;
                 dynamic res = searcher.Search("IsInstalled=0 and Type='Software' and IsHidden=0");
@@ -71,7 +71,7 @@ namespace Vaktmester
             try
             {
                 dynamic session = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.Session"));
-                session.ClientApplicationID = "Vaktmester";
+                session.ClientApplicationID = "Brisk";
                 dynamic coll = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.UpdateColl"));
                 foreach (WinUpdate w in chosen)
                 {
@@ -226,6 +226,180 @@ namespace Vaktmester
     }
 
     // ==================================================================
+    //  DUPLIKATER OG GLEMTE FILER
+    // ==================================================================
+    public class DupGroup
+    {
+        public long Size;
+        public List<string> Files = new List<string>();
+        public long Wasted { get { return Size * Math.Max(0, Files.Count - 1); } }
+    }
+
+    public static class DupTools
+    {
+        // Filer under denne grensen er ikke verdt tiden det tar å lese dem.
+        const long MinSize = 2L * 1024 * 1024;
+
+        public static List<DupGroup> Find(string root, CancellationToken ct, Action<string> progress)
+        {
+            // Steg 1: grupper på nøyaktig størrelse. To filer med ulik lengde kan
+            // aldri være like, så dette luker bort det meste helt gratis.
+            Dictionary<long, List<string>> bySize = new Dictionary<long, List<string>>();
+            Collect(root, 0, ct, progress, bySize);
+
+            List<DupGroup> result = new List<DupGroup>();
+            foreach (KeyValuePair<long, List<string>> kv in bySize)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (kv.Value.Count < 2) continue;
+
+                // Steg 2: hash de første 64 kB. Skiller nesten alltid.
+                Dictionary<string, List<string>> byHead = Group(kv.Value, ct, 65536);
+                foreach (KeyValuePair<string, List<string>> hk in byHead)
+                {
+                    if (hk.Value.Count < 2) continue;
+
+                    // Steg 3: full hash på det som fortsatt ser likt ut.
+                    Dictionary<string, List<string>> full = Group(hk.Value, ct, 0);
+                    foreach (KeyValuePair<string, List<string>> fk in full)
+                    {
+                        if (fk.Value.Count < 2) continue;
+                        DupGroup g = new DupGroup();
+                        g.Size = kv.Key;
+                        g.Files = fk.Value;
+                        result.Add(g);
+                    }
+                }
+            }
+
+            result.Sort(delegate(DupGroup a, DupGroup b) { return b.Wasted.CompareTo(a.Wasted); });
+            if (result.Count > 300) result.RemoveRange(300, result.Count - 300);
+            return result;
+        }
+
+        static void Collect(string dir, int depth, CancellationToken ct, Action<string> progress,
+            Dictionary<long, List<string>> bySize)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                DirectoryInfo di = new DirectoryInfo(dir);
+                if ((di.Attributes & FileAttributes.ReparsePoint) != 0) return;
+            }
+            catch { return; }
+
+            if (depth <= 1 && progress != null) progress(dir);
+
+            try
+            {
+                foreach (string f in Directory.GetFiles(dir))
+                {
+                    try
+                    {
+                        FileInfo fi = new FileInfo(f);
+                        if (fi.Length < MinSize) continue;
+                        if ((fi.Attributes & FileAttributes.ReparsePoint) != 0) continue;
+                        List<string> l;
+                        if (!bySize.TryGetValue(fi.Length, out l))
+                        {
+                            l = new List<string>();
+                            bySize[fi.Length] = l;
+                        }
+                        l.Add(f);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+
+            try
+            {
+                foreach (string d in Directory.GetDirectories(dir))
+                    Collect(d, depth + 1, ct, progress, bySize);
+            }
+            catch { }
+        }
+
+        static Dictionary<string, List<string>> Group(List<string> files, CancellationToken ct, int bytes)
+        {
+            Dictionary<string, List<string>> d = new Dictionary<string, List<string>>();
+            foreach (string f in files)
+            {
+                ct.ThrowIfCancellationRequested();
+                string h = Hash(f, bytes);
+                if (h == null) continue;
+                List<string> l;
+                if (!d.TryGetValue(h, out l)) { l = new List<string>(); d[h] = l; }
+                l.Add(f);
+            }
+            return d;
+        }
+
+        // bytes = 0 gir full hash.
+        static string Hash(string path, int bytes)
+        {
+            try
+            {
+                using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
+                using (FileStream fs = File.OpenRead(path))
+                {
+                    byte[] hash;
+                    if (bytes <= 0) hash = md5.ComputeHash(fs);
+                    else
+                    {
+                        byte[] buf = new byte[bytes];
+                        int n = fs.Read(buf, 0, bytes);
+                        hash = md5.ComputeHash(buf, 0, n);
+                    }
+                    return BitConverter.ToString(hash);
+                }
+            }
+            catch { return null; }
+        }
+
+        // Filer som ikke er rørt på lenge. Standard er nedlastingsmappa.
+        public static List<SizeEntry> Forgotten(string dir, int days, CancellationToken ct)
+        {
+            List<SizeEntry> list = new List<SizeEntry>();
+            DateTime limit = DateTime.Now.AddDays(-days);
+            Sweep(dir, 0, limit, ct, list);
+            list.Sort(delegate(SizeEntry a, SizeEntry b) { return b.Size.CompareTo(a.Size); });
+            if (list.Count > 200) list.RemoveRange(200, list.Count - 200);
+            return list;
+        }
+
+        static void Sweep(string dir, int depth, DateTime limit, CancellationToken ct, List<SizeEntry> list)
+        {
+            if (depth > 4) return;
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                foreach (string f in Directory.GetFiles(dir))
+                {
+                    try
+                    {
+                        FileInfo fi = new FileInfo(f);
+                        if (fi.Length < 10L * 1024 * 1024) continue;
+                        DateTime touched = fi.LastAccessTime > fi.LastWriteTime
+                            ? fi.LastAccessTime : fi.LastWriteTime;
+                        if (touched > limit) continue;
+                        SizeEntry e = new SizeEntry();
+                        e.Path = f;
+                        e.Name = fi.Name;
+                        e.Size = fi.Length;
+                        e.Files = (int)(DateTime.Now - touched).TotalDays;
+                        list.Add(e);
+                    }
+                    catch { }
+                }
+                foreach (string d in Directory.GetDirectories(dir))
+                    Sweep(d, depth + 1, limit, ct, list);
+            }
+            catch { }
+        }
+    }
+
+    // ==================================================================
     //  INSTALLERTE PROGRAMMER
     // ==================================================================
     public class InstalledApp
@@ -335,7 +509,7 @@ namespace Vaktmester
     // ==================================================================
     public static class ScheduleTools
     {
-        public const string TaskName = "Vaktmester ukentlig rydding";
+        public const string TaskName = "Brisk ukentlig rydding";
 
         public static bool Exists()
         {

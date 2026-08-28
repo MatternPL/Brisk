@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Vaktmester
+namespace Brisk
 {
     // P/Invoke-lag: minne, papirkurv og privilegier.
     static class Native

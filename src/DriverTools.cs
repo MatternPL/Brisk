@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Management;
 
-namespace Vaktmester
+namespace Brisk
 {
     public class DriverUpdate
     {
@@ -119,7 +119,7 @@ namespace Vaktmester
 
                 Type t = Type.GetTypeFromProgID("Microsoft.Update.Session");
                 dynamic session = Activator.CreateInstance(t);
-                session.ClientApplicationID = "Vaktmester";
+                session.ClientApplicationID = "Brisk";
                 dynamic searcher = session.CreateUpdateSearcher();
                 searcher.Online = true;
 
@@ -186,7 +186,7 @@ namespace Vaktmester
             {
                 Type ts = Type.GetTypeFromProgID("Microsoft.Update.Session");
                 dynamic session = Activator.CreateInstance(ts);
-                session.ClientApplicationID = "Vaktmester";
+                session.ClientApplicationID = "Brisk";
 
                 Type tc = Type.GetTypeFromProgID("Microsoft.Update.UpdateColl");
                 dynamic coll = Activator.CreateInstance(tc);

@@ -2,9 +2,9 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 
-namespace Vaktmester
+namespace Brisk
 {
-    // Merket til Vaktmester. Tre feiestrøk i bevegelse pluss en glans —
+    // Merket til Brisk. Tre feiestrøk i bevegelse pluss en glans —
     // leselig helt ned til 16 piksler, der en detaljert kost bare blir grøt.
     public static class Logo
     {

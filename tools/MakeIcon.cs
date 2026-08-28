@@ -1,4 +1,4 @@
-// Lager vaktmester.ico i flere oppløsninger fra det felles logo-merket.
+// Lager brisk.ico i flere oppløsninger fra det felles logo-merket.
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -8,13 +8,13 @@ static class MakeIcon
 {
     static int Main(string[] args)
     {
-        string outPath = args.Length > 0 ? args[0] : "vaktmester.ico";
+        string outPath = args.Length > 0 ? args[0] : "brisk.ico";
         int[] sizes = { 16, 24, 32, 48, 64, 128, 256 };
         byte[][] pngs = new byte[sizes.Length][];
 
         for (int i = 0; i < sizes.Length; i++)
         {
-            using (Bitmap b = Vaktmester.Logo.Bitmap(sizes[i], true))
+            using (Bitmap b = Brisk.Logo.Bitmap(sizes[i], true))
             using (MemoryStream ms = new MemoryStream())
             {
                 b.Save(ms, ImageFormat.Png);
@@ -45,7 +45,7 @@ static class MakeIcon
         }
 
         // PNG-forhåndsvisning så logoen kan sjekkes uten å åpne ikonet.
-        using (Bitmap b = Vaktmester.Logo.Bitmap(512, true))
+        using (Bitmap b = Brisk.Logo.Bitmap(512, true))
             b.Save(Path.ChangeExtension(outPath, ".png"), ImageFormat.Png);
 
         Console.WriteLine("Skrev " + outPath);

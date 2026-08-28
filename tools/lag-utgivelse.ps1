@@ -1,7 +1,7 @@
 # Lager en ny utgivelse: setter versjonsnummer, bygger, regner ut sha256
 # og skriver oppdatering.json som klientene sjekker mot.
 #
-#   .\utgivelse.cmd 1.1.0 https://github.com/BRUKER/vaktmester/releases/download/v1.1.0/Vaktmester-Installer.exe "Hva som er nytt"
+#   .\utgivelse.cmd 1.1.0 https://github.com/BRUKER/brisk/releases/download/v1.1.0/Brisk-Installer.exe "Hva som er nytt"
 
 param(
     [Parameter(Mandatory = $true)][string]$Versjon,
@@ -31,12 +31,12 @@ $t = $t -replace 'public const string Version = "[\d\.]+";', "public const strin
 Write-Host "== Bygger ==" -ForegroundColor Cyan
 Push-Location $rot
 try {
-    Get-Process Vaktmester -ErrorAction SilentlyContinue | Stop-Process -Force
+    Get-Process Brisk -ErrorAction SilentlyContinue | Stop-Process -Force
     & (Join-Path $rot "bygg.cmd")
     if ($LASTEXITCODE -ne 0) { throw "Bygget feilet" }
 } finally { Pop-Location }
 
-$exe = Join-Path $rot "Vaktmester-Installer.exe"
+$exe = Join-Path $rot "Brisk-Installer.exe"
 
 # Regner ut summen med .NET i stedet for Get-FileHash. Den cmdleten mangler
 # hvis skriptet startes fra en PowerShell 7-okt med endret PSModulePath.
@@ -76,7 +76,7 @@ Write-Host "  sha256     : $sha"
 Write-Host "  Manifest   : $ut"
 Write-Host ""
 Write-Host "Neste steg:" -ForegroundColor Yellow
-Write-Host "  1. Last opp Vaktmester-Installer.exe til adressen over."
+Write-Host "  1. Last opp Brisk-Installer.exe til adressen over."
 Write-Host "  2. Legg oppdatering.json der klientene henter den fra"
 Write-Host "     (se Updater.DefaultManifestUrl i src\Updater.cs)."
 Write-Host "  3. Klientene oppdager den innen et døgn, eller straks med"

@@ -3,14 +3,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 
-namespace Vaktmester
+namespace Brisk
 {
     // Felles hjelpefunksjoner: formatering, logging og kjøring av eksterne prosesser.
     static class Util
     {
         public static readonly string LogPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Vaktmester", "vaktmester.log");
+            "Brisk", "brisk.log");
 
         public static event Action<string> LogWritten;
 

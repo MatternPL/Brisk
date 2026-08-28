@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Forms;
 
-namespace Vaktmester
+namespace Brisk
 {
     static class Program
     {
@@ -21,7 +21,7 @@ namespace Vaktmester
             {
                 Util.Log("FEIL: " + e.Exception);
                 MessageBox.Show("Noe gikk galt:\n\n" + e.Exception.Message +
-                    "\n\nDetaljer er skrevet til loggen.", "Vaktmester",
+                    "\n\nDetaljer er skrevet til loggen.", "Brisk",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
             };
 
@@ -43,7 +43,7 @@ namespace Vaktmester
                     startPage = a.Substring(6).ToLowerInvariant();
             }
 
-            Util.Log("Vaktmester startet. Administrator: " + Util.IsAdmin());
+            Util.Log("Brisk startet. Administrator: " + Util.IsAdmin());
             Application.Run(new MainForm(startPage));
         }
     }

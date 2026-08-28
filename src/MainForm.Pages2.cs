@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Vaktmester
+namespace Brisk
 {
     public partial class MainForm
     {
@@ -26,10 +26,12 @@ namespace Vaktmester
         }
 
         // ==============================================================
-        //  DISKPLASS — hvor plassen faktisk har blitt av
+        //  DISKPLASS — hvor plassen har blitt av
         // ==============================================================
-        ListView lvFolders, lvFiles;
-        Chooser cboRoot;
+        ListView lvFolders, lvFiles, lvDup, lvOld;
+        Chooser cboRoot, cboMode;
+        SplitContainer splitBig;
+        Panel dupHost, oldHost;
         Label lblDiskSum;
 
         Panel PageDisk()
@@ -38,50 +40,93 @@ namespace Vaktmester
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
+            cboMode = new Chooser();
+            cboMode.Width = 210;
+            cboMode.Add(L.T("Største mapper og filer"));
+            cboMode.Add(L.T("Duplikater"));
+            cboMode.Add(L.T("Glemte filer"));
+
             cboRoot = new Chooser();
             cboRoot.Width = 230;
             foreach (VolumeInfo v in MaintenanceTools.Volumes())
                 cboRoot.Add(v.Letter);
             cboRoot.Add(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            cboRoot.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
 
-            FlatBtn bScan = new FlatBtn(L.T("Analyser plass")); bScan.Primary(); bScan.Width = 150;
+            FlatBtn bScan = new FlatBtn(L.T("Analyser")); bScan.Primary(); bScan.Width = 130;
             FlatBtn bStop = new FlatBtn(L.T("Stopp")); bStop.Width = 90; bStop.Enabled = false;
             FlatBtn bOpen = new FlatBtn(L.T("Åpne i Utforsker")); bOpen.Width = 165;
             lblDiskSum = Theme.Lbl("", Theme.FBold, Theme.Muted);
-            lblDiskSum.Width = 260;
-            Panel bar = Toolbar(cboRoot, bScan, bStop, bOpen, lblDiskSum);
-
-            Tip(bScan, "Leser gjennom hele treet. Sletter ingenting.");
+            lblDiskSum.Width = 300;
+            Panel bar = Toolbar(cboMode, cboRoot, bScan, bStop, bOpen, lblDiskSum);
+            Tip(bScan, "Leser gjennom hele treet. Sletter aldri noe.");
             Tip(bOpen, "Dobbeltklikk en rad gjør det samme.");
+            Tip(cboMode, "Største viser hvor plassen ligger. Duplikater finner like filer. Glemte filer er store filer du ikke har rørt på et halvår.");
 
-            SplitContainer split = new SplitContainer();
-            split.Dock = DockStyle.Fill;
-            split.Orientation = Orientation.Horizontal;
-            split.BackColor = Theme.Bg;
-            split.SplitterWidth = 12;
-            split.Panel1.BackColor = Theme.Bg;
-            split.Panel2.BackColor = Theme.Bg;
-            split.Panel1MinSize = 90;
-            split.Panel2MinSize = 90;
+            // --- modus 1: største mapper og filer ---
+            splitBig = new SplitContainer();
+            splitBig.Dock = DockStyle.Fill;
+            splitBig.Orientation = Orientation.Horizontal;
+            splitBig.BackColor = Theme.Bg;
+            splitBig.SplitterWidth = 14;
+            splitBig.Panel1.BackColor = Theme.Bg;
+            splitBig.Panel2.BackColor = Theme.Bg;
+            splitBig.Panel1MinSize = 90;
+            splitBig.Panel2MinSize = 90;
+            lvFolders = ListIn(splitBig.Panel1, false,
+                L.T("Mappe"), "620", L.T("Størrelse"), "130", L.T("Filer"), "100");
+            splitBig.Panel1.Controls.Add(SectionLabel(L.T("Største mapper")));
+            lvFiles = ListIn(splitBig.Panel2, false,
+                L.T("Fil"), "460", L.T("Størrelse"), "130", L.T("Mappe"), "460");
+            splitBig.Panel2.Controls.Add(SectionLabel(L.T("Største filer (over 100 MB)")));
 
-            Label h1 = Theme.Lbl(L.T("Største mapper"), Theme.FBold, Theme.Text);
-            h1.Dock = DockStyle.Top; h1.Height = 24;
-            lvFolders = ListIn(split.Panel1, false, L.T("Mappe"), "600", L.T("Størrelse"), "120", L.T("Filer"), "90");
-            split.Panel1.Controls.Add(h1);
+            // --- modus 2: duplikater ---
+            dupHost = new Panel();
+            dupHost.Dock = DockStyle.Fill;
+            dupHost.BackColor = Theme.Bg;
+            dupHost.Visible = false;
+            lvDup = ListIn(dupHost, false,
+                L.T("Fil"), "330", L.T("Kopier"), "80", L.T("Størrelse"), "110",
+                L.T("Kan spares"), "120", L.T("Hvor"), "560");
+            dupHost.Controls.Add(SectionLabel(L.T("Like filer — behold én, slett resten selv")));
 
-            Label h2 = Theme.Lbl(L.T("Største filer (over 100 MB)"), Theme.FBold, Theme.Text);
-            h2.Dock = DockStyle.Top; h2.Height = 24;
-            lvFiles = ListIn(split.Panel2, false, L.T("Fil"), "600", L.T("Størrelse"), "120", L.T("Mappe"), "400");
-            split.Panel2.Controls.Add(h2);
+            // --- modus 3: glemte filer ---
+            oldHost = new Panel();
+            oldHost.Dock = DockStyle.Fill;
+            oldHost.BackColor = Theme.Bg;
+            oldHost.Visible = false;
+            lvOld = ListIn(oldHost, false,
+                L.T("Fil"), "380", L.T("Størrelse"), "120", L.T("Sist rørt"), "140", L.T("Mappe"), "500");
+            oldHost.Controls.Add(SectionLabel(L.T("Store filer du ikke har rørt på lenge")));
 
-            p.Controls.Add(split);
+            Panel body = new Panel();
+            body.Dock = DockStyle.Fill;
+            body.BackColor = Theme.Bg;
+            body.Controls.Add(splitBig);
+            body.Controls.Add(dupHost);
+            body.Controls.Add(oldHost);
+
+            p.Controls.Add(body);
             p.Controls.Add(bar);
-            SetSplit(split, 300);
+            SetSplit(splitBig, 300);
+
+            cboMode.Changed += delegate
+            {
+                int m = ModeIndex();
+                splitBig.Visible = m == 0;
+                dupHost.Visible = m == 1;
+                oldHost.Visible = m == 2;
+                if (m == 1) dupHost.BringToFront();
+                if (m == 2) oldHost.BringToFront();
+                if (m == 0) splitBig.BringToFront();
+                lblDiskSum.Text = "";
+            };
 
             EventHandler openSel = delegate
             {
-                ListView src = lvFolders.SelectedItems.Count > 0 ? lvFolders
-                             : lvFiles.SelectedItems.Count > 0 ? lvFiles : null;
+                ListView src = null;
+                foreach (ListView lv in new ListView[] { lvFolders, lvFiles, lvDup, lvOld })
+                    if (lv.SelectedItems.Count > 0) { src = lv; break; }
                 if (src == null) { Status(L.T("Velg en rad først.")); return; }
                 string path = Convert.ToString(src.SelectedItems[0].Tag);
                 if (string.IsNullOrEmpty(path)) return;
@@ -95,6 +140,8 @@ namespace Vaktmester
             bOpen.Click += openSel;
             lvFolders.DoubleClick += openSel;
             lvFiles.DoubleClick += openSel;
+            lvDup.DoubleClick += openSel;
+            lvOld.DoubleClick += openSel;
 
             bScan.Click += async delegate
             {
@@ -103,48 +150,91 @@ namespace Vaktmester
                 cts = new CancellationTokenSource();
                 CancellationToken ct = cts.Token;
                 bStop.Enabled = true;
-                List<SizeEntry> fo = null, fi = null;
+                int mode = ModeIndex();
                 DateTime t0 = DateTime.Now;
-                await Job(new Control[] { bScan, cboRoot }, delegate
+
+                List<SizeEntry> fo = null, fi = null, old = null;
+                List<DupGroup> dups = null;
+
+                await Job(new Control[] { bScan, cboRoot, cboMode }, delegate
                 {
-                    Status(L.F("Går gjennom {0} …", root));
-                    DiskTools.Scan(root, ct, delegate(string d) { Status(d); }, out fo, out fi);
+                    if (mode == 0)
+                        DiskTools.Scan(root, ct, delegate(string d) { Status(d); }, out fo, out fi);
+                    else if (mode == 1)
+                        dups = DupTools.Find(root, ct, delegate(string d) { Status(d); });
+                    else
+                        old = DupTools.Forgotten(root, 180, ct);
                 });
                 bStop.Enabled = false;
-                if (fo == null) { Status(L.T("Avbrutt.")); return; }
 
-                lvFolders.BeginUpdate();
-                lvFolders.Items.Clear();
-                foreach (SizeEntry e in fo)
+                int secs = (int)(DateTime.Now - t0).TotalSeconds;
+
+                if (mode == 0)
                 {
-                    ListViewItem li = new ListViewItem(e.Name);
-                    li.SubItems.Add(Util.Bytes(e.Size));
-                    li.SubItems.Add(e.Files.ToString("N0"));
-                    li.Tag = e.Path;
-                    lvFolders.Items.Add(li);
+                    if (fo == null) { Status(L.T("Avbrutt.")); return; }
+                    Fill(lvFolders, fo, false);
+                    Fill(lvFiles, fi, true);
+                    long biggest = fo.Count > 0 ? fo[0].Size : 0;
+                    lblDiskSum.Text = L.F("{0} mapper, {1} store filer", fo.Count, fi.Count);
+                    lblDiskSum.ForeColor = Theme.Good;
+                    Status(L.F("Ferdig på {0} s. Største post: {1}.", secs, Util.Bytes(biggest)));
                 }
-                lvFolders.EndUpdate();
-
-                lvFiles.BeginUpdate();
-                lvFiles.Items.Clear();
-                foreach (SizeEntry e in fi)
+                else if (mode == 1)
                 {
-                    ListViewItem li = new ListViewItem(e.Name);
-                    li.SubItems.Add(Util.Bytes(e.Size));
-                    string dir = "";
-                    try { dir = Path.GetDirectoryName(e.Path); }
-                    catch { }
-                    li.SubItems.Add(dir);
-                    li.Tag = e.Path;
-                    lvFiles.Items.Add(li);
+                    if (dups == null) { Status(L.T("Avbrutt.")); return; }
+                    long wasted = 0;
+                    lvDup.BeginUpdate();
+                    lvDup.Items.Clear();
+                    foreach (DupGroup g in dups)
+                    {
+                        wasted += g.Wasted;
+                        string first = g.Files[0];
+                        List<string> dirs = new List<string>();
+                        foreach (string f in g.Files)
+                        {
+                            try { dirs.Add(Path.GetDirectoryName(f)); }
+                            catch { }
+                        }
+                        ListViewItem li = new ListViewItem(Path.GetFileName(first));
+                        li.SubItems.Add(g.Files.Count.ToString());
+                        li.SubItems.Add(Util.Bytes(g.Size));
+                        li.SubItems.Add(Util.Bytes(g.Wasted));
+                        li.SubItems.Add(string.Join("   ·   ", dirs.ToArray()));
+                        li.Tag = first;
+                        lvDup.Items.Add(li);
+                    }
+                    lvDup.EndUpdate();
+                    lblDiskSum.Text = L.F("{0} kan spares", Util.Bytes(wasted));
+                    lblDiskSum.ForeColor = wasted > 0 ? Theme.Warn : Theme.Good;
+                    Status(dups.Count == 0
+                        ? L.F("Ingen duplikater funnet. Brukte {0} s.", secs)
+                        : L.F("{0} grupper med like filer. Brukte {1} s.", dups.Count, secs));
                 }
-                lvFiles.EndUpdate();
-
-                long biggest = fo.Count > 0 ? fo[0].Size : 0;
-                lblDiskSum.Text = L.F("{0} mapper, {1} store filer", fo.Count, fi.Count);
-                lblDiskSum.ForeColor = Theme.Good;
-                Status(L.F("Ferdig på {0} s. Største post: {1}.",
-                       (int)(DateTime.Now - t0).TotalSeconds, Util.Bytes(biggest)));
+                else
+                {
+                    if (old == null) { Status(L.T("Avbrutt.")); return; }
+                    long sum = 0;
+                    lvOld.BeginUpdate();
+                    lvOld.Items.Clear();
+                    foreach (SizeEntry e in old)
+                    {
+                        sum += e.Size;
+                        ListViewItem li = new ListViewItem(e.Name);
+                        li.SubItems.Add(Util.Bytes(e.Size));
+                        li.SubItems.Add(L.F("{0} dager siden", e.Files));
+                        string dir = "";
+                        try { dir = Path.GetDirectoryName(e.Path); }
+                        catch { }
+                        li.SubItems.Add(dir);
+                        li.Tag = e.Path;
+                        li.ForeColor = e.Files > 365 ? Theme.Warn : Theme.Text;
+                        lvOld.Items.Add(li);
+                    }
+                    lvOld.EndUpdate();
+                    lblDiskSum.Text = Util.Bytes(sum);
+                    lblDiskSum.ForeColor = Theme.Warn;
+                    Status(L.F("{0} filer, til sammen {1}.", old.Count, Util.Bytes(sum)));
+                }
             };
 
             bStop.Click += delegate
@@ -154,6 +244,37 @@ namespace Vaktmester
             };
 
             return p;
+        }
+
+        int ModeIndex()
+        {
+            string v = cboMode.Value;
+            if (v == L.T("Duplikater")) return 1;
+            if (v == L.T("Glemte filer")) return 2;
+            return 0;
+        }
+
+        void Fill(ListView lv, List<SizeEntry> items, bool showFolder)
+        {
+            lv.BeginUpdate();
+            lv.Items.Clear();
+            if (items != null)
+                foreach (SizeEntry e in items)
+                {
+                    ListViewItem li = new ListViewItem(e.Name);
+                    li.SubItems.Add(Util.Bytes(e.Size));
+                    if (showFolder)
+                    {
+                        string dir = "";
+                        try { dir = Path.GetDirectoryName(e.Path); }
+                        catch { }
+                        li.SubItems.Add(dir);
+                    }
+                    else li.SubItems.Add(e.Files.ToString("N0"));
+                    li.Tag = e.Path;
+                    lv.Items.Add(li);
+                }
+            lv.EndUpdate();
         }
 
         // ==============================================================

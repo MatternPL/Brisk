@@ -6,15 +6,15 @@ using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
-using Vaktmester;
+using Brisk;
 
-namespace VaktmesterSetup
+namespace BriskSetup
 {
     static class Setup
     {
-        public const string AppName = "Vaktmester";
-        public const string Version = "1.0.0";
-        public const string RegKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Vaktmester";
+        public const string AppName = "Brisk";
+        public const string Version = "1.1.0";
+        public const string RegKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Brisk";
 
         public static string InstallDir
         {
@@ -26,8 +26,8 @@ namespace VaktmesterSetup
             }
         }
 
-        public static string ExePath { get { return Path.Combine(InstallDir, "Vaktmester.exe"); } }
-        public static string UninstPath { get { return Path.Combine(InstallDir, "Avinstaller.exe"); } }
+        public static string ExePath { get { return Path.Combine(InstallDir, "Brisk.exe"); } }
+        public static string UninstPath { get { return Path.Combine(InstallDir, "Uninstall.exe"); } }
 
         public static string StartMenuLink
         {
@@ -87,7 +87,7 @@ namespace VaktmesterSetup
             {
                 try
                 {
-                    string tmp = Path.Combine(Path.GetTempPath(), "vaktmester-avinstaller.exe");
+                    string tmp = Path.Combine(Path.GetTempPath(), "brisk-avinstaller.exe");
                     File.Copy(Application.ExecutablePath, tmp, true);
                     ProcessStartInfo psi = new ProcessStartInfo(tmp, silent ? "/uninstall2 /S" : "/uninstall2");
                     psi.UseShellExecute = true;
@@ -135,7 +135,7 @@ namespace VaktmesterSetup
         {
             try
             {
-                foreach (Process p in Process.GetProcessesByName("Vaktmester"))
+                foreach (Process p in Process.GetProcessesByName("Brisk"))
                 {
                     try { p.Kill(); p.WaitForExit(4000); }
                     catch { }
@@ -144,21 +144,73 @@ namespace VaktmesterSetup
             catch { }
         }
 
+        // Programmet het Vaktmester fram til 1.1. Rydder bort den gamle
+        // installasjonen så brukeren ikke sitter igjen med to av samme program.
+        static void RemoveOldName(Action<string> log)
+        {
+            try
+            {
+                string oldDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Programs", "Vaktmester");
+                string oldStart = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Vaktmester.lnk");
+                string oldDesk = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Vaktmester.lnk");
+
+                bool any = Directory.Exists(oldDir) || File.Exists(oldStart) || File.Exists(oldDesk);
+                if (!any) return;
+
+                log("Fjerner den gamle Vaktmester-installasjonen …");
+                foreach (Process p in Process.GetProcessesByName("Vaktmester"))
+                {
+                    try { p.Kill(); p.WaitForExit(3000); }
+                    catch { }
+                }
+                Thread.Sleep(200);
+                Del(oldStart);
+                Del(oldDesk);
+                try
+                {
+                    Registry.CurrentUser.DeleteSubKeyTree(
+                        @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Vaktmester", false);
+                }
+                catch { }
+                try
+                {
+                    ProcessStartInfo psi = new ProcessStartInfo("schtasks",
+                        "/Delete /F /TN \"Vaktmester ukentlig rydding\"");
+                    psi.UseShellExecute = false;
+                    psi.CreateNoWindow = true;
+                    Process pr = Process.Start(psi);
+                    if (pr != null) pr.WaitForExit(5000);
+                }
+                catch { }
+                for (int i = 0; i < 5 && Directory.Exists(oldDir); i++)
+                {
+                    try { Directory.Delete(oldDir, true); }
+                    catch { Thread.Sleep(400); }
+                }
+            }
+            catch (Exception ex) { log("  (kunne ikke rydde helt: " + ex.Message + ")"); }
+        }
+
         public static void Install(bool desktopShortcut, Action<string> log)
         {
-            log("Stopper Vaktmester hvis den kjører …");
+            log("Stopper Brisk hvis den kjører …");
             KillRunning();
             Thread.Sleep(300);
+            RemoveOldName(log);
 
             log("Lager mappe: " + InstallDir);
             Directory.CreateDirectory(InstallDir);
 
             log("Pakker ut programmet …");
             using (Stream src = Assembly.GetExecutingAssembly()
-                       .GetManifestResourceStream("Vaktmester.payload"))
+                       .GetManifestResourceStream("Brisk.payload"))
             {
                 if (src == null) throw new Exception(
-                    "Installasjonsfilen mangler programmet. Bygg med -resource:Vaktmester.exe,Vaktmester.payload.");
+                    "Installasjonsfilen mangler programmet. Bygg med -resource:Brisk.exe,Brisk.payload.");
                 using (FileStream dst = new FileStream(ExePath, FileMode.Create, FileAccess.Write))
                     src.CopyTo(dst);
             }
@@ -185,7 +237,7 @@ namespace VaktmesterSetup
                     catch { }
                     k.SetValue("DisplayName", AppName);
                     k.SetValue("DisplayVersion", Version);
-                    k.SetValue("Publisher", "Vaktmester");
+                    k.SetValue("Publisher", "Brisk");
                     k.SetValue("DisplayIcon", ExePath + ",0");
                     k.SetValue("InstallLocation", InstallDir);
                     k.SetValue("UninstallString", "\"" + UninstPath + "\" /uninstall");
@@ -202,7 +254,7 @@ namespace VaktmesterSetup
 
         public static void Uninstall(Action<string> log)
         {
-            log("Stopper Vaktmester …");
+            log("Stopper Brisk …");
             KillRunning();
             Thread.Sleep(300);
 
@@ -228,7 +280,7 @@ namespace VaktmesterSetup
             if (Directory.Exists(InstallDir))
                 log("  Noen filer var låst. Mappa kan slettes manuelt: " + InstallDir);
 
-            log("Loggen din er beholdt i %LOCALAPPDATA%\\Vaktmester.");
+            log("Loggen din er beholdt i %LOCALAPPDATA%\\Brisk.");
             log("Ferdig.");
         }
 

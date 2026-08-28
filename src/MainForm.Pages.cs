@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Vaktmester
+namespace Brisk
 {
     public partial class MainForm
     {
@@ -14,11 +14,13 @@ namespace Vaktmester
         {
             foreach (Control c in toDisable) c.Enabled = false;
             SetNavEnabled(false);
+            Busy(true);
             try { await Task.Run(work); }
             catch (OperationCanceledException) { Status(L.T("Avbrutt.")); }
             catch (Exception ex) { Status(L.T("Feil: ") + ex.Message); Util.Log("Feil: " + ex); }
             finally
             {
+                Busy(false);
                 foreach (Control c in toDisable) c.Enabled = true;
                 SetNavEnabled(true);
             }
@@ -265,6 +267,8 @@ namespace Vaktmester
         // ==============================================================
         ListView lvStart;
         CheckBox chkTasks;
+        List<BootDelay> bootDelays;
+        Label lblBoot;
 
         Panel PageStartup()
         {
@@ -281,15 +285,19 @@ namespace Vaktmester
             chkTasks.Width = 175;
             chkTasks.Height = 24;
             chkTasks.FlatStyle = FlatStyle.Flat;
-            Panel bar = Toolbar(bRef, bOff, bOn, chkTasks);
+            lblBoot = Theme.Lbl("", Theme.FBold, Theme.Muted);
+            lblBoot.Width = 380;
+            Panel bar = Toolbar(bRef, bOff, bOn, chkTasks, lblBoot);
             Tip(bOff, "Reversibelt. Samme mekanisme som Oppgavebehandling — programmet avinstalleres ikke.");
+            Tip(bRef, "Forsinkelsen er hentet fra Windows' egen måling av de siste oppstartene.");
 
             Panel listHost = new Panel();
             listHost.Dock = DockStyle.Fill;
             listHost.BackColor = Theme.Bg;
             lvStart = ListIn(listHost, true,
-                L.T("Navn"), "205", L.T("Status"), "85", L.T("Merknad"), "215", L.T("Utgiver"), "170",
-                L.T("Hvor"), "155", L.T("Kommando"), "380");
+                L.T("Navn"), "200", L.T("Status"), "80", L.T("Sinker oppstart"), "140",
+                L.T("Merknad"), "195", L.T("Utgiver"), "165", L.T("Hvor"), "150",
+                L.T("Kommando"), "320");
 
             p.Controls.Add(listHost);
             p.Controls.Add(bar);
@@ -306,21 +314,44 @@ namespace Vaktmester
         async Task LoadStartup(Control[] btns)
         {
             List<StartupItem> items = null;
+            List<BootEvent> boots = null;
             bool tasks = chkTasks.Checked;
-            await Job(btns, delegate { items = StartupTools.Enumerate(tasks); });
+            await Job(btns, delegate
+            {
+                items = StartupTools.Enumerate(tasks);
+                if (bootDelays == null) bootDelays = BootTools.Delays(400);
+                boots = BootTools.RecentBoots(5);
+            });
             if (items == null) return;
+
+            if (boots != null && boots.Count > 0)
+            {
+                long sum = 0;
+                foreach (BootEvent b in boots) sum += b.TotalMs;
+                long avg = sum / boots.Count;
+                lblBoot.Text = L.F("Oppstart tar {0}", BootTools.Seconds(avg));
+                lblBoot.ForeColor = avg > 60000 ? Theme.Bad : avg > 30000 ? Theme.Warn : Theme.Good;
+            }
+            else lblBoot.Text = "";
+
             lvStart.BeginUpdate();
             lvStart.Items.Clear();
             foreach (StartupItem it in items)
             {
+                BootDelay bd = BootTools.MatchFor(bootDelays, it);
                 ListViewItem li = new ListViewItem(it.Name);
                 li.SubItems.Add(it.Enabled ? L.T("På") : L.T("Av"));
+                li.SubItems.Add(bd != null ? BootTools.Seconds(bd.AverageMs) : "");
                 li.SubItems.Add(it.Critical ? L.T("Behold") + " — " + it.Note : "");
                 li.SubItems.Add(it.Publisher);
                 li.SubItems.Add(it.KindText);
                 li.SubItems.Add(it.Command);
                 li.Tag = it;
-                li.ForeColor = it.Critical ? Theme.Warn : (it.Enabled ? Theme.Text : Theme.Muted);
+                li.ForeColor = it.Critical ? Theme.Warn
+                             : !it.Enabled ? Theme.Muted
+                             : (bd != null && bd.AverageMs > 4000) ? Theme.Bad
+                             : (bd != null && bd.AverageMs > 1500) ? Theme.Warn
+                             : Theme.Text;
                 lvStart.Items.Add(li);
             }
             lvStart.EndUpdate();
@@ -368,6 +399,7 @@ namespace Vaktmester
                         li.ForeColor = !r ? Theme.Bad
                             : it.Critical ? Theme.Warn
                             : it.Enabled ? Theme.Text : Theme.Muted;
+                        li.SubItems[2].ForeColor = li.ForeColor;
                         li.Checked = false;
                     });
                 }
@@ -527,7 +559,7 @@ namespace Vaktmester
 
             FlatBtn bPlan = new FlatBtn(L.T("Planlagt rydding")); bPlan.Width = 165;
             FlatBtn bRap = new FlatBtn(L.T("Systemrapport")); bRap.Width = 150;
-            FlatBtn bLogg = new FlatBtn(L.T("Loggmappe")); bLogg.Width = 130;
+            FlatBtn bLogg = new FlatBtn(L.T("Vis logg")); bLogg.Width = 130;
             FlatBtn bOppd = new FlatBtn(L.T("Se etter oppdatering")); bOppd.Width = 185;
             CheckBox chkAuto = new CheckBox();
             chkAuto.Text = L.T("Automatisk");
@@ -548,20 +580,12 @@ namespace Vaktmester
             Tip(bRap, "Lagrer en tekstfil du kan sende til den som hjelper deg.");
             Tip(bOppd, "Henter versjonsfilen og sjekker nedlastingen mot sha256 før noe kjøres.");
 
-            Panel diskHost = new Panel();
-            diskHost.Dock = DockStyle.Top;
-            diskHost.Height = 168;
-            diskHost.BackColor = Theme.Bg;
-            lvDisk = ListIn(diskHost, false,
-                L.T("Disk / volum"), "330", L.T("Type"), "110", L.T("Helse"), "120", L.T("Plass"), "300");
-
             Panel outHost = new Panel();
             outHost.Dock = DockStyle.Fill;
             outHost.BackColor = Theme.Bg;
             maintOut = Console(outHost, 0);
 
             p.Controls.Add(outHost);
-            p.Controls.Add(diskHost);
             p.Controls.Add(bar3);
             p.Controls.Add(bar2);
             p.Controls.Add(bar1);
@@ -577,15 +601,11 @@ namespace Vaktmester
             bComp.Click += async delegate
             {
                 await Job(all, delegate { MaintenanceTools.RunComponentCleanup(w); });
-                RefreshOverview(); LoadDisks();
+                RefreshOverview();
             };
             bOpt.Click += async delegate { await Job(all, delegate { MaintenanceTools.OptimizeDrives(w); }); };
             bDns.Click += async delegate { await Job(all, delegate { MaintenanceTools.FlushDns(w); }); };
-            bLogg.Click += delegate
-            {
-                try { Util.OpenPath(System.IO.Path.GetDirectoryName(Util.LogPath)); }
-                catch { }
-            };
+            bLogg.Click += delegate { Show("logg"); };
             bOppd.Click += async delegate
             {
                 bOppd.Enabled = false;
@@ -624,7 +644,7 @@ namespace Vaktmester
                 if (text == null) return;
                 string path = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                    "Vaktmester-rapport.txt");
+                    "Brisk-rapport.txt");
                 try
                 {
                     System.IO.File.WriteAllText(path, text, System.Text.Encoding.UTF8);
@@ -635,39 +655,10 @@ namespace Vaktmester
                 catch (Exception ex) { Status(L.T("Kunne ikke lagre rapporten: ") + ex.Message); }
             };
 
-            LoadDisks();
             if (!Util.IsAdmin())
                 Append(maintOut, L.T("Uten administrator vil de fleste av disse feile."));
             return p;
         }
 
-        void LoadDisks()
-        {
-            try
-            {
-                lvDisk.Items.Clear();
-                foreach (DiskInfo d in MaintenanceTools.PhysicalDisks())
-                {
-                    ListViewItem li = new ListViewItem(d.Name);
-                    li.SubItems.Add(d.Media);
-                    li.SubItems.Add(L.T(d.Health));
-                    li.SubItems.Add(Util.Bytes(d.Size));
-                    li.ForeColor = d.Health == "Frisk" ? Theme.Good : Theme.Bad;
-                    lvDisk.Items.Add(li);
-                }
-                foreach (VolumeInfo v in MaintenanceTools.Volumes())
-                {
-                    double freePct = v.Total > 0 ? (double)v.Free / v.Total : 0;
-                    ListViewItem li = new ListViewItem("  " + v.Letter +
-                        (string.IsNullOrEmpty(v.Label) ? "" : " (" + v.Label + ")"));
-                    li.SubItems.Add(L.T("Volum"));
-                    li.SubItems.Add(freePct < 0.1 ? L.T("Lite plass") : "OK");
-                    li.SubItems.Add(L.F("{0} ledig av {1}", Util.Bytes(v.Free), Util.Bytes(v.Total)));
-                    li.ForeColor = freePct < 0.1 ? Theme.Warn : Theme.Muted;
-                    lvDisk.Items.Add(li);
-                }
-            }
-            catch { }
-        }
     }
 }

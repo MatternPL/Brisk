@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using Vaktmester;
+using Brisk;
 
 static class UpdTest
 {
@@ -42,7 +42,7 @@ static class UpdTest
         Sjekk("feilmelding nevner sjekksum: " + err,
               err != null && err.ToLowerInvariant().Contains("sjekksum"));
 
-        string tmp = Path.Combine(Path.GetTempPath(), "Vaktmester-9.9.9-installer.exe");
+        string tmp = Path.Combine(Path.GetTempPath(), "Brisk-9.9.9-installer.exe");
         Sjekk("den avviste filen ble slettet", !File.Exists(tmp));
 
         // Hent den ordentlig for aa finne fasiten
@@ -53,7 +53,7 @@ static class UpdTest
                 System.Net.SecurityProtocolType.Tls12 | (System.Net.SecurityProtocolType)3072;
             using (System.Net.WebClient wc = new System.Net.WebClient())
             {
-                wc.Headers.Add("User-Agent", "Vaktmester-test");
+                wc.Headers.Add("User-Agent", "Brisk-test");
                 wc.DownloadFile(url, reference);
             }
         }

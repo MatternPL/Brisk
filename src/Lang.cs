@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Win32;
 
-namespace Vaktmester
+namespace Brisk
 {
     // Språklag.
     //
@@ -13,7 +13,7 @@ namespace Vaktmester
     // tools/sprak_sjekk.py finner nøkler i koden som mangler i tabellen.
     public static class L
     {
-        const string SettingsKey = @"Software\Vaktmester";
+        const string SettingsKey = @"Software\Brisk";
 
         static string lang;
 
@@ -450,7 +450,7 @@ namespace Vaktmester
             "Du har nyeste versjon ({0}).", "You have the latest version ({0}).",
             "Kunne ikke vise oppdateringen: ", "Could not show the update: ",
             "Ny versjon tilgjengelig", "Update available",
-            "Vaktmester {0}", "Vaktmester {0}",
+            "Brisk {0}", "Brisk {0}",
             "Du har {0}", "You have {0}",
             "Ingen endringsbeskrivelse.", "No release notes.",
             "Oppdater nå", "Update now",
@@ -476,8 +476,8 @@ namespace Vaktmester
             "Feil: ", "Error: ",
 
             // ---- installer ----
-            "Installer Vaktmester", "Install Vaktmester",
-            "Avinstaller Vaktmester", "Uninstall Vaktmester",
+            "Installer Brisk", "Install Brisk",
+            "Avinstaller Brisk", "Uninstall Brisk",
             "Fjerner programmet og snarveiene fra denne maskinen.",
                 "Removes the program and its shortcuts from this machine.",
             "Installer", "Install",
@@ -498,9 +498,147 @@ namespace Vaktmester
             "Avinstallerer …", "Uninstalling …",
             "Det gikk galt", "Something went wrong",
             "Ferdig installert", "Installed",
-            "Du finner Vaktmester i Start-menyen.", "You'll find Vaktmester in the Start menu.",
-            "Vaktmester er fjernet", "Vaktmester has been removed",
-            "Start Vaktmester", "Start Vaktmester",
+            "Du finner Brisk i Start-menyen.", "You'll find Brisk in the Start menu.",
+            "Brisk er fjernet", "Brisk has been removed",
+            "Start Brisk", "Start Brisk",
+
+            // ---- oversikt, ny utgave ----
+            "Sjekk PC-en", "Check my PC",
+            "Rydd opp", "Clean up",
+            "Rydd opp {0}", "Clean up {0}",
+            "Alt ser bra ut", "Everything looks fine",
+            "Ingenting trenger oppmerksomhet nå.", "Nothing needs your attention.",
+            "Kjør en sjekk for å være sikker.", "Run a check to be sure.",
+            "Én ting er verdt å se på", "One thing is worth a look",
+            "{0} ting er verdt å se på", "{0} things are worth a look",
+            "Dobbeltklikk en rad under for å gå dit.", "Double-click a row below to go there.",
+            "Ledig plass", "Free space",
+            "ikke målt", "not measured",
+            "Trykk «Rydd opp»", "Press Clean up",
+            "Trykk «Sjekk PC-en» for å måle søppelfiler", "Press Check my PC to measure junk files",
+            "Måler søppelfiler og ser etter ting som er verdt å gjøre noe med. Endrer ingenting.",
+                "Measures junk files and looks for anything worth acting on. Changes nothing.",
+            "Sletter bare det som er merket trygt. Windows.old og dine egne filer røres aldri.",
+                "Deletes only what is marked safe. Windows.old and your own files are never touched.",
+            "Sletter {0} søppelfiler.", "Deleting {0} of junk files.",
+            "Dine egne filer, bilder, passord og bokmerker røres ikke.",
+                "Your own files, photos, passwords and bookmarks are left alone.",
+            "Begrenset tilgang", "Limited access",
+            "Rydding av systemfiler, drivere og reparasjon krever administrator.",
+                "Cleaning system files, installing drivers and running repairs need administrator.",
+            "{0} blåskjermer siste måned", "{0} blue screens in the last month",
+            "Se detaljene under Helse", "See the details under Health",
+
+            // ---- helse ----
+            "Helse", "Health",
+            "Disker, kræsj og batteri.", "Drives, crashes and battery.",
+            "Disker", "Drives",
+            "Disk", "Drive",
+            "Tilstand", "Condition",
+            "Slitasje", "Wear",
+            "Temperatur", "Temperature",
+            "{0} % brukt", "{0}% used",
+            "Blåskjermer", "Blue screens",
+            "Når", "When",
+            "Stoppkode", "Stop code",
+            "Sannsynlig årsak", "Likely cause",
+            "Ingen blåskjermer i loggen.", "No blue screens in the log.",
+            "Batteri", "Battery",
+            "Batteri: {0} % av opprinnelig kapasitet", "Battery: {0}% of its original capacity",
+            "Lag rapport", "Save report",
+            "Lagrer en tekstfil på skrivebordet du kan sende til den som hjelper deg.",
+                "Saves a text file on your desktop you can send to whoever is helping you.",
+            "Leser disker …", "Reading drives …",
+            "Leser hendelseslogg …", "Reading event log …",
+
+            // stoppkoder
+            "Driver rørte minne den ikke skulle", "A driver touched memory it should not have",
+            "Feil i minnehåndteringen — test RAM-en", "Memory management fault — test the RAM",
+            "Feil i en systemtjeneste", "A system service faulted",
+            "Lesing fra ugyldig minne — ofte RAM eller driver",
+                "Read from invalid memory — usually RAM or a driver",
+            "Driver kræsjet", "A driver crashed",
+            "Driver hang under strømsparing", "A driver hung during power saving",
+            "En kritisk systemprosess døde", "A critical system process died",
+            "Grafikkortet svarte ikke — ofte driver eller varme",
+                "The graphics card stopped responding — usually driver or heat",
+            "Feil i grafikkdriveren", "Fault in the graphics driver",
+            "Maskinvarefeil — CPU, minne eller hovedkort", "Hardware fault — CPU, memory or motherboard",
+            "En driver holdt prosessoren for lenge", "A driver held the processor too long",
+            "Windows oppdaget minneødeleggelse", "Windows detected memory corruption",
+            "Uhåndtert feil i kjernen", "Unhandled fault in the kernel",
+            "Driver frigjorde minne feil", "A driver released memory incorrectly",
+
+            // ---- nettverk ----
+            "Nettverk", "Network",
+            "Er tilkoblingen som den skal?", "Is the connection behaving?",
+            "Test tilkoblingen", "Test the connection",
+            "Nettverksinnstillinger", "Network settings",
+            "Nullstill nettverket", "Reset the network",
+            "Test", "Check",
+            "Resultat", "Result",
+            "Sjekker nettverkskort, gateway, internett, DNS, Wi-Fi, hosts-fil og proxy. Endrer ingenting.",
+                "Checks the adapter, gateway, internet, DNS, Wi-Fi, hosts file and proxy. Changes nothing.",
+            "Siste utvei når ingenting virker. Nullstiller Winsock og TCP/IP, og krever omstart.",
+                "Last resort when nothing works. Resets Winsock and TCP/IP, and needs a restart.",
+            "Dette nullstiller nettverksoppsettet og krever omstart. Lagrede Wi-Fi-passord beholdes.",
+                "This resets the network configuration and needs a restart. Saved Wi-Fi passwords are kept.",
+            "Trykk «Test tilkoblingen» for å komme i gang.", "Press Test the connection to begin.",
+            "Alt ser normalt ut.", "Everything looks normal.",
+            "{0} problemer funnet.", "{0} problems found.",
+            "Nettverkskort", "Adapter",
+            "Gateway", "Gateway",
+            "Internett", "Internet",
+            "DNS", "DNS",
+            "Wi-Fi", "Wi-Fi",
+            "hosts-fil", "hosts file",
+            "Proxy", "Proxy",
+            "Ingen aktiv tilkobling", "No active connection",
+            "Ingen svar", "No reply",
+            "svarer ikke", "no reply",
+            "klarte ikke slå opp navn", "could not resolve a name",
+            "ukjent", "unknown",
+            "Ikke i bruk (kablet)", "Not in use (wired)",
+            "Finnes ikke", "Missing",
+            "Ren", "Clean",
+            "{0} omdirigeringer: ", "{0} redirects: ",
+            "Ingen", "None",
+            "all trafikk går via denne", "all traffic goes through this",
+            "Fornyer IP-adresse.", "Renewing IP address.",
+            "Nullstiller Winsock.", "Resetting Winsock.",
+            "Nullstiller TCP/IP.", "Resetting TCP/IP.",
+            "Ferdig. Start maskinen på nytt for at det skal tre i kraft.",
+                "Done. Restart the machine for this to take effect.",
+
+            // ---- oppstartsmåling ----
+            "Sinker oppstart", "Delays startup",
+            "Oppstart tar {0}", "Startup takes {0}",
+            "Forsinkelsen er hentet fra Windows' egen måling av de siste oppstartene.",
+                "The delay comes from Windows' own measurement of recent startups.",
+            "Windows har ikke logget noen oppstart ennå.", "Windows has not logged a startup yet.",
+            "Tjeneste", "Service",
+            "Vis logg", "Show log",
+
+            // ---- diskplass, nye moduser ----
+            "Største mapper og filer", "Largest folders and files",
+            "Duplikater", "Duplicates",
+            "Glemte filer", "Forgotten files",
+            "Største viser hvor plassen ligger. Duplikater finner like filer. Glemte filer er store filer du ikke har rørt på et halvår.",
+                "Largest shows where the space sits. Duplicates finds identical files. Forgotten files are big files you have not touched in six months.",
+            "Leser gjennom hele treet. Sletter aldri noe.", "Walks the whole tree. Never deletes anything.",
+            "Like filer — behold én, slett resten selv", "Identical files — keep one, delete the rest yourself",
+            "Store filer du ikke har rørt på lenge", "Big files you have not touched in a long time",
+            "Kopier", "Copies",
+            "Kan spares", "Recoverable",
+            "{0} kan spares", "{0} recoverable",
+            "Sist rørt", "Last touched",
+            "{0} dager siden", "{0} days ago",
+            "Ingen duplikater funnet. Brukte {0} s.", "No duplicates found. Took {0} s.",
+            "{0} grupper med like filer. Brukte {1} s.", "{0} groups of identical files. Took {1} s.",
+            "{0} filer, til sammen {1}.", "{0} files, {1} in total.",
+
+            // ---- vedlikehold ----
+            "Reparasjon og verktøy.", "Repair and tools.",
         };
     }
 }

@@ -3,7 +3,7 @@
 # sammenligner mot tabellen i Lang.cs. Skriver ut det som mangler.
 import io, os, re, sys
 
-ROT = r"C:\Users\Mathias\Desktop\Vaktmester"
+ROT = r"C:\Users\Mathias\Desktop\Brisk"
 LANG = os.path.join(ROT, "src", "Lang.cs")
 
 STR = r'"((?:[^"\\]|\\.)*)"'

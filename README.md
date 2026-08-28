@@ -1,23 +1,26 @@
-# Vaktmester
+# Brisk
 
 Windows maintenance that does what it says. No paywall, no subscription, no telemetry.
 
-One 280 KB executable. Nothing to install first — it runs on the .NET Framework 4.8
+One 330 KB executable. Nothing to install first — it runs on the .NET Framework 4.8
 that already ships with Windows 10 and 11.
 
 English by default. Norwegian is one click away, bottom left.
+
+> Brisk was called *Vaktmester* up to version 1.0. The installer removes the old one
+> automatically.
 
 ---
 
 ## Getting it
 
-Download **`Vaktmester-Installer.exe`** from
+Download **`Brisk-Installer.exe`** from
 [Releases](https://github.com/MatternPL/Vaktmester/releases).
 
-* Installs to `%LOCALAPPDATA%\Programs\Vaktmester` — **no UAC prompt to install**
+* Installs to `%LOCALAPPDATA%\Programs\Brisk` — **no UAC prompt to install**
 * Start menu shortcut, optional desktop shortcut
 * Shows up in Apps & features, uninstalls from there
-* Or just run `Vaktmester.exe` on its own from a USB stick
+* Or just run `Brisk.exe` on its own from a USB stick
 
 The files are not code-signed, so SmartScreen will warn you the first time:
 *More info → Run anyway*. A certificate costs money every year; this doesn't.
@@ -26,12 +29,19 @@ The files are not code-signed, so SmartScreen will warn you the first time:
 
 ## What it does
 
+**Overview** opens with a verdict — *Everything looks fine*, or *3 things are worth a
+look* — and a list of what those things are. Double-click a row to go there. One blue
+button per page, and the colour tells you what a button does: blue acts, green is safe,
+red deletes.
+
 | Page | |
 |---|---|
-| **Overview** | Four numbers and a list of things worth acting on. Double-click a row to jump there. |
 | **Cleanup** | Temp files, Windows Update leftovers, crash dumps, browser and shader caches, system logs. On the machine it was built on: 39 GB. |
-| **Disk space** | Walks the drive and shows which folders and files actually hold the space. Deletes nothing. |
-| **Startup** | Everything that starts with Windows — registry, startup folder, scheduled tasks. Reversible, same mechanism as Task Manager. |
+| **Disk space** | Three modes. *Largest* shows where the space sits, *Duplicates* finds identical files by content, *Forgotten files* lists big files you haven't touched in six months. Deletes nothing. |
+| **Startup** | Everything that starts with Windows, with **how many seconds each one adds to boot** — read from Windows' own measurements, not guesswork. |
+| **Memory** | What is actually using RAM, and an honest note about why "RAM boosters" don't help. |
+| **Health** | Drive wear and temperature, blue screens with the stop code translated into plain language, battery capacity on laptops. |
+| **Network** | Adapter, gateway, internet, DNS, Wi-Fi signal, and a check of the hosts file and proxy — the two things malware likes to hijack. |
 | **Updates** | Drivers and Windows updates from Microsoft's own catalog through the Windows Update API. |
 | **Software** | winget updates, plus every installed program sorted by size, with uninstall. |
 | **Maintenance** | sfc, DISM, TRIM, restore point, system report, weekly scheduled cleanup. |
@@ -43,6 +53,7 @@ The files are not code-signed, so SmartScreen will warn you the first time:
   Fewer startup programs is the fix that lasts.
 * **No registry cleaning.** It has never produced a measurable speedup.
 * **No third-party driver scraping.** Drivers come from Microsoft, signed.
+* **No CPU temperature.** That needs a kernel driver. Not worth it.
 
 ### Safety
 
@@ -52,7 +63,8 @@ The files are not code-signed, so SmartScreen will warn you the first time:
 * Windows.old is unticked by default.
 * Startup entries that matter (audio, touchpad, antivirus, password manager) are flagged
   amber and warn before being disabled.
-* Everything lands in `%LOCALAPPDATA%\Vaktmester\vaktmester.log`.
+* Duplicates and forgotten files are listed, never deleted for you.
+* Everything lands in `%LOCALAPPDATA%\Brisk\brisk.log`.
 
 ---
 
@@ -69,19 +81,15 @@ file is deleted and nothing runs.
 ### Publishing a release
 
 ```bash
-utgivelse.cmd 1.1.0 https://github.com/MatternPL/Vaktmester/releases/download/v1.1.0/Vaktmester-Installer.exe "What changed"
+utgivelse.cmd 1.2.0 https://github.com/MatternPL/Vaktmester/releases/download/v1.2.0/Brisk-Installer.exe "What changed"
 ```
 
 Sets the version in the source, builds, computes the sha256 and writes
-`oppdatering.json`. Then upload `Vaktmester-Installer.exe` as a release asset and
-commit `oppdatering.json` to `main`.
+`oppdatering.json`. Then upload `Brisk-Installer.exe` as a release asset and commit
+`oppdatering.json` to `main` — **in that order**, so nobody sees an update that isn't
+downloadable yet.
 
-Clients read `Updater.DefaultManifestUrl` in `src/Updater.cs`. It can be pointed
-elsewhere without rebuilding:
-
-```powershell
-New-ItemProperty HKCU:\Software\Vaktmester -Name OppdateringsUrl -Value "https://your.host/oppdatering.json" -Force
-```
+Clients read `Updater.DefaultManifestUrl` in `src/Updater.cs`.
 
 ---
 
@@ -89,10 +97,10 @@ New-ItemProperty HKCU:\Software\Vaktmester -Name OppdateringsUrl -Value "https:/
 
 | | |
 |---|---|
-| `Vaktmester.exe /auto` | Runs the safe cleanup with no window. Used by the scheduled task. |
-| `Vaktmester.exe /side:cleanup` | Opens a specific page (`oversikt`, `rydding`, `diskplass`, `oppstart`, `minne`, `drivere`, `programmer`, `vedlikehold`, `logg`). |
-| `Vaktmester-Installer.exe /S` | Silent install. Add `/start` to launch afterwards. |
-| `Avinstaller.exe /uninstall` | Uninstall. Add `/S` for silent. |
+| `Brisk.exe /auto` | Runs the safe cleanup with no window. Used by the scheduled task. |
+| `Brisk.exe /side:helse` | Opens a specific page (`oversikt`, `rydding`, `diskplass`, `oppstart`, `minne`, `helse`, `nettverk`, `drivere`, `programmer`, `vedlikehold`, `logg`). |
+| `Brisk-Installer.exe /S` | Silent install. Add `/start` to launch afterwards. |
+| `Uninstall.exe /uninstall` | Uninstall. Add `/S` for silent. |
 
 ---
 
@@ -102,8 +110,8 @@ New-ItemProperty HKCU:\Software\Vaktmester -Name OppdateringsUrl -Value "https:/
 bygg.cmd
 ```
 
-That's it. No Visual Studio, no NuGet, no SDK — it uses the C# compiler already sitting
-in `C:\Windows\Microsoft.NET\Framework64\v4.0.30319`. That compiler only supports C# 5,
+No Visual Studio, no NuGet, no SDK — it uses the C# compiler already sitting in
+`C:\Windows\Microsoft.NET\Framework64\v4.0.30319`. That compiler only supports C# 5,
 so no string interpolation, no `?.`, no `nameof`.
 
 ```
@@ -111,12 +119,16 @@ src/
   Program.cs          entry point, arguments, error handling
   MainForm*.cs        window and pages
   Lang.cs             English/Norwegian, Norwegian text is the key
-  Theme.cs Logo.cs    dark theme and the mark
+  Theme.cs            dark theme, buttons, dark list headers
+  Logo.cs Icons.cs    the mark and the sidebar glyphs
   Cleaner.cs          cleanup engine and the do-not-touch list
   StartupTools.cs     startup entries and scheduled tasks
+  BootTools.cs        boot time and what delays it, from the event log
+  HealthTools.cs      drive wear, blue screens, battery
+  NetTools.cs         connectivity, hosts file, proxy
   SystemTools.cs      memory, winget, disk health, maintenance
   DriverTools.cs      drivers via Windows Update
-  Extras.cs           Windows updates, disk usage, uninstall, report
+  Extras.cs           Windows updates, disk usage, duplicates, uninstall, report
   Updater.cs          self-update
   Native.cs           P/Invoke
 installer/            the installer

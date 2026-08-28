@@ -5,7 +5,7 @@ using System.IO;
 using System.Management;
 using System.Text;
 
-namespace Vaktmester
+namespace Brisk
 {
     // ==================================================================
     //  MINNE
@@ -297,7 +297,7 @@ namespace Vaktmester
         {
             onLine(L.T("Oppretter gjenopprettingspunkt."));
             string ps = "try { Enable-ComputerRestore -Drive \"$env:SystemDrive\\\" -ErrorAction SilentlyContinue; " +
-                        "Checkpoint-Computer -Description 'Vaktmester' -RestorePointType 'MODIFY_SETTINGS' -ErrorAction Stop; " +
+                        "Checkpoint-Computer -Description 'Brisk' -RestorePointType 'MODIFY_SETTINGS' -ErrorAction Stop; " +
                         "Write-Output 'OK: gjenopprettingspunkt opprettet.' } catch { Write-Output ('Kunne ikke opprette punkt: ' + $_.Exception.Message) }";
             Util.Run("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"" + ps.Replace("\"", "\\\"") + "\"", onLine);
         }

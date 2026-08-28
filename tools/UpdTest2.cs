@@ -1,5 +1,5 @@
 using System;
-using Vaktmester;
+using Brisk;
 
 static class UpdTest2
 {
@@ -17,14 +17,14 @@ static class UpdTest2
 
         string json = "{\n" +
             "  \"versjon\": \"1.2.0\",\n" +
-            "  \"url\": \"https://example.com/Vaktmester-Installer.exe\",\n" +
+            "  \"url\": \"https://example.com/Brisk-Installer.exe\",\n" +
             "  \"sha256\": \"aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899\",\n" +
             "  \"storrelse\": 288768,\n" +
             "  \"notat\": \"Rettet to feil.\nLagt til diskplass-analyse.\"\n" +
             "}";
 
         Sjekk("versjon", Updater.Field(json, "versjon") == "1.2.0");
-        Sjekk("url", Updater.Field(json, "url") == "https://example.com/Vaktmester-Installer.exe");
+        Sjekk("url", Updater.Field(json, "url") == "https://example.com/Brisk-Installer.exe");
         Sjekk("sha256 er 64 tegn", Updater.Field(json, "sha256").Length == 64);
         Sjekk("storrelse (tall uten hermetegn)", Updater.Field(json, "storrelse") == "288768");
         Sjekk("notat med linjeskift",
