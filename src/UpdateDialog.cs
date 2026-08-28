@@ -18,7 +18,7 @@ namespace Vaktmester
         public UpdateDialog(UpdateInfo u)
         {
             info = u;
-            Text = "Ny versjon tilgjengelig";
+            Text = L.T("Ny versjon tilgjengelig");
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
@@ -40,11 +40,11 @@ namespace Vaktmester
                 using (Pen p = new Pen(Theme.Line))
                     e.Graphics.DrawLine(p, 0, head.Height - 1, head.Width, head.Height - 1);
             };
-            Label h = Theme.Lbl("Vaktmester " + u.Version + " er klar",
+            Label h = Theme.Lbl(L.F("Vaktmester {0}", u.Version),
                 new Font("Segoe UI Light", 17f), Theme.Text);
             h.Location = new Point(102, 28);
-            Label sub = Theme.Lbl("Du har " + Updater.CurrentVersion +
-                (u.Size > 0 ? "   ·   nedlasting " + Util.Bytes(u.Size) : ""),
+            Label sub = Theme.Lbl(L.F("Du har {0}", Updater.CurrentVersion) +
+                (u.Size > 0 ? "   ·   " + Util.Bytes(u.Size) : ""),
                 Theme.FSmall, Theme.Muted);
             sub.Location = new Point(104, 62);
             head.Controls.Add(h);
@@ -66,13 +66,13 @@ namespace Vaktmester
             lblState.Dock = DockStyle.Top;
             lblState.Height = 26;
 
-            bYes = new FlatBtn("Oppdater nå");
+            bYes = new FlatBtn(L.T("Oppdater nå"));
             bYes.Primary();
             bYes.Width = 150; bYes.Height = 38;
             bYes.Location = new Point(386, 46);
             bYes.Anchor = AnchorStyles.Top | AnchorStyles.Right;
 
-            bNo = new FlatBtn("Ikke nå");
+            bNo = new FlatBtn(L.T("Ikke nå"));
             bNo.Width = 110; bNo.Height = 38;
             bNo.Location = new Point(264, 46);
             bNo.Anchor = AnchorStyles.Top | AnchorStyles.Right;
@@ -97,9 +97,7 @@ namespace Vaktmester
             notes.ForeColor = Theme.Muted;
             notes.BorderStyle = BorderStyle.None;
             notes.Font = Theme.F;
-            notes.Text = string.IsNullOrEmpty(u.Notes)
-                ? "Ingen endringsbeskrivelse fulgte med denne versjonen."
-                : u.Notes;
+            notes.Text = string.IsNullOrEmpty(u.Notes) ? L.T("Ingen endringsbeskrivelse.") : u.Notes;
             body.Controls.Add(notes);
 
             Controls.Add(body);
@@ -116,7 +114,7 @@ namespace Vaktmester
             bYes.Enabled = false;
             bNo.Enabled = false;
             bar.Visible = true;
-            lblState.Text = "Laster ned …";
+            lblState.Text = L.T("Laster ned …");
 
             string path = null, error = null;
             await Task.Run(delegate
@@ -131,15 +129,15 @@ namespace Vaktmester
             {
                 bar.Visible = false;
                 lblState.ForeColor = Theme.Bad;
-                lblState.Text = error ?? "Nedlastingen feilet.";
-                bNo.Text = "Lukk";
+                lblState.Text = error ?? L.T("Nedlastingen feilet.");
+                bNo.Text = L.T("Lukk");
                 bNo.Enabled = true;
                 busy = false;
                 return;
             }
 
             lblState.ForeColor = Theme.Good;
-            lblState.Text = "Sjekksum bekreftet. Starter installasjonen …";
+            lblState.Text = L.T("Sjekksum bekreftet. Starter installasjonen …");
             Application.DoEvents();
 
             string err2;
@@ -170,11 +168,11 @@ namespace Vaktmester
             if (total > 0)
             {
                 bar.Value = (double)got / total;
-                lblState.Text = "Laster ned … " + Util.Bytes(got) + " av " + Util.Bytes(total);
+                lblState.Text = L.F("Laster ned … {0} av {1}", Util.Bytes(got), Util.Bytes(total));
             }
             else
             {
-                lblState.Text = "Laster ned … " + Util.Bytes(got);
+                lblState.Text = L.T("Laster ned …") + " " + Util.Bytes(got);
             }
             bar.Invalidate();
         }

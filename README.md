@@ -1,152 +1,132 @@
 # Vaktmester
 
-PC-vedlikehold uten tull. Gratis, ingen betalingsmur, ingen abonnement, ingen datainnsamling.
+Windows maintenance that does what it says. No paywall, no subscription, no telemetry.
 
-Ett program på ca. 200 KB som kjører på alle Windows 10/11-maskiner uten at noe må
-installeres på forhånd — .NET Framework 4.8 ligger allerede i Windows.
+One 280 KB executable. Nothing to install first — it runs on the .NET Framework 4.8
+that already ships with Windows 10 and 11.
 
----
-
-## Sende til en kompis
-
-Send **`Vaktmester-Installer.exe`**. Den er alt som trengs.
-
-* Installerer i `%LOCALAPPDATA%\Programs\Vaktmester` — **ingen UAC-melding ved installasjon**
-* Lager snarvei i Start-menyen og (valgfritt) på skrivebordet
-* Dukker opp i «Apper og funksjoner» som et vanlig program
-* Avinstalleres derfra, eller med `Avinstaller.exe` i programmappa
-
-Vil du heller ha den bærbare varianten: send `Vaktmester.exe` alene. Den kan kjøres
-rett fra en minnepinne uten å installere noe.
-
-**Om SmartScreen:** filene er ikke kodesignert (et sertifikat koster penger i året).
-Første gang kan Windows si «PC-en din ble beskyttet». Trykk *Mer info → Kjør likevel*.
-Det er samme melding all usignert programvare gir.
+English by default. Norwegian is one click away, bottom left.
 
 ---
 
-## Hva programmet faktisk gjør
+## Getting it
 
-### Virker, og monner
+Download **`Vaktmester-Installer.exe`** from
+[Releases](https://github.com/MatternPL/Vaktmester/releases).
 
-| Side | Hva den gjør |
+* Installs to `%LOCALAPPDATA%\Programs\Vaktmester` — **no UAC prompt to install**
+* Start menu shortcut, optional desktop shortcut
+* Shows up in Apps & features, uninstalls from there
+* Or just run `Vaktmester.exe` on its own from a USB stick
+
+The files are not code-signed, so SmartScreen will warn you the first time:
+*More info → Run anyway*. A certificate costs money every year; this doesn't.
+
+---
+
+## What it does
+
+| Page | |
 |---|---|
-| **Rydding** | Sletter ekte søppel: temp-filer, Windows Update-rester, krasjdumper, nettleser-cache, grafikk-cache, systemlogger. På testmaskinen: 39 GB. |
-| **Diskplass** | Går gjennom disken og viser hvilke mapper og enkeltfiler som faktisk tar plassen. Sletter ingenting. |
-| **Oppstart** | Viser alt som starter med Windows — register, oppstartsmappe og planlagte oppgaver — og lar deg slå av det du ikke trenger. Dette er den største reelle hastighetsgevinsten. |
-| **Oppdateringer** | Henter drivere og Windows-oppdateringer direkte fra Microsoft via Windows Update-APIet. Signert og trygt. |
-| **Programvare** | Oppdaterer installerte programmer med winget, og lar deg avinstallere det du ikke bruker — sortert etter størrelse. |
-| **Vedlikehold** | `sfc /scannow` og DISM reparerer ødelagte systemfiler. TRIM holder SSD-en rask. Gjenopprettingspunkt, systemrapport og planlagt ukentlig rydding. |
+| **Overview** | Four numbers and a list of things worth acting on. Double-click a row to jump there. |
+| **Cleanup** | Temp files, Windows Update leftovers, crash dumps, browser and shader caches, system logs. On the machine it was built on: 39 GB. |
+| **Disk space** | Walks the drive and shows which folders and files actually hold the space. Deletes nothing. |
+| **Startup** | Everything that starts with Windows — registry, startup folder, scheduled tasks. Reversible, same mechanism as Task Manager. |
+| **Updates** | Drivers and Windows updates from Microsoft's own catalog through the Windows Update API. |
+| **Software** | winget updates, plus every installed program sorted by size, with uninstall. |
+| **Maintenance** | sfc, DISM, TRIM, restore point, system report, weekly scheduled cleanup. |
 
-### Automatisk oppdatering
+### What it does not do
 
-Programmet ser etter nye versjoner **høyst én gang i døgnet**, i bakgrunnen. Finner
-den en nyere versjon får du en dialog med hva som er nytt og to knapper: *Oppdater nå*
-eller *Ikke nå*. Sier du ja lastes den ned og installeres, og programmet starter seg selv
-på nytt. Ingenting skjer uten at du har trykket ja.
+* **RAM "boosters" are mostly theatre.** Windows uses free RAM as cache on purpose.
+  The two buttons under Memory do something real, but rarely help — and the app says so.
+  Fewer startup programs is the fix that lasts.
+* **No registry cleaning.** It has never produced a measurable speedup.
+* **No third-party driver scraping.** Drivers come from Microsoft, signed.
 
-Kan slås av under *Vedlikehold → Sjekk automatisk*. Der ligger også knappen for å
-sjekke manuelt.
+### Safety
 
-**Sikkerhet:** både versjonsfilen og nedlastingen må ligge på `https`. Den nedlastede
-filen sjekkes mot en sha256-sum fra versjonsfilen **før** den kjøres. Stemmer den ikke,
-slettes filen og ingenting kjøres.
+* Cleanup has a hard-coded list of folders that can never be touched: your user folder,
+  Documents, Desktop, Pictures, Windows, Program Files and the drive root.
+* Files in use are skipped and counted, not forced.
+* Windows.old is unticked by default.
+* Startup entries that matter (audio, touchpad, antivirus, password manager) are flagged
+  amber and warn before being disabled.
+* Everything lands in `%LOCALAPPDATA%\Vaktmester\vaktmester.log`.
 
-#### Sette opp oppdateringskilden
+---
 
-Klienten henter en liten JSON-fil:
+## Updating itself
 
-```json
-{
-  "versjon": "1.1.0",
-  "url": "https://.../Vaktmester-Installer.exe",
-  "sha256": "cb80b937e954...",
-  "storrelse": 288768,
-  "notat": "Hva som er nytt i denne versjonen."
-}
-```
+Checks at most once a day, in the background. If there is a newer version you get a
+dialog with the release notes and two buttons. Nothing happens unless you say yes.
+Turn it off under *Maintenance → Automatic*.
 
-Lag den med:
+Both the version file and the download must be `https`, and the download is verified
+against a sha256 from the version file **before** it is executed. Mismatch means the
+file is deleted and nothing runs.
+
+### Publishing a release
 
 ```bash
-utgivelse.cmd 1.1.0 https://github.com/BRUKER/vaktmester/releases/download/v1.1.0/Vaktmester-Installer.exe "Hva som er nytt"
+utgivelse.cmd 1.1.0 https://github.com/MatternPL/Vaktmester/releases/download/v1.1.0/Vaktmester-Installer.exe "What changed"
 ```
 
-Skriptet setter versjonsnummeret i kildekoden, bygger, regner ut sha256 og skriver
-`oppdatering.json`. Så laster du opp begge filene.
+Sets the version in the source, builds, computes the sha256 and writes
+`oppdatering.json`. Then upload `Vaktmester-Installer.exe` as a release asset and
+commit `oppdatering.json` to `main`.
 
-Adressen klienten sjekker står i `Updater.DefaultManifestUrl` i `src/Updater.cs`.
-Den kan også overstyres uten å bygge på nytt:
+Clients read `Updater.DefaultManifestUrl` in `src/Updater.cs`. It can be pointed
+elsewhere without rebuilding:
 
 ```powershell
-New-ItemProperty HKCU:\Software\Vaktmester -Name OppdateringsUrl -Value "https://din.adresse/oppdatering.json" -Force
+New-ItemProperty HKCU:\Software\Vaktmester -Name OppdateringsUrl -Value "https://your.host/oppdatering.json" -Force
 ```
 
-### Ærlige forbehold
-
-* **«Frigjør RAM» er stort sett bløff** i kommersielle verktøy. Windows bruker ledig
-  RAM som cache med vilje — det er sånn det skal være. Knappene under *Minne* gjør
-  noe ekte (tømmer arbeidssett / standby-liste), men hjelper bare i spesielle tilfeller,
-  og det står tydelig i programmet. Vil du ha varig lavere RAM-bruk: kutt oppstartsprogrammer.
-* **«Rense registeret» gir ingen målbar hastighetsgevinst.** Derfor finnes det ikke her.
-* **Ingen «driver updater»-svindel.** Drivere kommer fra Microsofts katalog, ikke fra
-  tvilsomme nettsider som skanner gratis og tar betalt for å fikse.
-* **Nettverk:** programmet snakker med Windows Update, winget og — hvis automatisk
-  oppdatering står på — oppdateringskilden din. Ingenting annet. Ingen telemetri.
-
-### Sikkerhetsnett
-
-* Ryddingen har en fast liste over mapper som **aldri** kan slettes — brukermappa,
-  Dokumenter, Skrivebord, Bilder, Windows, Program Files og rota på disken.
-* Filer som er i bruk hoppes over. Det er normalt, og telles opp i statuslinjen.
-* Windows.old er avmerket som standard og må hukes av manuelt.
-* Systemnære oppstartsoppføringer (lyd, styreplate, antivirus, passordbehandler)
-  er merket i gult, og du får en ekstra advarsel før de slås av.
-* Alt som gjøres skrives til `%LOCALAPPDATA%\Vaktmester\vaktmester.log`.
-
 ---
 
-## Kommandolinje
+## Command line
 
-| Argument | Hva den gjør |
+| | |
 |---|---|
-| `Vaktmester.exe /auto` | Kjører den trygge ryddingen uten vindu. Brukes av den planlagte oppgaven. |
-| `Vaktmester.exe /side:rydding` | Åpner en bestemt side direkte (`oversikt`, `rydding`, `diskplass`, `oppstart`, `minne`, `drivere`, `programmer`, `vedlikehold`, `logg`). |
-| `Vaktmester-Installer.exe /S` | Stille installasjon, ingen vindu. Legg til `/start` for å kjøre programmet etterpå. |
-| `Avinstaller.exe /uninstall` | Avinstallerer med vindu. Legg til `/S` for stille. |
+| `Vaktmester.exe /auto` | Runs the safe cleanup with no window. Used by the scheduled task. |
+| `Vaktmester.exe /side:cleanup` | Opens a specific page (`oversikt`, `rydding`, `diskplass`, `oppstart`, `minne`, `drivere`, `programmer`, `vedlikehold`, `logg`). |
+| `Vaktmester-Installer.exe /S` | Silent install. Add `/start` to launch afterwards. |
+| `Avinstaller.exe /uninstall` | Uninstall. Add `/S` for silent. |
 
 ---
 
-## Bygge selv
+## Building
 
 ```
 bygg.cmd
 ```
 
-Det er alt. Ingen Visual Studio, ingen NuGet, ingen SDK — skriptet bruker
-C#-kompilatoren som allerede ligger i `C:\Windows\Microsoft.NET\Framework64\v4.0.30319`.
-
-Resultatet blir `Vaktmester.exe` og `Vaktmester-Installer.exe` i rotmappa.
-
-### Filer
+That's it. No Visual Studio, no NuGet, no SDK — it uses the C# compiler already sitting
+in `C:\Windows\Microsoft.NET\Framework64\v4.0.30319`. That compiler only supports C# 5,
+so no string interpolation, no `?.`, no `nameof`.
 
 ```
-src/                  Programmet
-  Program.cs            Oppstart, argumenter, feilhåndtering
-  MainForm*.cs          Vinduet og sidene
-  Theme.cs  Logo.cs     Utseende og merke
-  Cleaner.cs            Ryddemotoren og sperrelista
-  StartupTools.cs       Oppstartsoppføringer og planlagte oppgaver
-  SystemTools.cs        Minne, winget, diskhelse, vedlikehold
-  DriverTools.cs        Drivere via Windows Update
-  Extras.cs             Windows-oppdateringer, diskplass, avinstallering, rapport
-  Native.cs             P/Invoke
-installer/            Installasjonsprogrammet
-tools/                Byggeverktøy og selvtester
+src/
+  Program.cs          entry point, arguments, error handling
+  MainForm*.cs        window and pages
+  Lang.cs             English/Norwegian, Norwegian text is the key
+  Theme.cs Logo.cs    dark theme and the mark
+  Cleaner.cs          cleanup engine and the do-not-touch list
+  StartupTools.cs     startup entries and scheduled tasks
+  SystemTools.cs      memory, winget, disk health, maintenance
+  DriverTools.cs      drivers via Windows Update
+  Extras.cs           Windows updates, disk usage, uninstall, report
+  Updater.cs          self-update
+  Native.cs           P/Invoke
+installer/            the installer
+tools/                build helpers and self-tests
 ```
 
-### Selvtest
+`tools/SelfTest.cs` walks memory, cleanup (measure only), startup, disks, problem
+devices and winget, and prints real numbers. `tools/sprak_sjekk.py` checks that every
+`L.T()` key in the source has an English translation.
 
-`tools/SelfTest.cs` kjører gjennom minne, rydding (kun analyse), oppstart, disker,
-problemenheter og winget, og skriver ut ekte tall. Nyttig for å sjekke at en endring
-ikke har brukket noe uten å måtte klikke seg gjennom vinduet.
+## Licence
+
+MIT.

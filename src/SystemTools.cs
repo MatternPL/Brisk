@@ -159,8 +159,7 @@ namespace Vaktmester
             }
             if (hdr < 0)
             {
-                note = "Fant ingen oppdateringsliste fra winget. Enten er alt oppdatert, " +
-                       "eller så må winget-kildene godkjennes én gang i et vanlig terminalvindu.";
+                note = L.T("Fant ingen liste fra winget.");
                 return list;
             }
 
@@ -171,7 +170,7 @@ namespace Vaktmester
             if (cAvail < 0) cAvail = header.IndexOf("Tilgjengelig", StringComparison.Ordinal);
             int cSrc = header.IndexOf("Source", StringComparison.Ordinal);
             if (cSrc < 0) cSrc = header.IndexOf("Kilde", StringComparison.Ordinal);
-            if (cId < 0 || cVer < 0 || cAvail < 0) { note = "Klarte ikke tolke winget-utdata."; return list; }
+            if (cId < 0 || cVer < 0 || cAvail < 0) { note = L.T("Klarte ikke tolke winget-utdata."); return list; }
 
             for (int i = hdr + 1; i < lines.Length; i++)
             {
@@ -198,7 +197,7 @@ namespace Vaktmester
                 catch { }
             }
             if (list.Count == 0 && note.Length == 0)
-                note = "Alle programmer winget kjenner til er allerede oppdatert.";
+                note = L.T("Alt winget kjenner til er oppdatert.");
             return list;
         }
 
@@ -296,7 +295,7 @@ namespace Vaktmester
 
         public static void CreateRestorePoint(Action<string> onLine)
         {
-            onLine("Oppretter systemgjenopprettingspunkt …");
+            onLine(L.T("Oppretter gjenopprettingspunkt."));
             string ps = "try { Enable-ComputerRestore -Drive \"$env:SystemDrive\\\" -ErrorAction SilentlyContinue; " +
                         "Checkpoint-Computer -Description 'Vaktmester' -RestorePointType 'MODIFY_SETTINGS' -ErrorAction Stop; " +
                         "Write-Output 'OK: gjenopprettingspunkt opprettet.' } catch { Write-Output ('Kunne ikke opprette punkt: ' + $_.Exception.Message) }";
@@ -305,19 +304,19 @@ namespace Vaktmester
 
         public static void RunSfc(Action<string> onLine)
         {
-            onLine("Kjører sfc /scannow — dette tar 5–15 minutter …");
+            onLine(L.T("Kjører sfc /scannow. Tar 5–15 minutter."));
             Util.Run("sfc", "/scannow", onLine, Encoding.Unicode);
         }
 
         public static void RunDismRestore(Action<string> onLine)
         {
-            onLine("Kjører DISM /RestoreHealth — dette kan ta lang tid …");
+            onLine(L.T("Kjører DISM /RestoreHealth. Kan ta lang tid."));
             Util.Run("dism.exe", "/Online /Cleanup-Image /RestoreHealth", onLine);
         }
 
         public static void RunComponentCleanup(Action<string> onLine)
         {
-            onLine("Rydder i komponentlageret (WinSxS). Kan frigjøre flere GB …");
+            onLine(L.T("Rydder komponentlageret (WinSxS)."));
             Util.Run("dism.exe", "/Online /Cleanup-Image /StartComponentCleanup", onLine);
         }
 
@@ -326,14 +325,14 @@ namespace Vaktmester
             foreach (VolumeInfo v in Volumes())
             {
                 string letter = v.Letter.TrimEnd('\\');
-                onLine("Optimaliserer " + letter + " (TRIM på SSD, defrag på HDD) …");
+                onLine(L.F("Optimaliserer {0}", letter));
                 Util.Run("defrag.exe", letter + " /O", onLine);
             }
         }
 
         public static void FlushDns(Action<string> onLine)
         {
-            onLine("Tømmer DNS-cache …");
+            onLine(L.T("Tømmer DNS-cache."));
             Util.Run("ipconfig", "/flushdns", onLine);
         }
     }

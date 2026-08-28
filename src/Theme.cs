@@ -37,6 +37,24 @@ namespace Vaktmester
         static extern int SetWindowTheme(IntPtr hWnd, string sub, string id);
         [DllImport("dwmapi.dll")]
         static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int val, int size);
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wp, IntPtr lp);
+
+        const int LVM_GETHEADER = 0x1000 + 31;
+
+        // ListView-overskriften er en egen kontroll. DarkMode_Explorer pa selve
+        // lista treffer den ikke - den ma ha DarkMode_ItemsView selv, ellers blir
+        // overskriftsraden hvit midt i et morkt vindu.
+        public static void DarkListHeader(ListView lv)
+        {
+            try
+            {
+                if (!lv.IsHandleCreated) return;
+                IntPtr h = SendMessage(lv.Handle, LVM_GETHEADER, IntPtr.Zero, IntPtr.Zero);
+                if (h != IntPtr.Zero) SetWindowTheme(h, "DarkMode_ItemsView", null);
+            }
+            catch { }
+        }
 
         public static void EnableDarkMode()
         {
@@ -51,6 +69,31 @@ namespace Vaktmester
                 DwmSetWindowAttribute(f.Handle, 20, ref on, 4);   // DWMWA_USE_IMMERSIVE_DARK_MODE
             }
             catch { }
+        }
+
+        // Kombobokser blir hvite uansett BackColor. DarkMode_CFD er temaet
+        // Windows selv bruker pa mork combobox fra 1903 og utover.
+        public static void DarkCombo(ComboBox c)
+        {
+            c.FlatStyle = FlatStyle.Flat;
+            c.BackColor = CardHi;
+            c.ForeColor = Text;
+            c.DrawMode = DrawMode.OwnerDrawFixed;
+            c.ItemHeight = 20;
+            c.DrawItem += delegate(object s, DrawItemEventArgs e)
+            {
+                ComboBox me = (ComboBox)s;
+                bool sel = (e.State & DrawItemState.Selected) != 0;
+                using (SolidBrush b = new SolidBrush(sel ? Accent : CardHi))
+                    e.Graphics.FillRectangle(b, e.Bounds);
+                if (e.Index >= 0 && e.Index < me.Items.Count)
+                    TextRenderer.DrawText(e.Graphics, Convert.ToString(me.Items[e.Index]), F,
+                        new Rectangle(e.Bounds.X + 4, e.Bounds.Y, e.Bounds.Width - 8, e.Bounds.Height),
+                        sel ? Color.White : Text,
+                        TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            };
+            c.HandleCreated += delegate { DarkControl(c, "DarkMode_CFD"); };
+            if (c.IsHandleCreated) DarkControl(c, "DarkMode_CFD");
         }
 
         public static void DarkControl(Control c, string theme)
@@ -106,7 +149,19 @@ namespace Vaktmester
             lv.ForeColor = Text;
             lv.Font = F;
             lv.HideSelection = false;
-            lv.HandleCreated += delegate { DarkControl(lv, "DarkMode_Explorer"); };
+            // Ma settes bade na og ved HandleCreated: rekkefolgen varierer med
+            // hvordan kontrollen blir foreldret, og bommer man forsvinner det
+            // morke temaet pa kolonneoverskriftene.
+            lv.HandleCreated += delegate
+            {
+                DarkControl(lv, "DarkMode_Explorer");
+                DarkListHeader(lv);
+            };
+            if (lv.IsHandleCreated)
+            {
+                DarkControl(lv, "DarkMode_Explorer");
+                DarkListHeader(lv);
+            }
             return lv;
         }
 
@@ -134,6 +189,68 @@ namespace Vaktmester
             };
             return p;
         }
+    }
+
+    // Morkt utseende pa hurtigmenyer.
+    class DarkMenuRenderer : ToolStripProfessionalRenderer
+    {
+        public DarkMenuRenderer() : base(new DarkColors()) { }
+
+        protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
+        {
+            e.TextColor = e.Item.Selected ? Color.White : Theme.Text;
+            base.OnRenderItemText(e);
+        }
+
+        class DarkColors : ProfessionalColorTable
+        {
+            public override Color MenuItemSelected { get { return Theme.Accent; } }
+            public override Color MenuItemSelectedGradientBegin { get { return Theme.Accent; } }
+            public override Color MenuItemSelectedGradientEnd { get { return Theme.Accent; } }
+            public override Color MenuItemBorder { get { return Theme.Accent; } }
+            public override Color ToolStripDropDownBackground { get { return Theme.CardHi; } }
+            public override Color ImageMarginGradientBegin { get { return Theme.CardHi; } }
+            public override Color ImageMarginGradientMiddle { get { return Theme.CardHi; } }
+            public override Color ImageMarginGradientEnd { get { return Theme.CardHi; } }
+            public override Color MenuBorder { get { return Theme.Line; } }
+        }
+    }
+
+    // Knapp som apner en liste med valg. Erstatter ComboBox, som ikke lar seg
+    // gjore mork pa en palitelig mate.
+    class Chooser : FlatBtn
+    {
+        readonly ContextMenuStrip menu = new ContextMenuStrip();
+        public event EventHandler Changed;
+        public string Value = "";
+
+        public Chooser() : base("")
+        {
+            Font = Theme.F;
+            menu.Renderer = new DarkMenuRenderer();
+            menu.BackColor = Theme.CardHi;
+            menu.ForeColor = Theme.Text;
+            menu.ShowImageMargin = false;
+            Click += delegate { menu.Show(this, new Point(0, Height)); };
+        }
+
+        public void Add(string item)
+        {
+            ToolStripMenuItem mi = new ToolStripMenuItem(item);
+            mi.BackColor = Theme.CardHi;
+            mi.ForeColor = Theme.Text;
+            mi.Click += delegate
+            {
+                Value = item;
+                Text = item;
+                EventHandler h = Changed;
+                if (h != null) h(this, EventArgs.Empty);
+            };
+            menu.Items.Add(mi);
+            if (menu.Items.Count == 1) { Value = item; Text = item; }
+        }
+
+        public int Count { get { return menu.Items.Count; } }
     }
 
     // Flat knapp med tydelig hover/press og valgfri aksentfarge.

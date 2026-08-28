@@ -16,6 +16,7 @@ namespace Vaktmester
         Dictionary<string, Panel> pages = new Dictionary<string, Panel>();
         string current = "";
         CancellationTokenSource cts;
+        ToolTip tips = new ToolTip();
 
         public MainForm() : this("oversikt") { }
 
@@ -31,6 +32,10 @@ namespace Vaktmester
             DoubleBuffered = true;
             Theme.ApplyIcon(this);
 
+            tips.AutoPopDelay = 12000;
+            tips.InitialDelay = 500;
+            tips.ReshowDelay = 200;
+
             BuildShell();
             Show(string.IsNullOrEmpty(startPage) ? "oversikt" : startPage);
 
@@ -38,24 +43,21 @@ namespace Vaktmester
             Load += delegate
             {
                 Theme.DarkTitleBar(this);
-                // Sjekker i bakgrunnen, hoyst en gang i dognet, og bare hvis pa.
-                if (Updater.AutoCheck &&
-                    (DateTime.Now - Updater.LastCheck).TotalHours >= 20)
+                if (Updater.AutoCheck && (DateTime.Now - Updater.LastCheck).TotalHours >= 20)
                 {
-                    System.Threading.Tasks.Task.Run((Action)delegate
+                    Task.Run((Action)delegate
                     {
                         string err;
                         UpdateInfo u = Updater.Check(out err);
                         if (u == null) return;
-                        try
-                        {
-                            BeginInvoke((Action)delegate { ShowUpdateDialog(u); });
-                        }
+                        try { BeginInvoke((Action)delegate { ShowUpdateDialog(u); }); }
                         catch { }
                     });
                 }
             };
         }
+
+        public void Tip(Control c, string no) { try { tips.SetToolTip(c, L.T(no)); } catch { } }
 
         // ==============================================================
         void BuildShell()
@@ -72,12 +74,11 @@ namespace Vaktmester
             side.BackColor = Theme.Side;
             Controls.Add(side);
 
-            // --- innhold: overskrift + verts-panel + statuslinje ---
             statusBar = new Panel();
             statusBar.Dock = DockStyle.Bottom;
             statusBar.Height = 30;
             statusBar.BackColor = Theme.Bg;
-            lblStatus = Theme.Lbl("Klar.", Theme.FSmall, Theme.Muted);
+            lblStatus = Theme.Lbl("", Theme.FSmall, Theme.Muted);
             lblStatus.Location = new Point(2, 8);
             lblStatus.AutoSize = false;
             lblStatus.Size = new Size(900, 18);
@@ -106,34 +107,60 @@ namespace Vaktmester
             // --- sidemeny ---
             Panel adminBox = new Panel();
             adminBox.Dock = DockStyle.Bottom;
-            adminBox.Height = Util.IsAdmin() ? 58 : 96;
+            adminBox.Height = Util.IsAdmin() ? 40 : 76;
             adminBox.BackColor = Theme.Side;
-            adminBox.Padding = new Padding(14, 8, 14, 12);
             if (Util.IsAdmin())
             {
-                Label ok = Theme.Lbl("● Kjører som administrator", Theme.FSmall, Theme.Good);
-                ok.Location = new Point(16, 14);
+                Label ok = Theme.Lbl("● " + L.T("Administrator"), Theme.FSmall, Theme.Good);
+                ok.Location = new Point(16, 8);
                 adminBox.Controls.Add(ok);
             }
             else
             {
-                Label w = Theme.Lbl("● Begrenset modus", Theme.FSmall, Theme.Warn);
+                Label w = Theme.Lbl("● " + L.T("Begrenset"), Theme.FSmall, Theme.Warn);
                 w.Location = new Point(16, 6);
                 adminBox.Controls.Add(w);
-                Label w2 = Theme.Lbl("Systemfiler og drivere krever\nadministrator.", Theme.FSmall, Theme.Muted);
-                w2.Location = new Point(16, 24);
-                adminBox.Controls.Add(w2);
-                FlatBtn b = new FlatBtn("Start på nytt som admin");
-                b.Dock = DockStyle.Bottom;
-                b.Height = 30;
+                FlatBtn b = new FlatBtn(L.T("Kjør som administrator"));
+                b.Height = 28;
+                b.Width = 186;
+                b.Location = new Point(16, 28);
                 b.Font = Theme.FSmall;
-                b.Click += delegate
-                {
-                    if (Util.RelaunchAsAdmin()) Application.Exit();
-                };
+                b.Click += delegate { if (Util.RelaunchAsAdmin()) Application.Exit(); };
                 adminBox.Controls.Add(b);
             }
             side.Controls.Add(adminBox);
+
+            Panel langBox = new Panel();
+            langBox.Dock = DockStyle.Bottom;
+            langBox.Height = 44;
+            langBox.BackColor = Theme.Side;
+            FlatBtn bEn = new FlatBtn("English");
+            FlatBtn bNo = new FlatBtn("Norsk");
+            bEn.Width = 91; bEn.Height = 28; bEn.Location = new Point(16, 8); bEn.Font = Theme.FSmall;
+            bNo.Width = 91; bNo.Height = 28; bNo.Location = new Point(111, 8); bNo.Font = Theme.FSmall;
+            if (L.IsNorwegian) bNo.Primary(); else bEn.Primary();
+            EventHandler bytt = delegate(object s2, EventArgs e2)
+            {
+                string want = (s2 == bNo) ? "no" : "en";
+                if (want == L.Lang) return;
+                L.Lang = want;
+                Util.Log("Språk: " + want + ". Starter på nytt.");
+                try
+                {
+                    System.Diagnostics.ProcessStartInfo psi =
+                        new System.Diagnostics.ProcessStartInfo(Util.ExePath());
+                    psi.Arguments = "/side:" + current;
+                    psi.UseShellExecute = true;
+                    System.Diagnostics.Process.Start(psi);
+                }
+                catch { }
+                Application.Exit();
+            };
+            bEn.Click += bytt;
+            bNo.Click += bytt;
+            langBox.Controls.Add(bEn);
+            langBox.Controls.Add(bNo);
+            side.Controls.Add(langBox);
 
             Panel navHost = new Panel();
             navHost.Dock = DockStyle.Fill;
@@ -141,16 +168,16 @@ namespace Vaktmester
             side.Controls.Add(navHost);
             navHost.BringToFront();
 
-            // Legges i omvendt rekkefølge fordi Dock.Top stabler nedenfra.
-            AddNav(navHost, "logg", "Logg");
-            AddNav(navHost, "vedlikehold", "Vedlikehold");
-            AddNav(navHost, "programmer", "Programvare");
-            AddNav(navHost, "drivere", "Oppdateringer");
-            AddNav(navHost, "minne", "Minne");
-            AddNav(navHost, "oppstart", "Oppstart");
-            AddNav(navHost, "diskplass", "Diskplass");
-            AddNav(navHost, "rydding", "Rydding");
-            AddNav(navHost, "oversikt", "Oversikt");
+            // Omvendt rekkefølge — Dock.Top stabler nedenfra.
+            AddNav(navHost, "logg", L.T("Logg"));
+            AddNav(navHost, "vedlikehold", L.T("Vedlikehold"));
+            AddNav(navHost, "programmer", L.T("Programvare"));
+            AddNav(navHost, "drivere", L.T("Oppdateringer"));
+            AddNav(navHost, "minne", L.T("Minne"));
+            AddNav(navHost, "oppstart", L.T("Oppstart"));
+            AddNav(navHost, "diskplass", L.T("Diskplass"));
+            AddNav(navHost, "rydding", L.T("Rydding"));
+            AddNav(navHost, "oversikt", L.T("Oversikt"));
 
             Panel brand = new Panel();
             brand.Dock = DockStyle.Top;
@@ -162,7 +189,7 @@ namespace Vaktmester
             };
             Label b1 = Theme.Lbl("Vaktmester", new Font("Segoe UI Light", 16f), Theme.Text);
             b1.Location = new Point(68, 26);
-            Label b2 = Theme.Lbl("PC-vedlikehold uten tull", Theme.FSmall, Theme.Muted);
+            Label b2 = Theme.Lbl("v" + Updater.CurrentVersion, Theme.FSmall, Theme.Muted);
             b2.Location = new Point(70, 58);
             brand.Controls.Add(b1);
             brand.Controls.Add(b2);
@@ -206,15 +233,15 @@ namespace Vaktmester
         {
             switch (key)
             {
-                case "oversikt": return "Oversikt";
-                case "rydding": return "Rydding";
-                case "diskplass": return "Diskplass";
-                case "oppstart": return "Oppstart";
-                case "minne": return "Minne";
-                case "drivere": return "Oppdateringer";
-                case "programmer": return "Programvare";
-                case "vedlikehold": return "Vedlikehold";
-                default: return "Logg";
+                case "oversikt": return L.T("Oversikt");
+                case "rydding": return L.T("Rydding");
+                case "diskplass": return L.T("Diskplass");
+                case "oppstart": return L.T("Oppstart");
+                case "minne": return L.T("Minne");
+                case "drivere": return L.T("Oppdateringer");
+                case "programmer": return L.T("Programvare");
+                case "vedlikehold": return L.T("Vedlikehold");
+                default: return L.T("Logg");
             }
         }
 
@@ -222,15 +249,15 @@ namespace Vaktmester
         {
             switch (key)
             {
-                case "oversikt": return "Tilstanden på maskinen akkurat nå.";
-                case "rydding": return "Finn og slett filer som bare tar plass.";
-                case "diskplass": return "Hvor det er blitt av lagringsplassen.";
-                case "oppstart": return "Programmer som starter med Windows.";
-                case "minne": return "Hva RAM-en faktisk brukes til.";
-                case "drivere": return "Drivere og Windows-oppdateringer rett fra Microsoft.";
-                case "programmer": return "Oppdater eller fjern installerte programmer.";
-                case "vedlikehold": return "Reparasjon, diskhelse og systemsjekk.";
-                default: return "Alt programmet har gjort.";
+                case "oversikt": return L.T("Tilstanden akkurat nå.");
+                case "rydding": return L.T("Filer som bare tar plass.");
+                case "diskplass": return L.T("Hvor plassen har blitt av.");
+                case "oppstart": return L.T("Det som starter med Windows.");
+                case "minne": return L.T("Hva RAM-en brukes til.");
+                case "drivere": return L.T("Fra Windows Update.");
+                case "programmer": return L.T("Oppdater eller fjern programmer.");
+                case "vedlikehold": return L.T("Reparasjon og diskhelse.");
+                default: return L.T("Alt som er gjort.");
             }
         }
 
@@ -256,36 +283,32 @@ namespace Vaktmester
             lblSubtitle.Text = s;
         }
 
-        // Overskriften må også oppdateres når man bytter til en side som alt finnes.
-        protected override void OnControlAdded(ControlEventArgs e) { base.OnControlAdded(e); }
-
         // ==============================================================
         //  Hjelpere
         // ==============================================================
-        // Viser oppdateringsdialogen. Kalles bade fra automatisk sjekk og fra knappen.
         public void ShowUpdateDialog(UpdateInfo u)
         {
             try
             {
                 using (UpdateDialog d = new UpdateDialog(u)) d.ShowDialog(this);
             }
-            catch (Exception ex) { Status("Kunne ikke vise oppdateringen: " + ex.Message); }
+            catch (Exception ex) { Status(L.T("Kunne ikke vise oppdateringen: ") + ex.Message); }
         }
 
-        // manual = true gir tilbakemelding ogsa nar alt er oppdatert.
-        public async System.Threading.Tasks.Task CheckForUpdates(bool manual)
+        public async Task CheckForUpdates(bool manual)
         {
             UpdateInfo u = null;
             string err = null;
-            Status("Ser etter oppdateringer \u2026");
-            await System.Threading.Tasks.Task.Run((Action)delegate
-            {
-                u = Updater.Check(out err);
-            });
+            Status(L.T("Ser etter oppdateringer …"));
+            await Task.Run((Action)delegate { u = Updater.Check(out err); });
 
-            if (u != null) { Status("Ny versjon " + u.Version + " er tilgjengelig."); ShowUpdateDialog(u); }
+            if (u != null)
+            {
+                Status(L.F("Versjon {0} er tilgjengelig.", u.Version));
+                ShowUpdateDialog(u);
+            }
             else if (err != null) Status(err);
-            else if (manual) Status("Du har nyeste versjon (" + Updater.CurrentVersion + ").");
+            else if (manual) Status(L.F("Du har nyeste versjon ({0}).", Updater.CurrentVersion));
         }
 
         public void Status(string s)
@@ -326,6 +349,8 @@ namespace Vaktmester
         // ==============================================================
         Label ovRam, ovRamSub, ovDisk, ovDiskSub, ovStart, ovStartSub, ovJunk, ovJunkSub;
         Bar ovRamBar, ovDiskBar;
+        ListView lvFindings;
+        long junkFound = -1;
 
         Panel PageOverview()
         {
@@ -338,10 +363,10 @@ namespace Vaktmester
             cards.Height = 152;
             cards.BackColor = Theme.Bg;
 
-            Panel c1 = StatCard(out ovRam, out ovRamSub, "Minne i bruk", out ovRamBar);
-            Panel c2 = StatCard(out ovDisk, out ovDiskSub, "Ledig plass på systemdisken", out ovDiskBar);
-            Panel c3 = StatCard(out ovStart, out ovStartSub, "Aktive oppstartsprogrammer", null);
-            Panel c4 = StatCard(out ovJunk, out ovJunkSub, "Søppel funnet", null);
+            Panel c1 = StatCard(out ovRam, out ovRamSub, L.T("Minne"), out ovRamBar);
+            Panel c2 = StatCard(out ovDisk, out ovDiskSub, L.T("Ledig på systemdisken"), out ovDiskBar);
+            Panel c3 = StatCard(out ovStart, out ovStartSub, L.T("Starter med Windows"), null);
+            Panel c4 = StatCard(out ovJunk, out ovJunkSub, L.T("Søppel"), null);
 
             TableLayoutPanel grid = new TableLayoutPanel();
             grid.Dock = DockStyle.Fill;
@@ -357,52 +382,36 @@ namespace Vaktmester
             cards.Controls.Add(grid);
 
             Panel actions = Row(58);
-            FlatBtn scan = new FlatBtn("Kjør full sjekk");
+            FlatBtn scan = new FlatBtn(L.T("Kjør sjekk"));
             scan.Primary();
-            scan.Width = 160;
+            scan.Width = 140;
             scan.Location = new Point(0, 12);
-            FlatBtn refresh = new FlatBtn("Oppdater tall");
-            refresh.Width = 130;
-            refresh.Location = new Point(172, 12);
+            FlatBtn refresh = new FlatBtn(L.T("Oppdater"));
+            refresh.Width = 120;
+            refresh.Location = new Point(152, 12);
             actions.Controls.Add(scan);
             actions.Controls.Add(refresh);
+            Tip(scan, "Måler søppelfiler og ser etter ting som er verdt å gjøre noe med.");
 
-            Panel info = Theme.MakeCard();
-            info.Dock = DockStyle.Fill;
-            RichTextBox rt = new RichTextBox();
-            rt.Dock = DockStyle.Fill;
-            rt.BackColor = Theme.Card;
-            rt.ForeColor = Theme.Muted;
-            rt.BorderStyle = BorderStyle.None;
-            rt.ReadOnly = true;
-            rt.Font = Theme.F;
-            rt.Text =
-                "Hva dette programmet faktisk gjør — og ikke gjør\r\n\r\n" +
-                "VIRKER:\r\n" +
-                "  Rydding — sletter ekte søppelfiler: temp, oppdateringsrester, krasjdumper,\r\n" +
-                "  nettleser-cache og logger. Frigjør ofte flere GB. Rører aldri dine egne filer.\r\n\r\n" +
-                "  Oppstart — den største reelle hastighetsgevinsten. Færre programmer som starter\r\n" +
-                "  med Windows gir raskere oppstart og mindre RAM-bruk hele tiden.\r\n\r\n" +
-                "  Drivere — henter drivere fra Microsofts egen katalog via Windows Update.\r\n" +
-                "  Signerte og trygge. Gratis, og uten den svindelen «driver updater»-nettsider driver med.\r\n\r\n" +
-                "  Vedlikehold — sfc og DISM reparerer faktisk ødelagte systemfiler. TRIM holder SSD-en rask.\r\n\r\n" +
-                "ÆRLIG FORBEHOLD:\r\n" +
-                "  «Frigjør RAM»-knapper er stort sett bløff i kommersielle verktøy. Windows bruker\r\n" +
-                "  ledig RAM som cache med vilje — det er sånn det skal være. Knappene under Minne\r\n" +
-                "  gjør noe ekte, men hjelper bare i spesielle tilfeller. De er merket deretter.\r\n\r\n" +
-                "  Å «rense registeret» gir ingen målbar hastighetsgevinst. Derfor finnes det ikke her.\r\n\r\n" +
-                "  Ingen betalingsmur, ingen abonnement, ingen telemetri. Programmet snakker med\r\n" +
-                "  Windows Update, winget, og — hvis automatisk oppdatering står på — oppdateringskilden.\r\n" +
-                "  Ingenting om deg eller maskinen din sendes noe sted.\r\n\r\n" +
-                "  Oppdaterer seg selv: ser etter ny versjon høyst én gang i døgnet, spør deg først, og\r\n" +
-                "  kontrollerer nedlastingen mot en sha256-sum før noe kjøres.";
-            info.Controls.Add(rt);
+            Label h = Theme.Lbl(L.T("Verdt å se på"), Theme.FBold, Theme.Text);
+            h.Dock = DockStyle.Top;
+            h.Height = 26;
 
-            p.Controls.Add(info);
-            p.Controls.Add(Spacer(14));
+            Panel listHost = new Panel();
+            listHost.Dock = DockStyle.Fill;
+            listHost.BackColor = Theme.Bg;
+            lvFindings = ListIn(listHost, false, L.T("Funn"), "620", L.T("Hva du kan gjøre"), "420");
+            lvFindings.DoubleClick += delegate
+            {
+                if (lvFindings.SelectedItems.Count == 0) return;
+                string key = Convert.ToString(lvFindings.SelectedItems[0].Tag);
+                if (!string.IsNullOrEmpty(key)) Show(key);
+            };
+            listHost.Controls.Add(h);
+
+            p.Controls.Add(listHost);
             p.Controls.Add(actions);
             p.Controls.Add(cards);
-            info.BringToFront();
 
             scan.Click += async delegate
             {
@@ -412,7 +421,7 @@ namespace Vaktmester
             };
             refresh.Click += delegate { RefreshOverview(); };
 
-            RefreshOverview();
+            Defer(delegate { RefreshOverview(); });
             return p;
         }
 
@@ -455,13 +464,22 @@ namespace Vaktmester
             return p;
         }
 
+        void AddFinding(Color dot, string text, string action, string page)
+        {
+            ListViewItem li = new ListViewItem("● " + text);
+            li.SubItems.Add(action);
+            li.ForeColor = dot;
+            li.Tag = page;
+            lvFindings.Items.Add(li);
+        }
+
         void RefreshOverview()
         {
             try
             {
                 MemSnapshot m = MemoryTools.Snapshot();
                 ovRam.Text = m.LoadPercent + " %";
-                ovRamSub.Text = Util.Bytes(m.UsedPhys) + " av " + Util.Bytes(m.TotalPhys) + " i bruk";
+                ovRamSub.Text = L.F("{0} av {1}", Util.Bytes(m.UsedPhys), Util.Bytes(m.TotalPhys));
                 ovRamBar.Value = m.LoadPercent / 100.0;
                 ovRamBar.Fill = m.LoadPercent > 88 ? Theme.Bad : m.LoadPercent > 70 ? Theme.Warn : Theme.Good;
                 ovRamBar.Invalidate();
@@ -469,8 +487,7 @@ namespace Vaktmester
                 DriveInfo sys = new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory));
                 double freePct = (double)sys.AvailableFreeSpace / sys.TotalSize;
                 ovDisk.Text = Util.Bytes(sys.AvailableFreeSpace);
-                ovDiskSub.Text = "av " + Util.Bytes(sys.TotalSize) + " totalt (" +
-                                 (freePct * 100).ToString("0") + " % ledig)";
+                ovDiskSub.Text = L.F("{0} % av {1}", (freePct * 100).ToString("0"), Util.Bytes(sys.TotalSize));
                 ovDiskBar.Value = 1 - freePct;
                 ovDiskBar.Fill = freePct < 0.08 ? Theme.Bad : freePct < 0.15 ? Theme.Warn : Theme.Good;
                 ovDiskBar.Invalidate();
@@ -482,15 +499,76 @@ namespace Vaktmester
                     if (it.Enabled) active++;
                 }
                 ovStart.Text = active.ToString();
-                ovStartSub.Text = "av " + total + " oppføringer";
+                ovStartSub.Text = L.F("av {0}", total);
+
+                if (junkFound >= 0)
+                {
+                    ovJunk.Text = Util.Bytes(junkFound);
+                    ovJunkSub.Text = "";
+                }
+
+                // --- funn ---
+                lvFindings.BeginUpdate();
+                lvFindings.Items.Clear();
+
+                if (freePct < 0.15)
+                    AddFinding(freePct < 0.08 ? Theme.Bad : Theme.Warn,
+                        L.F("Bare {0} ledig på {1}", Util.Bytes(sys.AvailableFreeSpace), sys.Name),
+                        L.T("Rydd, eller se hva som tar plassen"), "diskplass");
+
+                if (junkFound > 1024L * 1024 * 1024)
+                    AddFinding(Theme.Warn, L.F("{0} søppelfiler", Util.Bytes(junkFound)),
+                        L.T("Rens dem"), "rydding");
+
+                if (active > 8)
+                    AddFinding(Theme.Warn, L.F("{0} programmer starter med Windows", active),
+                        L.T("Slå av det du ikke trenger"), "oppstart");
+
+                if (m.LoadPercent > 85)
+                    AddFinding(Theme.Warn, L.F("Minnet er {0} % fullt", m.LoadPercent),
+                        L.T("Se hva som bruker det"), "minne");
+
+                try
+                {
+                    List<ProblemDevice> devs = DriverTools.FindProblemDevices();
+                    int real = 0;
+                    foreach (ProblemDevice d in devs)
+                        if (d.ErrorCode != 22 && d.ErrorCode != 45) real++;
+                    if (real > 0)
+                        AddFinding(Theme.Bad, L.F("{0} enheter melder feil", real),
+                            L.T("Se etter drivere"), "drivere");
+                }
+                catch { }
+
+                try
+                {
+                    string wold = Util.Expand("%SystemDrive%\\Windows.old");
+                    if (Directory.Exists(wold))
+                        AddFinding(Theme.Warn, L.T("Windows.old ligger igjen etter en oppgradering"),
+                            L.T("Kan slettes under Rydding"), "rydding");
+                }
+                catch { }
+
+                foreach (DiskInfo d in MaintenanceTools.PhysicalDisks())
+                    if (d.Health != "Frisk" && d.Health != "Ukjent")
+                        AddFinding(Theme.Bad, L.F("Disken {0} melder «{1}»", d.Name, L.T(d.Health)),
+                            L.T("Ta sikkerhetskopi nå"), "vedlikehold");
+
+                if (lvFindings.Items.Count == 0)
+                {
+                    ListViewItem li = new ListViewItem("● " + L.T("Ingenting å påpeke."));
+                    li.SubItems.Add(junkFound < 0 ? L.T("Kjør en sjekk for å måle søppelfiler") : "");
+                    li.ForeColor = Theme.Good;
+                    lvFindings.Items.Add(li);
+                }
+                lvFindings.EndUpdate();
             }
-            catch (Exception ex) { Status("Kunne ikke lese systemtall: " + ex.Message); }
+            catch (Exception ex) { Status(L.T("Kunne ikke lese systemtall: ") + ex.Message); }
         }
 
         async Task FullScan()
         {
-            RefreshOverview();
-            Status("Skanner etter søppelfiler …");
+            Status(L.T("Måler …"));
             long total = 0;
             List<CleanTarget> targets = Cleaner.BuildTargets();
             CancellationTokenSource c = new CancellationTokenSource();
@@ -500,17 +578,17 @@ namespace Vaktmester
                 {
                     foreach (CleanTarget t in targets)
                     {
-                        Status("Skanner: " + t.Name);
+                        Status(L.T(t.Name));
                         Cleaner.Scan(t, c.Token, null);
                         total += t.FoundBytes;
                     }
                 });
-                ovJunk.Text = Util.Bytes(total);
-                ovJunkSub.Text = "kan slettes trygt — se Rydding";
-                Status("Full sjekk ferdig. " + Util.Bytes(total) + " kan ryddes bort.");
-                Util.Log("Full sjekk: " + Util.Bytes(total) + " søppel funnet.");
+                junkFound = total;
+                RefreshOverview();
+                Status(L.F("{0} kan ryddes bort.", Util.Bytes(total)));
+                Util.Log("Sjekk: " + Util.Bytes(total) + " søppel funnet.");
             }
-            catch (Exception ex) { Status("Skanning avbrutt: " + ex.Message); }
+            catch (Exception ex) { Status(L.T("Avbrutt: ") + ex.Message); }
         }
 
         // ==============================================================
@@ -525,10 +603,10 @@ namespace Vaktmester
             p.BackColor = Theme.Bg;
 
             Panel bar = Row(50);
-            FlatBtn open = new FlatBtn("Åpne loggfil");
+            FlatBtn open = new FlatBtn(L.T("Åpne loggfil"));
             open.Width = 130; open.Location = new Point(0, 8);
             open.Click += delegate { Util.OpenPath(Util.LogPath); };
-            FlatBtn clear = new FlatBtn("Tøm visning");
+            FlatBtn clear = new FlatBtn(L.T("Tøm visning"));
             clear.Width = 120; clear.Location = new Point(142, 8);
             clear.Click += delegate { logBox.Clear(); };
             bar.Controls.Add(open);

@@ -25,11 +25,11 @@ namespace Vaktmester
             {
                 switch (Kind)
                 {
-                    case StartupKind.RegistryHKCU: return "Register (denne brukeren)";
-                    case StartupKind.RegistryHKLM: return "Register (alle brukere)";
-                    case StartupKind.RegistryHKLM32: return "Register (32-bit)";
-                    case StartupKind.Folder: return "Oppstartsmappe";
-                    default: return "Planlagt oppgave";
+                    case StartupKind.RegistryHKCU: return L.T("Register (denne brukeren)");
+                    case StartupKind.RegistryHKLM: return L.T("Register (alle brukere)");
+                    case StartupKind.RegistryHKLM32: return L.T("Register (32-bit)");
+                    case StartupKind.Folder: return L.T("Oppstartsmappe");
+                    default: return L.T("Planlagt oppgave");
                 }
             }
         }
@@ -87,7 +87,7 @@ namespace Vaktmester
             new string[] { "defender",        "Antivirus" },
             new string[] { "avast",           "Antivirus" },
             new string[] { "bitdefender",     "Antivirus" },
-            new string[] { "onedrive",        "Skysynkronisering - filer slutter aa synkes" },
+            new string[] { "onedrive",        "Skysynkronisering" },
             new string[] { "1password",       "Passordbehandler" },
             new string[] { "bitwarden",       "Passordbehandler" },
             new string[] { "lastpass",        "Passordbehandler" },
@@ -97,7 +97,7 @@ namespace Vaktmester
         {
             string hay = ((it.Name ?? "") + " " + (it.Command ?? "")).ToLowerInvariant();
             foreach (string[] row in Sensitive)
-                if (hay.IndexOf(row[0], StringComparison.Ordinal) >= 0) return row[1];
+                if (hay.IndexOf(row[0], StringComparison.Ordinal) >= 0) return L.T(row[1]);
             return "";
         }
 

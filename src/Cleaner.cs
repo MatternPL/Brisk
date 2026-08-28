@@ -90,39 +90,39 @@ namespace Vaktmester
             List<CleanTarget> t = new List<CleanTarget>();
 
             t.Add(new CleanTarget("Midlertidige filer (bruker)",
-                "%TEMP% — programmer legger igjen installasjonsrester og arbeidsfiler her.")
+                "%TEMP%. Rester etter installasjoner og programmer.")
                 .Dir("%LOCALAPPDATA%\\Temp"));
 
             t.Add(new CleanTarget("Midlertidige filer (Windows)",
-                "C:\\Windows\\Temp — system- og installasjonsrester.")
+                "C:\\Windows\\Temp.")
                 .Dir("%SystemRoot%\\Temp"));
 
-            CleanTarget rb = new CleanTarget("Papirkurv", "Tømmer papirkurven på alle disker.");
+            CleanTarget rb = new CleanTarget("Papirkurv", "Alle disker.");
             rb.Special = true; rb.SpecialKey = "recyclebin";
             t.Add(rb);
 
             t.Add(new CleanTarget("Windows Update-nedlastinger",
-                "Ferdig installerte oppdateringspakker. Windows laster ned på nytt hvis det trengs.")
+                "Ferdig installerte pakker. Lastes ned igjen hvis det trengs.")
                 .Dir("%SystemRoot%\\SoftwareDistribution\\Download"));
 
-            t.Add(new CleanTarget("Delivery Optimization-cache",
-                "Mellomlagrede oppdateringer som deles med andre PC-er på nettverket.")
+            t.Add(new CleanTarget("Delivery Optimization",
+                "Oppdateringer mellomlagret for deling på nettverket.")
                 .Dir("%SystemRoot%\\ServiceProfiles\\NetworkService\\AppData\\Local\\Microsoft\\Windows\\DeliveryOptimization"));
 
-            t.Add(new CleanTarget("Krasjdumper og minnedumper",
-                "Dumpfiler fra kræsj og blåskjerm. Bare nyttig hvis du skal feilsøke i ettertid.")
+            t.Add(new CleanTarget("Krasjdumper",
+                "Dumpfiler fra kræsj og blåskjerm.")
                 .Dir("%LOCALAPPDATA%\\CrashDumps")
                 .Dir("%SystemRoot%\\Minidump")
                 .Files("%SystemRoot%", "MEMORY.DMP"));
 
-            t.Add(new CleanTarget("Windows feilrapportering",
-                "Køfiler for rapporter som skulle sendes til Microsoft.")
+            t.Add(new CleanTarget("Feilrapportering",
+                "Rapporter som lå i kø til Microsoft.")
                 .Dir("%LOCALAPPDATA%\\Microsoft\\Windows\\WER")
                 .Dir("%ProgramData%\\Microsoft\\Windows\\WER\\ReportQueue")
                 .Dir("%ProgramData%\\Microsoft\\Windows\\WER\\ReportArchive"));
 
-            t.Add(new CleanTarget("Systemlogger (CBS / Update / DISM)",
-                "Store tekstlogger fra komponentbehandling. Kan bli flere hundre MB.")
+            t.Add(new CleanTarget("Systemlogger",
+                "CBS, Windows Update og DISM. Blir fort hundrevis av MB.")
                 .Files("%SystemRoot%\\Logs\\CBS", "*.log")
                 .Files("%SystemRoot%\\Logs\\CBS", "*.cab")
                 .Dir("%SystemRoot%\\Logs\\WindowsUpdate")
@@ -130,12 +130,12 @@ namespace Vaktmester
                 .Files("%SystemRoot%", "*.log"));
 
             t.Add(new CleanTarget("Miniatyrbilde- og ikon-cache",
-                "Bygges opp igjen automatisk. Fikser ofte gale eller manglende miniatyrbilder.")
+                "Bygges opp igjen. Fikser gale miniatyrbilder.")
                 .Files("%LOCALAPPDATA%\\Microsoft\\Windows\\Explorer", "thumbcache_*.db")
                 .Files("%LOCALAPPDATA%\\Microsoft\\Windows\\Explorer", "iconcache_*.db"));
 
-            t.Add(new CleanTarget("Grafikk-cache (DirectX / NVIDIA / AMD)",
-                "Kompilerte shadere. Bygges opp igjen, og løser av og til grafikkfeil etter driverbytte.")
+            t.Add(new CleanTarget("Grafikk-cache",
+                "Kompilerte shadere fra DirectX, NVIDIA og AMD. Bygges opp igjen.")
                 .Dir("%LOCALAPPDATA%\\D3DSCache")
                 .Dir("%LOCALAPPDATA%\\NVIDIA\\DXCache")
                 .Dir("%LOCALAPPDATA%\\NVIDIA\\GLCache")
@@ -144,7 +144,7 @@ namespace Vaktmester
                 .Dir("%LOCALAPPDATA%\\AMD\\DxcCache"));
 
             t.Add(new CleanTarget("Nettleser-cache",
-                "Kun cache — passord, bokmerker, historikk og innlogginger røres IKKE.")
+                "Bare cache. Passord, bokmerker og innlogginger røres ikke.")
                 .Dir("%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Cache")
                 .Dir("%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Code Cache")
                 .Dir("%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\GPUCache")
@@ -157,8 +157,8 @@ namespace Vaktmester
                 .Dir("%LOCALAPPDATA%\\Mozilla\\Firefox\\Profiles\\*\\cache2")
                 .Dir("%LOCALAPPDATA%\\Microsoft\\Windows\\INetCache\\IE"));
 
-            t.Add(new CleanTarget("App-cache (Discord, Spotify, Teams m.fl.)",
-                "Mellomlagret innhold i vanlige skrivebordsapper. Lastes ned igjen ved behov.")
+            t.Add(new CleanTarget("App-cache",
+                "Discord, Spotify, Teams, Slack og Office.")
                 .Dir("%APPDATA%\\discord\\Cache")
                 .Dir("%APPDATA%\\discord\\Code Cache")
                 .Dir("%APPDATA%\\discord\\GPUCache")
@@ -168,8 +168,8 @@ namespace Vaktmester
                 .Dir("%LOCALAPPDATA%\\Slack\\Cache")
                 .Dir("%LOCALAPPDATA%\\Microsoft\\Office\\16.0\\OfficeFileCache"));
 
-            CleanTarget wold = new CleanTarget("Gamle Windows-installasjoner (Windows.old)",
-                "Rester etter Windows-oppgradering. Ofte 10–30 GB. Etter sletting kan du IKKE rulle tilbake til forrige versjon.");
+            CleanTarget wold = new CleanTarget("Windows.old",
+                "Rester etter oppgradering, ofte 10–30 GB. Sletting fjerner muligheten til å rulle tilbake.");
             wold.Risk = Risk.Merk;
             wold.DefaultChecked = false;
             wold.DirAndSelf("%SystemDrive%\\Windows.old");
@@ -177,8 +177,8 @@ namespace Vaktmester
             wold.DirAndSelf("%SystemDrive%\\$Windows.~WS");
             t.Add(wold);
 
-            t.Add(new CleanTarget("Rester etter funksjonsoppdateringer",
-                "Panther-logger og oppsettsrester etter store Windows-oppdateringer.")
+            t.Add(new CleanTarget("Oppsettsrester",
+                "Panther-logger etter store Windows-oppdateringer.")
                 .Dir("%SystemRoot%\\Panther")
                 .Dir("%SystemRoot%\\SoftwareDistribution\\DataStore\\Logs"));
 

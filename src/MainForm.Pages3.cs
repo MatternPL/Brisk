@@ -19,29 +19,29 @@ namespace Vaktmester
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
-            FlatBtn bSearch = new FlatBtn("Søk hos Windows Update"); bSearch.Primary(); bSearch.Width = 210;
-            FlatBtn bInst = new FlatBtn("Installer merkede"); bInst.Width = 160; bInst.Enabled = false;
-            FlatBtn bDev = new FlatBtn("Enhetsbehandling"); bDev.Width = 155;
+            FlatBtn bSearch = new FlatBtn(L.T("Søk")); bSearch.Primary(); bSearch.Width = 120;
+            FlatBtn bInst = new FlatBtn(L.T("Installer merkede")); bInst.Width = 160; bInst.Enabled = false;
+            FlatBtn bDev = new FlatBtn(L.T("Enhetsbehandling")); bDev.Width = 155;
             FlatBtn bWu = new FlatBtn("Windows Update"); bWu.Width = 155;
+            Tip(bSearch, "Spør Windows Update om drivere og systemoppdateringer. Tar gjerne et minutt.");
             Panel bar = Toolbar(bSearch, bInst, bDev, bWu);
 
             Panel devHost = new Panel();
             devHost.Dock = DockStyle.Bottom;
             devHost.Height = 172;
             devHost.BackColor = Theme.Bg;
-            Label dl = Theme.Lbl("Enheter Windows melder problem på", Theme.FBold, Theme.Text);
+            Label dl = Theme.Lbl(L.T("Enheter med problem"), Theme.FBold, Theme.Text);
             dl.Dock = DockStyle.Top; dl.Height = 24;
-            lvDev = ListIn(devHost, false, "Enhet", "380", "Problem", "330", "Enhets-ID", "420");
+            lvDev = ListIn(devHost, false, L.T("Enhet"), "380", L.T("Problem"), "330", L.T("Enhets-ID"), "420");
             devHost.Controls.Add(dl);
 
             Panel updHost = new Panel();
             updHost.Dock = DockStyle.Fill;
             updHost.BackColor = Theme.Bg;
-            Label dl2 = Theme.Lbl("Tilgjengelig fra Microsoft — drivere og Windows-oppdateringer",
-                Theme.FBold, Theme.Text);
+            Label dl2 = Theme.Lbl(L.T("Tilgjengelig fra Microsoft"), Theme.FBold, Theme.Text);
             dl2.Dock = DockStyle.Top; dl2.Height = 24;
             lvUpd = ListIn(updHost, true,
-                "Type", "95", "Oppdatering", "520", "Detaljer", "230", "Størrelse", "105");
+                L.T("Type"), "95", L.T("Oppdatering"), "520", L.T("Detaljer"), "230", L.T("Størrelse"), "105");
             updHost.Controls.Add(dl2);
 
             p.Controls.Add(updHost);
@@ -60,11 +60,11 @@ namespace Vaktmester
 
                 await Job(new Control[] { bSearch, bInst, bDev, bWu }, delegate
                 {
-                    Status("Leser enhetsliste …");
+                    Status(L.T("Leser enhetsliste …"));
                     devs = DriverTools.FindProblemDevices();
-                    Status("Spør Windows Update om drivere — kan ta et minutt …");
+                    Status(L.T("Spør Windows Update om drivere …"));
                     drv = DriverTools.SearchDrivers(out dnote);
-                    Status("Spør Windows Update om systemoppdateringer …");
+                    Status(L.T("Spør Windows Update om systemoppdateringer …"));
                     win = UpdateTools.Search(out wnote);
                 });
 
@@ -80,7 +80,7 @@ namespace Vaktmester
                     }
                 if (lvDev.Items.Count == 0)
                 {
-                    ListViewItem li = new ListViewItem("Ingen enheter med problemer.");
+                    ListViewItem li = new ListViewItem(L.T("Ingen enheter med problemer."));
                     li.ForeColor = Theme.Good;
                     lvDev.Items.Add(li);
                 }
@@ -90,9 +90,9 @@ namespace Vaktmester
                 if (win != null)
                     foreach (WinUpdate u in win)
                     {
-                        ListViewItem li = new ListViewItem("Windows");
+                        ListViewItem li = new ListViewItem(L.T("Windows"));
                         li.SubItems.Add(u.Title);
-                        li.SubItems.Add(u.Severity.Length > 0 ? "Alvorlighet: " + u.Severity : "");
+                        li.SubItems.Add(u.Severity.Length > 0 ? L.F("Alvorlighet: {0}", u.Severity) : "");
                         li.SubItems.Add(u.Size > 0 ? Util.Bytes(u.Size) : "—");
                         li.Checked = true;
                         li.Tag = u;
@@ -103,7 +103,7 @@ namespace Vaktmester
                 if (drv != null)
                     foreach (DriverUpdate d in drv)
                     {
-                        ListViewItem li = new ListViewItem("Driver");
+                        ListViewItem li = new ListViewItem(L.T("Driver"));
                         li.SubItems.Add(d.Title);
                         li.SubItems.Add(d.Driver);
                         li.SubItems.Add(d.Size > 0 ? Util.Bytes(d.Size) : "—");
@@ -115,9 +115,9 @@ namespace Vaktmester
 
                 bInst.Enabled = lvUpd.Items.Count > 0;
                 if (lvUpd.Items.Count > 0)
-                    Status(nw + " Windows-oppdatering(er) og " + nd + " driver(e) tilgjengelig.");
+                    Status(L.F("{0} Windows-oppdateringer og {1} drivere.", nw, nd));
                 else
-                    Status("Alt er oppdatert. " + wnote + " " + dnote);
+                    Status(L.T("Alt er oppdatert."));
                 Util.Log("Oppdateringssøk: " + nw + " Windows, " + nd + " drivere.");
             };
 
@@ -132,12 +132,11 @@ namespace Vaktmester
                     else if (li.Tag is WinUpdate) wins.Add((WinUpdate)li.Tag);
                 }
                 int n = drivers.Count + wins.Count;
-                if (n == 0) { Status("Ingenting er merket."); return; }
+                if (n == 0) { Status(L.T("Ingenting er merket.")); return; }
 
                 if (MessageBox.Show(this,
-                        "Installerer " + n + " oppdatering(er) direkte fra Microsoft.\n\n" +
-                        "Skjermen kan blinke under driverinstallasjon, og noe krever omstart.\n\n" +
-                        "Fortsette?", "Bekreft installasjon",
+                        L.F("Installerer {0} fra Microsoft. Skjermen kan blinke, og noe krever omstart.", n) +
+                        "\n\n" + L.T("Fortsette?"), L.T("Oppdateringer"),
                         MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
 
                 int done = 0;
@@ -150,14 +149,14 @@ namespace Vaktmester
                         done += DriverTools.InstallDrivers(drivers, out r2, delegate(string s) { Status(s); });
                 });
                 reboot = r1 || r2;
-                Status("Installerte " + done + " av " + n + "." + (reboot ? "  Omstart kreves." : ""));
+                Status(L.F("Installerte {0} av {1}.", done, n) + (reboot ? "  " + L.T("Omstart kreves.") : ""));
                 if (reboot)
-                    MessageBox.Show(this, "Noe av dette krever omstart for å bli aktivt.",
-                        "Omstart nødvendig", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(this, L.T("Noe av dette krever omstart for å bli aktivt."),
+                        L.T("Omstart"), MessageBoxButtons.OK, MessageBoxIcon.Information);
             };
 
             if (!Util.IsAdmin())
-                Defer(delegate { Status("Uten administrator kan oppdateringer søkes opp, men ikke installeres."); });
+                Defer(delegate { Status(L.T("Uten administrator kan du søke, men ikke installere.")); });
 
             return p;
         }

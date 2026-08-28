@@ -102,7 +102,7 @@ namespace Vaktmester
             string url = ManifestUrl;
             if (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
-                error = "Oppdateringsadressen må være https.";
+                error = L.T("Oppdateringsadressen må være https.");
                 return null;
             }
 
@@ -121,7 +121,7 @@ namespace Vaktmester
             }
             catch (Exception ex)
             {
-                error = "Fikk ikke kontakt med oppdateringskilden: " + ex.Message;
+                error = L.T("Fikk ikke kontakt med oppdateringskilden: ") + ex.Message;
                 return null;
             }
 
@@ -135,17 +135,17 @@ namespace Vaktmester
 
             if (string.IsNullOrEmpty(u.Version) || string.IsNullOrEmpty(u.Url))
             {
-                error = "Versjonsfilen kunne ikke tolkes.";
+                error = L.T("Versjonsfilen kunne ikke tolkes.");
                 return null;
             }
             if (!u.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
-                error = "Nedlastingsadressen i versjonsfilen må være https.";
+                error = L.T("Nedlastingsadressen i versjonsfilen må være https.");
                 return null;
             }
             if (string.IsNullOrEmpty(u.Sha256) || u.Sha256.Length != 64)
             {
-                error = "Versjonsfilen mangler en gyldig sha256-sjekksum. Avbryter.";
+                error = L.T("Versjonsfilen mangler en gyldig sha256-sjekksum. Avbryter.");
                 return null;
             }
 
@@ -241,7 +241,7 @@ namespace Vaktmester
             }
             catch (Exception ex)
             {
-                error = "Nedlastingen feilet: " + ex.Message;
+                error = L.T("Nedlastingen feilet: ") + ex.Message;
                 Try(delegate { File.Delete(path); });
                 return null;
             }
@@ -249,7 +249,7 @@ namespace Vaktmester
             string actual = Sha256Of(path);
             if (!string.Equals(actual, u.Sha256, StringComparison.OrdinalIgnoreCase))
             {
-                error = "Sjekksummen stemte ikke. Filen ble slettet — ingenting er kjørt.";
+                error = L.T("Sjekksummen stemte ikke. Filen ble slettet — ingenting er kjørt.");
                 Util.Log("Oppdatering avvist. Forventet " + u.Sha256 + ", fikk " + actual);
                 Try(delegate { File.Delete(path); });
                 return null;
@@ -290,7 +290,7 @@ namespace Vaktmester
             }
             catch (Exception ex)
             {
-                error = "Klarte ikke starte installasjonen: " + ex.Message;
+                error = L.T("Klarte ikke starte installasjonen: ") + ex.Message;
                 return false;
             }
         }

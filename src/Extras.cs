@@ -54,11 +54,11 @@ namespace Vaktmester
                     catch { }
                 }
                 if (list.Count == 0)
-                    note = "Windows er oppdatert — ingen ventende oppdateringer.";
+                    note = L.T("Windows er oppdatert.");
             }
             catch (Exception ex)
             {
-                note = "Oppdateringssøket feilet: " + ex.Message;
+                note = L.T("Oppdateringssøket feilet: ") + ex.Message;
                 Util.Log(note);
             }
             return list;
@@ -81,7 +81,7 @@ namespace Vaktmester
                     coll.Add(u);
                 }
 
-                if (progress != null) progress("Laster ned " + coll.Count + " oppdatering(er) …");
+                if (progress != null) progress(L.F("Laster ned {0} oppdatering(er).", coll.Count));
                 dynamic dl = session.CreateUpdateDownloader();
                 dl.Updates = coll;
                 dl.Download();
@@ -92,9 +92,9 @@ namespace Vaktmester
                     try { if ((bool)u.IsDownloaded) ready.Add(u); }
                     catch { }
                 }
-                if (ready.Count == 0) { if (progress != null) progress("Ingenting ble lastet ned."); return 0; }
+                if (ready.Count == 0) { if (progress != null) progress(L.T("Ingenting ble lastet ned.")); return 0; }
 
-                if (progress != null) progress("Installerer …");
+                if (progress != null) progress(L.T("Installerer."));
                 dynamic inst = session.CreateUpdateInstaller();
                 inst.Updates = ready;
                 dynamic ires = inst.Install();
@@ -114,7 +114,7 @@ namespace Vaktmester
             }
             catch (Exception ex)
             {
-                if (progress != null) progress("Installasjon feilet: " + ex.Message);
+                if (progress != null) progress(L.T("Installasjon feilet: ") + ex.Message);
                 return 0;
             }
         }

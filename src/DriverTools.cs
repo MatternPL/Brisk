@@ -46,7 +46,7 @@ namespace Vaktmester
                             d.DeviceId = Convert.ToString(mo["DeviceID"]);
                             d.ErrorCode = Convert.ToInt32(mo["ConfigManagerErrorCode"]);
                             d.ErrorText = ErrorText(d.ErrorCode);
-                            if (string.IsNullOrEmpty(d.Name)) d.Name = "(ukjent enhet)";
+                            if (string.IsNullOrEmpty(d.Name)) d.Name = L.T("(ukjent enhet)");
                             list.Add(d);
                         }
                         catch { }
@@ -61,20 +61,20 @@ namespace Vaktmester
         {
             switch (code)
             {
-                case 1: return "Enheten er ikke riktig konfigurert";
-                case 3: return "Driveren kan være ødelagt, eller systemet er tomt for minne";
-                case 10: return "Enheten kan ikke starte";
-                case 12: return "Finner ikke nok ledige ressurser";
-                case 14: return "Krever omstart for å virke";
-                case 18: return "Driveren må installeres på nytt";
-                case 19: return "Registeret er skadet for denne enheten";
-                case 21: return "Windows fjerner enheten";
-                case 22: return "Enheten er deaktivert";
-                case 24: return "Enheten er ikke til stede eller virker ikke";
-                case 28: return "Driveren er ikke installert";
-                case 31: return "Windows finner ikke driver som virker";
-                case 45: return "Enheten er ikke koblet til nå";
-                default: return "Feilkode " + code;
+                case 1: return L.T("Enheten er ikke riktig konfigurert");
+                case 3: return L.T("Driveren kan være ødelagt, eller systemet er tomt for minne");
+                case 10: return L.T("Enheten kan ikke starte");
+                case 12: return L.T("Finner ikke nok ledige ressurser");
+                case 14: return L.T("Krever omstart for å virke");
+                case 18: return L.T("Driveren må installeres på nytt");
+                case 19: return L.T("Registeret er skadet for denne enheten");
+                case 21: return L.T("Windows fjerner enheten");
+                case 22: return L.T("Enheten er deaktivert");
+                case 24: return L.T("Enheten er ikke til stede eller virker ikke");
+                case 28: return L.T("Driveren er ikke installert");
+                case 31: return L.T("Windows finner ikke driver som virker");
+                case 45: return L.T("Enheten er ikke koblet til nå");
+                default: return L.F("Feilkode {0}", code);
             }
         }
 
@@ -166,12 +166,11 @@ namespace Vaktmester
                 }
 
                 if (list.Count == 0)
-                    note = "Windows Update har ingen nye drivere til denne maskinen akkurat nå. " +
-                           "Det betyr som regel at driverne allerede er oppdaterte.";
+                    note = L.T("Ingen nye drivere fra Windows Update.");
             }
             catch (Exception ex)
             {
-                note = "Driversøket feilet: " + ex.Message;
+                note = L.T("Driversøket feilet: ") + ex.Message;
                 Util.Log(note);
             }
             return list;
@@ -202,11 +201,11 @@ namespace Vaktmester
                     coll.Add(u);
                 }
 
-                if (progress != null) progress("Laster ned " + coll.Count + " driver(e)…");
+                if (progress != null) progress(L.F("Laster ned {0} driver(e).", coll.Count));
                 dynamic dl = session.CreateUpdateDownloader();
                 dl.Updates = coll;
                 dynamic dres = dl.Download();
-                if (progress != null) progress("Nedlasting ferdig (kode " + Convert.ToString(dres.ResultCode) + ").");
+                if (progress != null) progress(L.T("Nedlasting ferdig."));
 
                 Type tc2 = Type.GetTypeFromProgID("Microsoft.Update.UpdateColl");
                 dynamic ready = Activator.CreateInstance(tc2);
@@ -217,11 +216,11 @@ namespace Vaktmester
                 }
                 if (ready.Count == 0)
                 {
-                    if (progress != null) progress("Ingen drivere ble lastet ned.");
+                    if (progress != null) progress(L.T("Ingen drivere ble lastet ned."));
                     return 0;
                 }
 
-                if (progress != null) progress("Installerer…");
+                if (progress != null) progress(L.T("Installerer."));
                 dynamic inst = session.CreateUpdateInstaller();
                 inst.Updates = ready;
                 dynamic ires = inst.Install();
@@ -241,7 +240,7 @@ namespace Vaktmester
             }
             catch (Exception ex)
             {
-                if (progress != null) progress("Installasjon feilet: " + ex.Message);
+                if (progress != null) progress(L.T("Installasjon feilet: ") + ex.Message);
                 Util.Log("Driverinstallasjon feilet: " + ex.Message);
                 return 0;
             }

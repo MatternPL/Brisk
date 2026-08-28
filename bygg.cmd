@@ -32,7 +32,7 @@ echo [3/3] Kompilerer Vaktmester-Installer.exe...
   -r:System.dll -r:System.Core.dll -r:System.Drawing.dll -r:System.Windows.Forms.dll ^
   -r:Microsoft.CSharp.dll ^
   installer\Installer.cs installer\SetupForm.cs ^
-  src\Theme.cs src\Logo.cs src\Util.cs || goto :feil
+  src\Theme.cs src\Logo.cs src\Util.cs src\Lang.cs || goto :feil
 
 echo.
 echo Ferdig:
@@ -46,3 +46,4 @@ exit /b 1
 
 :slutt
 endlocal
+

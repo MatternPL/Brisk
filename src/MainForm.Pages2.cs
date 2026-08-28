@@ -29,7 +29,7 @@ namespace Vaktmester
         //  DISKPLASS — hvor plassen faktisk har blitt av
         // ==============================================================
         ListView lvFolders, lvFiles;
-        ComboBox cboRoot;
+        Chooser cboRoot;
         Label lblDiskSum;
 
         Panel PageDisk()
@@ -38,34 +38,21 @@ namespace Vaktmester
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
-            cboRoot = new ComboBox();
-            cboRoot.DropDownStyle = ComboBoxStyle.DropDownList;
-            cboRoot.Width = 210;
-            cboRoot.Height = 26;
-            cboRoot.FlatStyle = FlatStyle.Flat;
-            cboRoot.BackColor = Theme.CardHi;
-            cboRoot.ForeColor = Theme.Text;
+            cboRoot = new Chooser();
+            cboRoot.Width = 230;
             foreach (VolumeInfo v in MaintenanceTools.Volumes())
-                cboRoot.Items.Add(v.Letter);
-            cboRoot.Items.Add(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-            if (cboRoot.Items.Count > 0) cboRoot.SelectedIndex = 0;
+                cboRoot.Add(v.Letter);
+            cboRoot.Add(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
-            FlatBtn bScan = new FlatBtn("Analyser plass"); bScan.Primary(); bScan.Width = 150;
-            FlatBtn bStop = new FlatBtn("Stopp"); bStop.Width = 90; bStop.Enabled = false;
-            FlatBtn bOpen = new FlatBtn("Åpne i Utforsker"); bOpen.Width = 165;
+            FlatBtn bScan = new FlatBtn(L.T("Analyser plass")); bScan.Primary(); bScan.Width = 150;
+            FlatBtn bStop = new FlatBtn(L.T("Stopp")); bStop.Width = 90; bStop.Enabled = false;
+            FlatBtn bOpen = new FlatBtn(L.T("Åpne i Utforsker")); bOpen.Width = 165;
             lblDiskSum = Theme.Lbl("", Theme.FBold, Theme.Muted);
             lblDiskSum.Width = 260;
             Panel bar = Toolbar(cboRoot, bScan, bStop, bOpen, lblDiskSum);
 
-            Panel note = new Panel();
-            note.Dock = DockStyle.Bottom;
-            note.Height = 34;
-            note.BackColor = Theme.Bg;
-            Label nl = Theme.Lbl(
-                "Ingenting slettes her — dette er bare en oversikt. Dobbeltklikk en rad for å åpne stedet i Utforsker.",
-                Theme.FSmall, Theme.Muted);
-            nl.AutoSize = false; nl.Dock = DockStyle.Fill;
-            note.Controls.Add(nl);
+            Tip(bScan, "Leser gjennom hele treet. Sletter ingenting.");
+            Tip(bOpen, "Dobbeltklikk en rad gjør det samme.");
 
             SplitContainer split = new SplitContainer();
             split.Dock = DockStyle.Fill;
@@ -77,18 +64,17 @@ namespace Vaktmester
             split.Panel1MinSize = 90;
             split.Panel2MinSize = 90;
 
-            Label h1 = Theme.Lbl("Største mapper", Theme.FBold, Theme.Text);
+            Label h1 = Theme.Lbl(L.T("Største mapper"), Theme.FBold, Theme.Text);
             h1.Dock = DockStyle.Top; h1.Height = 24;
-            lvFolders = ListIn(split.Panel1, false, "Mappe", "600", "Størrelse", "120", "Filer", "90");
+            lvFolders = ListIn(split.Panel1, false, L.T("Mappe"), "600", L.T("Størrelse"), "120", L.T("Filer"), "90");
             split.Panel1.Controls.Add(h1);
 
-            Label h2 = Theme.Lbl("Største enkeltfiler (over 100 MB)", Theme.FBold, Theme.Text);
+            Label h2 = Theme.Lbl(L.T("Største filer (over 100 MB)"), Theme.FBold, Theme.Text);
             h2.Dock = DockStyle.Top; h2.Height = 24;
-            lvFiles = ListIn(split.Panel2, false, "Fil", "600", "Størrelse", "120", "Mappe", "400");
+            lvFiles = ListIn(split.Panel2, false, L.T("Fil"), "600", L.T("Størrelse"), "120", L.T("Mappe"), "400");
             split.Panel2.Controls.Add(h2);
 
             p.Controls.Add(split);
-            p.Controls.Add(note);
             p.Controls.Add(bar);
             SetSplit(split, 300);
 
@@ -96,7 +82,7 @@ namespace Vaktmester
             {
                 ListView src = lvFolders.SelectedItems.Count > 0 ? lvFolders
                              : lvFiles.SelectedItems.Count > 0 ? lvFiles : null;
-                if (src == null) { Status("Velg en rad først."); return; }
+                if (src == null) { Status(L.T("Velg en rad først.")); return; }
                 string path = Convert.ToString(src.SelectedItems[0].Tag);
                 if (string.IsNullOrEmpty(path)) return;
                 try
@@ -104,7 +90,7 @@ namespace Vaktmester
                     if (Directory.Exists(path)) Util.OpenPath(path);
                     else System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + path + "\"");
                 }
-                catch (Exception ex) { Status("Kunne ikke åpne: " + ex.Message); }
+                catch (Exception ex) { Status(L.T("Kunne ikke åpne: ") + ex.Message); }
             };
             bOpen.Click += openSel;
             lvFolders.DoubleClick += openSel;
@@ -112,7 +98,7 @@ namespace Vaktmester
 
             bScan.Click += async delegate
             {
-                string root = Convert.ToString(cboRoot.SelectedItem);
+                string root = cboRoot.Value;
                 if (string.IsNullOrEmpty(root)) return;
                 cts = new CancellationTokenSource();
                 CancellationToken ct = cts.Token;
@@ -121,11 +107,11 @@ namespace Vaktmester
                 DateTime t0 = DateTime.Now;
                 await Job(new Control[] { bScan, cboRoot }, delegate
                 {
-                    Status("Går gjennom " + root + " … dette kan ta et par minutter.");
-                    DiskTools.Scan(root, ct, delegate(string d) { Status("Leser: " + d); }, out fo, out fi);
+                    Status(L.F("Går gjennom {0} …", root));
+                    DiskTools.Scan(root, ct, delegate(string d) { Status(d); }, out fo, out fi);
                 });
                 bStop.Enabled = false;
-                if (fo == null) { Status("Analysen ble avbrutt."); return; }
+                if (fo == null) { Status(L.T("Avbrutt.")); return; }
 
                 lvFolders.BeginUpdate();
                 lvFolders.Items.Clear();
@@ -155,16 +141,16 @@ namespace Vaktmester
                 lvFiles.EndUpdate();
 
                 long biggest = fo.Count > 0 ? fo[0].Size : 0;
-                lblDiskSum.Text = fo.Count + " mapper, " + fi.Count + " store filer";
+                lblDiskSum.Text = L.F("{0} mapper, {1} store filer", fo.Count, fi.Count);
                 lblDiskSum.ForeColor = Theme.Good;
-                Status("Ferdig på " + (int)(DateTime.Now - t0).TotalSeconds + " s. Største post: " +
-                       Util.Bytes(biggest) + ".");
+                Status(L.F("Ferdig på {0} s. Største post: {1}.",
+                       (int)(DateTime.Now - t0).TotalSeconds, Util.Bytes(biggest)));
             };
 
             bStop.Click += delegate
             {
                 if (cts != null) { try { cts.Cancel(); } catch { } }
-                Status("Avbryter …");
+                Status(L.T("Avbryter …"));
             };
 
             return p;
@@ -183,9 +169,9 @@ namespace Vaktmester
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
-            FlatBtn bChk = new FlatBtn("Se etter oppdateringer"); bChk.Primary(); bChk.Width = 200;
-            FlatBtn bUp = new FlatBtn("Oppdater merkede"); bUp.Width = 165; bUp.Enabled = false;
-            FlatBtn bAll = new FlatBtn("Merk alle"); bAll.Width = 110;
+            FlatBtn bChk = new FlatBtn(L.T("Se etter oppdateringer")); bChk.Primary(); bChk.Width = 200;
+            FlatBtn bUp = new FlatBtn(L.T("Oppdater merkede")); bUp.Width = 165; bUp.Enabled = false;
+            FlatBtn bAll = new FlatBtn(L.T("Merk alle")); bAll.Width = 110;
             Panel bar = Toolbar(bChk, bUp, bAll);
 
             Panel outHost = new Panel();
@@ -204,21 +190,21 @@ namespace Vaktmester
             split.Panel1MinSize = 90;
             split.Panel2MinSize = 90;
 
-            Label h1 = Theme.Lbl("Tilgjengelige programoppdateringer (winget)", Theme.FBold, Theme.Text);
+            Label h1 = Theme.Lbl(L.T("Programoppdateringer (winget)"), Theme.FBold, Theme.Text);
             h1.Dock = DockStyle.Top; h1.Height = 24;
             lvApps = ListIn(split.Panel1, true,
-                "Program", "290", "Installert", "130", "Ny versjon", "130", "Pakke-ID", "320");
+                L.T("Program"), "290", L.T("Installert"), "130", L.T("Ny versjon"), "130", L.T("Pakke-ID"), "320");
             split.Panel1.Controls.Add(h1);
 
             Panel instBar = new Panel();
             instBar.Dock = DockStyle.Top;
             instBar.Height = 30;
             instBar.BackColor = Theme.Bg;
-            Label h2 = Theme.Lbl("Installerte programmer — sortert etter størrelse", Theme.FBold, Theme.Text);
+            Label h2 = Theme.Lbl(L.T("Installerte programmer"), Theme.FBold, Theme.Text);
             h2.Location = new Point(0, 4);
-            FlatBtn bUn = new FlatBtn("Avinstaller valgt"); bUn.Danger();
+            FlatBtn bUn = new FlatBtn(L.T("Avinstaller")); bUn.Danger();
             bUn.Width = 155; bUn.Height = 26; bUn.Location = new Point(360, 1); bUn.Font = Theme.FSmall;
-            FlatBtn bRefI = new FlatBtn("Oppdater liste");
+            FlatBtn bRefI = new FlatBtn(L.T("Oppdater"));
             bRefI.Width = 130; bRefI.Height = 26; bRefI.Location = new Point(525, 1); bRefI.Font = Theme.FSmall;
             lblInstalledSum = Theme.Lbl("", Theme.FSmall, Theme.Muted);
             lblInstalledSum.Location = new Point(670, 6);
@@ -226,7 +212,8 @@ namespace Vaktmester
             instBar.Controls.Add(bRefI); instBar.Controls.Add(lblInstalledSum);
 
             lvInstalled = ListIn(split.Panel2, false,
-                "Program", "330", "Størrelse", "110", "Versjon", "140", "Utgiver", "220", "Installert", "110");
+                L.T("Program"), "330", L.T("Størrelse"), "110", L.T("Versjon"), "140",
+                L.T("Utgiver"), "220", L.T("Installert"), "110");
             split.Panel2.Controls.Add(instBar);
 
             p.Controls.Add(split);
@@ -245,14 +232,13 @@ namespace Vaktmester
             {
                 if (!WingetTools.IsAvailable())
                 {
-                    Status("winget mangler. Installer «App Installer» fra Microsoft Store, så virker denne.");
-                    Append(appOut, "winget ble ikke funnet på maskinen.");
+                    Status(L.T("winget mangler. Installer «App Installer» fra Microsoft Store."));
                     return;
                 }
                 List<AppUpgrade> ups = null; string note = "";
                 await Job(new Control[] { bChk, bUp, bAll }, delegate
                 {
-                    Status("Spør winget om oppdateringer …");
+                    Status(L.T("Spør winget …"));
                     ups = WingetTools.ListUpgrades(out note);
                 });
                 lvApps.Items.Clear();
@@ -269,8 +255,8 @@ namespace Vaktmester
                     }
                 bUp.Enabled = lvApps.Items.Count > 0;
                 Status(lvApps.Items.Count > 0
-                    ? lvApps.Items.Count + " program(mer) kan oppdateres."
-                    : (note.Length > 0 ? note : "Alt er oppdatert."));
+                    ? L.F("{0} kan oppdateres.", lvApps.Items.Count)
+                    : (note.Length > 0 ? note : L.T("Alt er oppdatert.")));
             };
 
             bUp.Click += async delegate
@@ -278,35 +264,33 @@ namespace Vaktmester
                 List<AppUpgrade> chosen = new List<AppUpgrade>();
                 foreach (ListViewItem li in lvApps.Items)
                     if (li.Checked && li.Tag != null) chosen.Add((AppUpgrade)li.Tag);
-                if (chosen.Count == 0) { Status("Ingen programmer er merket."); return; }
+                if (chosen.Count == 0) { Status(L.T("Ingenting er merket.")); return; }
 
                 int ok = 0;
                 await Job(new Control[] { bChk, bUp, bAll }, delegate
                 {
                     foreach (AppUpgrade a in chosen)
                     {
-                        Status("Oppdaterer " + a.Name + " …");
+                        Status(a.Name);
                         Append(appOut, "── " + a.Name + " (" + a.Id + ")");
                         if (WingetTools.Upgrade(a, delegate(string l) { Append(appOut, "   " + l); })) ok++;
                     }
                 });
-                Status("Oppdaterte " + ok + " av " + chosen.Count + " program(mer).");
+                Status(L.F("Oppdaterte {0} av {1}.", ok, chosen.Count));
             };
 
             bRefI.Click += delegate { LoadInstalled(); };
             bUn.Click += delegate
             {
-                if (lvInstalled.SelectedItems.Count == 0) { Status("Velg et program i den nedre lista."); return; }
+                if (lvInstalled.SelectedItems.Count == 0) { Status(L.T("Velg et program i den nedre lista.")); return; }
                 InstalledApp a = lvInstalled.SelectedItems[0].Tag as InstalledApp;
                 if (a == null) return;
                 if (MessageBox.Show(this,
-                        "Avinstaller «" + a.Name + "»?\n\n" +
-                        "Programmets egen avinstallering starter. Følg eventuelle spørsmål der.",
-                        "Bekreft avinstallering", MessageBoxButtons.YesNo,
+                        L.F("Avinstaller «{0}»? Programmets egen avinstallering starter.", a.Name),
+                        L.T("Avinstaller"), MessageBoxButtons.YesNo,
                         MessageBoxIcon.Warning) != DialogResult.Yes) return;
-                if (AppInventory.StartUninstall(a))
-                    Status("Avinstallering startet for " + a.Name + ". Oppdater lista når den er ferdig.");
-                else Status("Fant ingen avinstalleringskommando for " + a.Name + ".");
+                if (AppInventory.StartUninstall(a)) Status(L.F("Startet avinstallering av {0}.", a.Name));
+                else Status(L.F("Fant ingen avinstalleringskommando for {0}.", a.Name));
             };
 
             Defer(delegate { LoadInstalled(); });
@@ -333,9 +317,9 @@ namespace Vaktmester
                     sum += a.EstimatedSize;
                 }
                 lvInstalled.EndUpdate();
-                lblInstalledSum.Text = apps.Count + " programmer · ca. " + Util.Bytes(sum);
+                lblInstalledSum.Text = L.F("{0} programmer · {1}", apps.Count, Util.Bytes(sum));
             }
-            catch (Exception ex) { Status("Kunne ikke lese programlista: " + ex.Message); }
+            catch (Exception ex) { Status(L.T("Kunne ikke lese programlista: ") + ex.Message); }
         }
     }
 }
