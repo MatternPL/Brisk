@@ -16,10 +16,13 @@ class Grab
 
     static int Main(string[] a)
     {
-        if (a.Length < 2) { Console.WriteLine("Grab.exe <exe> <ut.png> [ventMs]"); return 2; }
+        if (a.Length < 2) { Console.WriteLine("Grab.exe <exe> <ut.png> [ventMs] [argumenter]"); return 2; }
         int vent = a.Length > 2 ? int.Parse(a[2]) : 7000;
 
-        Process p = Process.Start(a[0]);
+        string extra = a.Length > 3 ? a[3] : "";
+        Process p = extra.Length > 0
+            ? Process.Start(a[0], extra)
+            : Process.Start(a[0]);
         Thread.Sleep(vent);
         p.Refresh();
         if (p.MainWindowHandle == IntPtr.Zero)

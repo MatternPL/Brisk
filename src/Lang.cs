@@ -440,6 +440,21 @@ namespace Brisk
             "Optimaliserer {0}", "Optimising {0}",
             "Tømmer DNS-cache.", "Flushing DNS cache.",
 
+            // ---- WinUtil ----
+            "Brisk henter nyeste utgivelse fra GitHub, sammenligner nedlastingen mot sha256-summen GitHub oppgir, og starter den først hvis den stemmer. Den vanlige oppstartsmåten kjører kode rett fra nettet uten den sjekken; det gjør ikke Brisk.", "Brisk fetches the latest release from GitHub, checks the download against the sha256 sum GitHub publishes, and only starts it if they match. The usual way of starting it runs code straight off the internet without that check. Brisk does not.",
+            "Et separat verktøy fra Chris Titus Tech for tilpasning og avinstallering. Lastes ned og sjekkes mot sha256 før det kjøres.", "A separate tool by Chris Titus Tech for tweaking and removing software. Downloaded and checked against sha256 before it runs.",
+            "Fant ikke {0} i nyeste utgivelse.", "Could not find {0} in the latest release.",
+            "Fikk ikke kontakt med GitHub: ", "Could not reach GitHub: ",
+            "Klarte ikke å starte WinUtil: ", "Could not start WinUtil: ",
+            "Nedlastingsadressen må være https.", "The download address must be https.",
+            "Ser etter nyeste utgivelse …", "Looking for the latest release …",
+            "Sjekksummen stemmer. Starter WinUtil.", "Checksum matches. Starting WinUtil.",
+            "Utgivelsen oppgir ingen gyldig sha256. Avbryter.", "The release gives no valid sha256. Stopping.",
+            "WinUtil", "WinUtil",
+            "WinUtil endrer Windows-innstillinger og krever administrator. Fortsette?", "WinUtil changes Windows settings and needs administrator. Continue?",
+            "WinUtil er laget av Chris Titus Tech, ikke av Brisk. Det er åpen kildekode under MIT-lisens, og det er et eget program med sitt eget vindu.", "WinUtil is made by Chris Titus Tech, not by Brisk. It is open source under the MIT licence, and it is a separate program with its own window.",
+            "WinUtil {0} — {1}", "WinUtil {0} — {1}",
+
             // ---- logg ----
             "Åpne loggfil", "Open log file",
             "Tøm visning", "Clear view",
