@@ -153,7 +153,8 @@ namespace Brisk
                 ListViewItem li = new ListViewItem(L.T(t.Name));
                 li.SubItems.Add("—");
                 li.SubItems.Add("—");
-                li.SubItems.Add(t.Risk == Risk.Merk ? L.T("Les beskrivelsen") : "");
+                li.SubItems.Add(t.Risk == Risk.Merk ? L.T("Les beskrivelsen")
+                              : !t.DefaultChecked ? L.T("Av som standard") : "");
                 li.Checked = t.DefaultChecked;
                 li.Tag = t;
                 if (t.Risk == Risk.Merk) li.ForeColor = Theme.Warn;

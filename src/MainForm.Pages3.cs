@@ -12,6 +12,7 @@ namespace Brisk
         //  OPPDATERINGER — Windows-oppdateringer, drivere og problemenheter
         // ==============================================================
         ListView lvUpd, lvDev;
+        Label lblGpu, lblGpuNote;
 
         Panel PageDrivers()
         {
@@ -25,6 +26,63 @@ namespace Brisk
             FlatBtn bWu = new FlatBtn("Windows Update"); bWu.Width = 155;
             Tip(bSearch, "Spør Windows Update om drivere og systemoppdateringer. Tar gjerne et minutt.");
             Panel bar = Toolbar(bSearch, bInst, bDev, bWu);
+
+            // --- skjermkort ---
+            Panel gpuHost = new Panel();
+            gpuHost.Dock = DockStyle.Top;
+            gpuHost.Height = 92;
+            gpuHost.BackColor = Theme.Bg;
+            gpuHost.Padding = new Padding(0, 0, 0, 14);
+
+            Panel gpuCard = Theme.MakeCard();
+            gpuCard.Dock = DockStyle.Fill;
+
+            lblGpu = Theme.Lbl("", Theme.FCard, Theme.Text);
+            lblGpu.Location = new Point(20, 14);
+            lblGpuNote = Theme.Lbl(
+                L.T("Windows Update ligger ofte etter for skjermkort. Nyeste driver får du hos produsenten."),
+                Theme.FSmall, Theme.Muted);
+            lblGpuNote.Location = new Point(22, 40);
+
+            FlatBtn bGpu = new FlatBtn(L.T("Hent hos produsenten"));
+            bGpu.Width = 200; bGpu.Height = 34;
+            bGpu.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            bGpu.Visible = false;
+            Tip(bGpu, "Åpner produsentens egen nedlastingsside. Aldri en tredjeparts «driver updater».");
+
+            gpuCard.Controls.Add(lblGpu);
+            gpuCard.Controls.Add(lblGpuNote);
+            gpuCard.Controls.Add(bGpu);
+            gpuCard.Resize += delegate
+            {
+                bGpu.Location = new Point(gpuCard.Width - bGpu.Width - 20, 22);
+            };
+            gpuHost.Controls.Add(gpuCard);
+
+            Defer(delegate
+            {
+                try
+                {
+                    List<GpuInfo> gpus = DriverTools.Graphics();
+                    if (gpus.Count == 0) { lblGpu.Text = L.T("Fant ingen skjermkort."); return; }
+
+                    GpuInfo g = gpus[0];
+                    string alder = g.AgeDays < 0 ? "" :
+                        "   ·   " + L.F("{0} dager gammel", g.AgeDays);
+                    lblGpu.Text = g.Name + "   ·   " + L.T("driver") + " " + g.Version + alder;
+                    lblGpu.ForeColor = g.AgeDays > 120 ? Theme.Warn : Theme.Text;
+
+                    if (g.Url.Length > 0)
+                    {
+                        bGpu.Visible = true;
+                        bGpu.Text = L.F("Hent hos {0}", g.Vendor);
+                        string url = g.Url;
+                        bGpu.Click += delegate { Util.OpenPath(url); };
+                    }
+                    bGpu.Location = new Point(gpuCard.Width - bGpu.Width - 20, 22);
+                }
+                catch (Exception ex) { lblGpu.Text = ex.Message; }
+            });
 
             Panel devHost = new Panel();
             devHost.Dock = DockStyle.Bottom;
@@ -46,6 +104,7 @@ namespace Brisk
 
             p.Controls.Add(updHost);
             p.Controls.Add(devHost);
+            p.Controls.Add(gpuHost);
             p.Controls.Add(bar);
 
             bDev.Click += delegate { Util.OpenPath("devmgmt.msc"); };

@@ -21,8 +21,63 @@ namespace Brisk
         public string ErrorText;
     }
 
+    public class GpuInfo
+    {
+        public string Name = "";
+        public string Vendor = "";
+        public string Version = "";
+        public DateTime Date;
+        public string Url = "";
+
+        public int AgeDays
+        {
+            get { return Date == DateTime.MinValue ? -1 : (int)(DateTime.Now - Date).TotalDays; }
+        }
+    }
+
     public static class DriverTools
     {
+        // Skjermkortdrivere er det Windows Update oftest ligger lengst etter på.
+        // Vi viser hva som er installert, og peker på produsentens egen side.
+        public static List<GpuInfo> Graphics()
+        {
+            List<GpuInfo> list = new List<GpuInfo>();
+            try
+            {
+                using (ManagementObjectSearcher s = new ManagementObjectSearcher(
+                    "SELECT Name, DriverVersion, DriverDate, AdapterCompatibility FROM Win32_VideoController"))
+                {
+                    foreach (ManagementObject mo in s.Get())
+                    {
+                        GpuInfo g = new GpuInfo();
+                        g.Name = Convert.ToString(mo["Name"]);
+                        g.Version = Convert.ToString(mo["DriverVersion"]);
+                        g.Vendor = Convert.ToString(mo["AdapterCompatibility"]);
+                        try
+                        {
+                            string d = Convert.ToString(mo["DriverDate"]);
+                            if (!string.IsNullOrEmpty(d))
+                                g.Date = ManagementDateTimeConverter.ToDateTime(d);
+                        }
+                        catch { }
+
+                        string v = (g.Vendor + " " + g.Name).ToLowerInvariant();
+                        if (v.IndexOf("nvidia", StringComparison.Ordinal) >= 0)
+                            g.Url = "https://www.nvidia.com/download/index.aspx";
+                        else if (v.IndexOf("amd", StringComparison.Ordinal) >= 0 ||
+                                 v.IndexOf("radeon", StringComparison.Ordinal) >= 0)
+                            g.Url = "https://www.amd.com/en/support";
+                        else if (v.IndexOf("intel", StringComparison.Ordinal) >= 0)
+                            g.Url = "https://www.intel.com/content/www/us/en/download-center/home.html";
+
+                        if (!string.IsNullOrEmpty(g.Name)) list.Add(g);
+                    }
+                }
+            }
+            catch (Exception ex) { Util.Log("Kunne ikke lese skjermkort: " + ex.Message); }
+            return list;
+        }
+
         // Microsoft Update-tjenesten. Gir tilgang til driveroppdateringer,
         // ikke bare Windows-oppdateringer.
         const string MicrosoftUpdateServiceId = "7971f918-a847-4430-9279-4a52d1efe18d";

@@ -14,6 +14,7 @@ namespace Brisk
         public string Info;
         public Risk Risk = Risk.Trygg;
         public bool DefaultChecked = true;
+        public bool Auto = true;             // med i den ukentlige ryddingen?
         public bool Special;                 // haandteres av egen kode (papirkurv)
         public string SpecialKey;
         public List<CleanRule> Rules = new List<CleanRule>();
@@ -149,19 +150,32 @@ namespace Brisk
                 .Dir("%LOCALAPPDATA%\\AMD\\DxCache")
                 .Dir("%LOCALAPPDATA%\\AMD\\DxcCache"));
 
-            t.Add(new CleanTarget("Nettleser-cache",
-                "Bare cache. Passord, bokmerker og innlogginger røres ikke.")
-                .Dir("%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Cache")
-                .Dir("%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Code Cache")
-                .Dir("%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\GPUCache")
-                .Dir("%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Cache")
-                .Dir("%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Code Cache")
-                .Dir("%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\GPUCache")
-                .Dir("%LOCALAPPDATA%\\BraveSoftware\\Brave-Browser\\User Data\\*\\Cache")
-                .Dir("%LOCALAPPDATA%\\Vivaldi\\User Data\\*\\Cache")
-                .Dir("%APPDATA%\\Opera Software\\Opera Stable\\Cache")
-                .Dir("%LOCALAPPDATA%\\Mozilla\\Firefox\\Profiles\\*\\cache2")
-                .Dir("%LOCALAPPDATA%\\Microsoft\\Windows\\INetCache\\IE"));
+            // Bare mellomlagrede filer. Historikk, passord, bokmerker, informasjons-
+            // kapsler og autofyll ligger i andre filer og røres ikke. Står likevel
+            // av som standard — mange vil ha nettleseren sin akkurat som den er.
+            CleanTarget cache = new CleanTarget("Nettleser-cache",
+                "Bare mellomlagrede sider og bilder. Historikk, passord, bokmerker, innlogginger og autofyll røres ikke. Av som standard.");
+            cache.DefaultChecked = false;
+            cache.Auto = false;
+            cache.Dir("%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Cache")
+                 .Dir("%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Code Cache")
+                 .Dir("%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\GPUCache")
+                 .Dir("%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Cache")
+                 .Dir("%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Code Cache")
+                 .Dir("%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\GPUCache")
+                 .Dir("%LOCALAPPDATA%\\BraveSoftware\\Brave-Browser\\User Data\\*\\Cache")
+                 .Dir("%LOCALAPPDATA%\\Vivaldi\\User Data\\*\\Cache")
+                 // Opera og Opera GX: brukerdata i Roaming, cache i Local.
+                 .Dir("%LOCALAPPDATA%\\Opera Software\\*\\Cache")
+                 .Dir("%LOCALAPPDATA%\\Opera Software\\*\\System Cache")
+                 .Dir("%LOCALAPPDATA%\\Opera Software\\*\\Code Cache")
+                 .Dir("%LOCALAPPDATA%\\Opera Software\\*\\GPUCache")
+                 .Dir("%APPDATA%\\Opera Software\\*\\GrShaderCache")
+                 .Dir("%APPDATA%\\Opera Software\\*\\ShaderCache")
+                 .Dir("%APPDATA%\\Opera Software\\*\\component_crx_cache")
+                 .Dir("%LOCALAPPDATA%\\Mozilla\\Firefox\\Profiles\\*\\cache2")
+                 .Dir("%LOCALAPPDATA%\\Microsoft\\Windows\\INetCache\\IE");
+            t.Add(cache);
 
             t.Add(new CleanTarget("App-cache",
                 "Discord, Spotify, Teams, Slack og Office.")

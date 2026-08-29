@@ -629,6 +629,7 @@ namespace Brisk
             foreach (CleanTarget t in Cleaner.BuildTargets())
             {
                 if (t.Risk != Risk.Trygg) continue;          // aldri Windows.old uten samtykke
+                if (!t.Auto) continue;                       // nettleser-cache o.l. tas ikke automatisk
                 try
                 {
                     Cleaner.CleanResult r = Cleaner.Clean(t, cts.Token, null);

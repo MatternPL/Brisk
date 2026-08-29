@@ -12,9 +12,12 @@ namespace Brisk
         // ==============================================================
         //  HELSE — disker, kræsj og batteri
         // ==============================================================
-        ListView lvDrives, lvCrash;
+        ListView lvDrives, lvCrash, lvAppCrash;
         Label lblBattery;
+        Chooser cboCrash;
+        Panel crashHost, appCrashHost;
         List<DumpAnalysis> crashDumps = new List<DumpAnalysis>();
+        List<AppCrash> appCrashes = new List<AppCrash>();
 
         Panel PageHealth()
         {
@@ -44,21 +47,62 @@ namespace Brisk
                 L.T("Slitasje"), "100", L.T("Temperatur"), "110", L.T("Plass"), "280");
             split.Panel1.Controls.Add(SectionLabel(L.T("Disker")));
 
-            lvCrash = ListIn(split.Panel2, false,
+            crashHost = new Panel();
+            crashHost.Dock = DockStyle.Fill;
+            crashHost.BackColor = Theme.Bg;
+            lvCrash = ListIn(crashHost, false,
                 L.T("Når"), "150", L.T("Stoppkode"), "210", L.T("Sannsynlig årsak"), "230",
                 L.T("Hva som skjedde"), "440");
             lvCrash.DoubleClick += delegate { OpenCrash(); };
-            split.Panel2.Controls.Add(SectionLabel(
+            crashHost.Controls.Add(SectionLabel(
                 L.T("Blåskjermer — dobbeltklikk for full analyse")));
+
+            appCrashHost = new Panel();
+            appCrashHost.Dock = DockStyle.Fill;
+            appCrashHost.BackColor = Theme.Bg;
+            appCrashHost.Visible = false;
+            lvAppCrash = ListIn(appCrashHost, false,
+                L.T("Program"), "230", L.T("Antall"), "80", L.T("Sist"), "140",
+                L.T("Feilmodul"), "210", L.T("Hva som skjedde"), "380");
+            lvAppCrash.SelectedIndexChanged += delegate
+            {
+                if (lvAppCrash.SelectedItems.Count == 0) return;
+                AppCrash c = lvAppCrash.SelectedItems[0].Tag as AppCrash;
+                if (c != null) Status(AppCrashTools.Advice(c));
+            };
+            lvAppCrash.DoubleClick += delegate { OpenAppCrash(); };
+            appCrashHost.Controls.Add(SectionLabel(
+                L.T("Programkræsj siste 30 dager — dobbeltklikk for detaljer")));
+
+            split.Panel2.Controls.Add(crashHost);
+            split.Panel2.Controls.Add(appCrashHost);
 
             p.Controls.Add(split);
             p.Controls.Add(bar);
             SetSplit(split, 260);
 
+            cboCrash = new Chooser();
+            cboCrash.Width = 190;
+            cboCrash.Add(L.T("Blåskjermer"));
+            cboCrash.Add(L.T("Programkræsj"));
+            cboCrash.Changed += delegate
+            {
+                bool bs = cboCrash.Value == L.T("Blåskjermer");
+                crashHost.Visible = bs;
+                appCrashHost.Visible = !bs;
+                if (bs) crashHost.BringToFront(); else appCrashHost.BringToFront();
+                bOpenRef.Visible = bs;
+            };
+
             FlatBtn bOpen = new FlatBtn(L.T("Åpne analysen")); bOpen.Width = 150;
+            bOpenRef = bOpen;
             bOpen.Click += delegate { OpenCrash(); };
             bar.Controls.Add(bOpen);
             bOpen.Location = new Point(bRep.Left + bRep.Width + 10, bRep.Top);
+            bar.Controls.Add(cboCrash);
+            cboCrash.Location = new Point(bOpen.Left + bOpen.Width + 10, bRep.Top);
+            cboCrash.Height = bOpen.Height;
+            lblBattery.Location = new Point(cboCrash.Left + cboCrash.Width + 20, lblBattery.Top);
             Tip(bOpen, "Leser dumpfila fra kræsjet og viser hvilken driver som feilet.");
 
             bRef.Click += async delegate { await LoadHealth(new Control[] { bRef, bRep }); };
@@ -91,6 +135,9 @@ namespace Brisk
                 Status(L.T("Leser hendelseslogg …"));
                 crashes = HealthTools.Crashes(30);
                 bat = HealthTools.Battery();
+
+                Status(L.T("Leser programkræsj …"));
+                appCrashes = AppCrashTools.Recent(30, 900);
 
                 Status(L.T("Analyserer dumpfiler …"));
                 crashDumps.Clear();
@@ -184,6 +231,28 @@ namespace Brisk
             }
             lvCrash.EndUpdate();
 
+            // --- programkræsj ---
+            lvAppCrash.BeginUpdate();
+            lvAppCrash.Items.Clear();
+            foreach (AppCrash c in appCrashes)
+            {
+                ListViewItem li = new ListViewItem(c.App);
+                li.SubItems.Add(c.Count.ToString());
+                li.SubItems.Add(c.Last.ToString("yyyy-MM-dd HH:mm"));
+                li.SubItems.Add(c.Hang ? L.T("sluttet å svare") : c.Module);
+                li.SubItems.Add(c.Meaning);
+                li.Tag = c;
+                li.ForeColor = c.Count >= 10 ? Theme.Bad : c.Count >= 3 ? Theme.Warn : Theme.Muted;
+                lvAppCrash.Items.Add(li);
+            }
+            if (lvAppCrash.Items.Count == 0)
+            {
+                ListViewItem li = new ListViewItem(L.T("Ingen programkræsj siste 30 dager."));
+                li.ForeColor = Theme.Good;
+                lvAppCrash.Items.Add(li);
+            }
+            lvAppCrash.EndUpdate();
+
             // --- batteri ---
             if (bat == null) lblBattery.Text = "";
             else
@@ -194,6 +263,29 @@ namespace Brisk
             }
 
             Status("");
+        }
+
+        FlatBtn bOpenRef;
+
+        void OpenAppCrash()
+        {
+            if (lvAppCrash.SelectedItems.Count == 0) return;
+            AppCrash c = lvAppCrash.SelectedItems[0].Tag as AppCrash;
+            if (c == null) return;
+
+            string txt = c.App + (c.Version.Length > 0 ? "  " + c.Version : "") + "\n\n" +
+                L.F("{0} ganger siste 30 dager, sist {1}.", c.Count, c.Last.ToString("yyyy-MM-dd HH:mm")) + "\n";
+            if (!c.Hang)
+            {
+                txt += "\n" + L.T("Feilmodul") + ": " + c.Module +
+                       (c.ModuleVersion.Length > 0 ? "  " + c.ModuleVersion : "");
+                txt += "\n" + L.T("Kode") + ": " + c.Code +
+                       (c.Meaning.Length > 0 ? "  —  " + c.Meaning : "");
+            }
+            txt += "\n\n" + AppCrashTools.Advice(c);
+
+            MessageBox.Show(this, txt, L.T("Programkræsj"),
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         void OpenCrash()

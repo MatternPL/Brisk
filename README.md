@@ -37,12 +37,12 @@ red deletes.
 | Page | |
 |---|---|
 | **Cleanup** | Temp files, Windows Update leftovers, crash dumps, browser and shader caches, system logs. On the machine it was built on: 39 GB. |
-| **Disk space** | Three modes. *Largest* shows where the space sits, *Duplicates* finds identical files by content, *Forgotten files* lists big files you haven't touched in six months. Deletes nothing. |
+| **Disk space** | Four modes. *Largest* shows where the space sits, *Duplicates* finds identical files by content, *Forgotten files* lists big files you haven't touched in six months, and *Space Windows reserves* shows the hibernation file, restore points and page file — usually tens of GB that no cleaner touches. |
 | **Startup** | Everything that starts with Windows, with **how many seconds each one adds to boot** — read from Windows' own measurements, not guesswork. |
 | **Memory** | What is actually using RAM, and an honest note about why "RAM boosters" don't help. |
-| **Health** | Drive wear and temperature, battery capacity on laptops, and a **blue screen analyser** that reads the crash dump and names the driver that failed. |
+| **Health** | Drive wear and temperature, battery capacity on laptops, a **blue screen analyser** that reads the crash dump and names the driver that failed, and **app crashes** — which programs crash, how often, and which module faulted. |
 | **Network** | Adapter, gateway, internet, DNS, Wi-Fi signal, and a check of the hosts file and proxy — the two things malware likes to hijack. |
-| **Updates** | Drivers and Windows updates from Microsoft's own catalog through the Windows Update API. |
+| **Updates** | Drivers and Windows updates from Microsoft's own catalog through the Windows Update API, plus your graphics card and its driver age — with a link to the maker, because Windows Update is always behind on those. |
 | **Software** | winget updates, plus every installed program sorted by size, with uninstall. |
 | **Maintenance** | sfc, DISM, TRIM, restore point, system report, weekly scheduled cleanup. |
 
@@ -76,7 +76,8 @@ from the registry rather than assuming the default, since Windows does not alway
 * Cleanup has a hard-coded list of folders that can never be touched: your user folder,
   Documents, Desktop, Pictures, Windows, Program Files and the drive root.
 * Files in use are skipped and counted, not forced.
-* Windows.old is unticked by default.
+* Windows.old, crash dumps and browser cache are unticked by default and never part of the automatic weekly cleanup.
+* Browser cleanup removes cached pages and images only. History, passwords, bookmarks, logins and autofill live in other files and are never touched.
 * Startup entries that matter (audio, touchpad, antivirus, password manager) are flagged
   amber and warn before being disabled.
 * Duplicates and forgotten files are listed, never deleted for you.
@@ -141,6 +142,8 @@ src/
   StartupTools.cs     startup entries and scheduled tasks
   BootTools.cs        boot time and what delays it, from the event log
   HealthTools.cs      drive wear, blue screens, battery
+  AppCrashTools.cs    app crashes from the event log
+  SpaceTools.cs       hibernation file, restore points, page file
   DumpTools.cs        kernel crash dump parser
   CrashDialog.cs      the blue screen analysis window
   NetTools.cs         connectivity, hosts file, proxy

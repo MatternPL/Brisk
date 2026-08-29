@@ -28,11 +28,13 @@ namespace Brisk
         // ==============================================================
         //  DISKPLASS — hvor plassen har blitt av
         // ==============================================================
-        ListView lvFolders, lvFiles, lvDup, lvOld;
+        ListView lvFolders, lvFiles, lvDup, lvOld, lvSys;
         Chooser cboRoot, cboMode;
         SplitContainer splitBig;
-        Panel dupHost, oldHost;
-        Label lblDiskSum;
+        Panel dupHost, oldHost, sysHost;
+        Label lblDiskSum, lblSysInfo;
+        FlatBtn btnFree;
+        List<SpaceItem> sysItems = new List<SpaceItem>();
 
         Panel PageDisk()
         {
@@ -45,6 +47,7 @@ namespace Brisk
             cboMode.Add(L.T("Største mapper og filer"));
             cboMode.Add(L.T("Duplikater"));
             cboMode.Add(L.T("Glemte filer"));
+            cboMode.Add(L.T("Plass Windows holder på"));
 
             cboRoot = new Chooser();
             cboRoot.Width = 230;
@@ -56,9 +59,11 @@ namespace Brisk
             FlatBtn bScan = new FlatBtn(L.T("Analyser")); bScan.Primary(); bScan.Width = 130;
             FlatBtn bStop = new FlatBtn(L.T("Stopp")); bStop.Width = 90; bStop.Enabled = false;
             FlatBtn bOpen = new FlatBtn(L.T("Åpne i Utforsker")); bOpen.Width = 165;
+            btnFree = new FlatBtn(L.T("Frigjør plass")); btnFree.Warn(); btnFree.Width = 165;
+            btnFree.Visible = false;
             lblDiskSum = Theme.Lbl("", Theme.FBold, Theme.Muted);
             lblDiskSum.Width = 300;
-            Panel bar = Toolbar(cboMode, cboRoot, bScan, bStop, bOpen, lblDiskSum);
+            Panel bar = Toolbar(cboMode, cboRoot, bScan, bStop, bOpen, btnFree, lblDiskSum);
             Tip(bScan, "Leser gjennom hele treet. Sletter aldri noe.");
             Tip(bOpen, "Dobbeltklikk en rad gjør det samme.");
             Tip(cboMode, "Største viser hvor plassen ligger. Duplikater finner like filer. Glemte filer er store filer du ikke har rørt på et halvår.");
@@ -99,14 +104,35 @@ namespace Brisk
                 L.T("Fil"), "380", L.T("Størrelse"), "120", L.T("Sist rørt"), "140", L.T("Mappe"), "500");
             oldHost.Controls.Add(SectionLabel(L.T("Store filer du ikke har rørt på lenge")));
 
+            // --- modus 4: plass Windows selv holder på ---
+            sysHost = new Panel();
+            sysHost.Dock = DockStyle.Fill;
+            sysHost.BackColor = Theme.Bg;
+            sysHost.Visible = false;
+            lvSys = ListIn(sysHost, false,
+                L.T("Post"), "260", L.T("Størrelse"), "120", L.T("Hva det er"), "700");
+            sysHost.Controls.Add(SectionLabel(L.T("Dette er ikke søppel — det er plass Windows har satt av")));
+            lvSys.SelectedIndexChanged += delegate { SysSelected(); };
+
+            Panel sysInfo = new Panel();
+            sysInfo.Dock = DockStyle.Bottom;
+            sysInfo.Height = 52;
+            sysInfo.BackColor = Theme.Bg;
+            lblSysInfo = Theme.Lbl("", Theme.FSmall, Theme.Muted);
+            lblSysInfo.AutoSize = false;
+            lblSysInfo.Dock = DockStyle.Fill;
+            sysInfo.Controls.Add(lblSysInfo);
+
             Panel body = new Panel();
             body.Dock = DockStyle.Fill;
             body.BackColor = Theme.Bg;
             body.Controls.Add(splitBig);
             body.Controls.Add(dupHost);
             body.Controls.Add(oldHost);
+            body.Controls.Add(sysHost);
 
             p.Controls.Add(body);
+            p.Controls.Add(sysInfo);
             p.Controls.Add(bar);
             SetSplit(splitBig, 300);
 
@@ -116,11 +142,27 @@ namespace Brisk
                 splitBig.Visible = m == 0;
                 dupHost.Visible = m == 1;
                 oldHost.Visible = m == 2;
+                sysHost.Visible = m == 3;
                 if (m == 1) dupHost.BringToFront();
-                if (m == 2) oldHost.BringToFront();
-                if (m == 0) splitBig.BringToFront();
+                else if (m == 2) oldHost.BringToFront();
+                else if (m == 3) sysHost.BringToFront();
+                else splitBig.BringToFront();
+
+                // I denne modusen er det ingenting aa skanne eller aapne;
+                // knappene byttes ut med handlingen som hoerer til.
+                cboRoot.Visible = m != 3;
+                bStop.Visible = m != 3;
+                bOpen.Visible = m != 3;
+                bScan.Visible = m != 3;
+                btnFree.Visible = m == 3;
+                if (m == 3) btnFree.Location = bScan.Location;
+                btnFree.Enabled = false;
+                lblSysInfo.Text = "";
                 lblDiskSum.Text = "";
+                if (m == 3) LoadSystemSpace();
             };
+
+            btnFree.Click += async delegate { await FreeSystemSpace(); };
 
             EventHandler openSel = delegate
             {
@@ -251,7 +293,77 @@ namespace Brisk
             string v = cboMode.Value;
             if (v == L.T("Duplikater")) return 1;
             if (v == L.T("Glemte filer")) return 2;
+            if (v == L.T("Plass Windows holder på")) return 3;
             return 0;
+        }
+
+        // ---- plass Windows selv holder på ----
+        void LoadSystemSpace()
+        {
+            try
+            {
+                sysItems = SpaceTools.Scan();
+                long sum = 0;
+                lvSys.BeginUpdate();
+                lvSys.Items.Clear();
+                foreach (SpaceItem s in sysItems)
+                {
+                    sum += s.Size;
+                    ListViewItem li = new ListViewItem(s.Name);
+                    li.SubItems.Add(Util.Bytes(s.Size));
+                    li.SubItems.Add(s.What);
+                    li.Tag = s;
+                    li.ForeColor = s.CanFree ? Theme.Text : Theme.Muted;
+                    lvSys.Items.Add(li);
+                }
+                lvSys.EndUpdate();
+                lblDiskSum.Text = Util.Bytes(sum);
+                lblDiskSum.ForeColor = Theme.Warn;
+                lblSysInfo.Text = L.T("Velg en rad for å se hva du kan frigjøre og hva det koster deg.");
+            }
+            catch (Exception ex) { Status(L.T("Kunne ikke lese: ") + ex.Message); }
+        }
+
+        void SysSelected()
+        {
+            btnFree.Enabled = false;
+            if (lvSys.SelectedItems.Count == 0) { lblSysInfo.Text = ""; return; }
+            SpaceItem s = lvSys.SelectedItems[0].Tag as SpaceItem;
+            if (s == null) return;
+            if (!s.CanFree)
+            {
+                lblSysInfo.ForeColor = Theme.Muted;
+                lblSysInfo.Text = L.T("Denne bør stå i fred. Windows styrer den selv.");
+                return;
+            }
+            btnFree.Enabled = true;
+            btnFree.Text = s.Action;
+            lblSysInfo.ForeColor = Theme.Warn;
+            lblSysInfo.Text = s.Consequence;
+        }
+
+        async Task FreeSystemSpace()
+        {
+            if (lvSys.SelectedItems.Count == 0) return;
+            SpaceItem s = lvSys.SelectedItems[0].Tag as SpaceItem;
+            if (s == null || !s.CanFree) return;
+
+            if (!Util.IsAdmin()) { Status(L.T("Krever administrator.")); return; }
+
+            if (MessageBox.Show(this,
+                    L.F("{0} — frigjør {1}.", s.Name, Util.Bytes(s.Size)) + "\n\n" +
+                    s.Consequence + "\n\n" + L.T("Fortsette?"),
+                    s.Action, MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning) != DialogResult.Yes) return;
+
+            bool ok = false;
+            await Job(new Control[] { btnFree, cboMode }, delegate
+            {
+                ok = SpaceTools.Free(s, delegate(string l) { Status(l); });
+            });
+            LoadSystemSpace();
+            RefreshOverview();
+            Status(ok ? L.F("Frigjorde {0}.", Util.Bytes(s.Size)) : L.T("Ingenting ble frigjort."));
         }
 
         void Fill(ListView lv, List<SizeEntry> items, bool showFolder)
