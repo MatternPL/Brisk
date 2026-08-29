@@ -146,7 +146,7 @@ namespace Brisk
                 {
                     try
                     {
-                        if (string.Equals(Convert.ToString(s.ServiceID), MicrosoftUpdateServiceId,
+                        if (string.Equals(Util.Str(s.ServiceID), MicrosoftUpdateServiceId,
                                 StringComparison.OrdinalIgnoreCase))
                             return true;
                     }
@@ -205,13 +205,13 @@ namespace Brisk
                     try
                     {
                         DriverUpdate d = new DriverUpdate();
-                        d.Title = Convert.ToString(u.Title);
+                        d.Title = Util.Str(u.Title);
                         d.Update = u;
                         try { d.Size = Convert.ToInt64(u.MaxDownloadSize); } catch { }
                         try
                         {
-                            string man = Convert.ToString(u.DriverManufacturer);
-                            string cls = Convert.ToString(u.DriverClass);
+                            string man = Util.Str(u.DriverManufacturer);
+                            string cls = Util.Str(u.DriverClass);
                             d.Driver = (man + " " + cls).Trim();
                         }
                         catch { d.Driver = ""; }

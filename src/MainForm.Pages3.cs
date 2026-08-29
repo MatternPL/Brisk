@@ -135,9 +135,9 @@ namespace Brisk
                 if (devs != null)
                     foreach (ProblemDevice d in devs)
                     {
-                        ListViewItem li = new ListViewItem(d.Name);
-                        li.SubItems.Add(d.ErrorText);
-                        li.SubItems.Add(d.DeviceId);
+                        ListViewItem li = new ListViewItem(d.Name ?? "");
+                        li.SubItems.Add(d.ErrorText ?? "");
+                        li.SubItems.Add(d.DeviceId ?? "");
                         bool alvorlig = d.ErrorCode != 22 && d.ErrorCode != 45;
                         li.ForeColor = alvorlig ? Theme.Warn : Theme.Muted;
                         if (alvorlig) devBad++;
@@ -157,13 +157,16 @@ namespace Brisk
                 if (win != null)
                     foreach (WinUpdate u in win)
                     {
+                        // Alvorlighetsgrad mangler paa de fleste oppdateringer som ikke
+                        // gjelder sikkerhet. Les den aldri uten vern.
+                        string sev = u.Severity ?? "";
                         ListViewItem li = new ListViewItem(L.T("Windows"));
-                        li.SubItems.Add(u.Title);
-                        li.SubItems.Add(u.Severity.Length > 0 ? L.F("Alvorlighet: {0}", u.Severity) : "");
+                        li.SubItems.Add(u.Title ?? "");
+                        li.SubItems.Add(sev.Length > 0 ? L.F("Alvorlighet: {0}", sev) : "");
                         li.SubItems.Add(u.Size > 0 ? Util.Bytes(u.Size) : "—");
                         li.Checked = true;
                         li.Tag = u;
-                        li.ForeColor = u.Severity == "Critical" ? Theme.Warn : Theme.Text;
+                        li.ForeColor = sev == "Critical" ? Theme.Warn : Theme.Text;
                         lvUpd.Items.Add(li);
                         nw++;
                     }
@@ -171,8 +174,8 @@ namespace Brisk
                     foreach (DriverUpdate d in drv)
                     {
                         ListViewItem li = new ListViewItem(L.T("Driver"));
-                        li.SubItems.Add(d.Title);
-                        li.SubItems.Add(d.Driver);
+                        li.SubItems.Add(d.Title ?? "");
+                        li.SubItems.Add(d.Driver ?? "");
                         li.SubItems.Add(d.Size > 0 ? Util.Bytes(d.Size) : "—");
                         li.Checked = true;
                         li.Tag = d;

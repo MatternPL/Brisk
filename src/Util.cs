@@ -28,6 +28,17 @@ namespace Brisk
             if (h != null) h(line);
         }
 
+        // Convert.ToString paa en dynamic gir null tilbake naar verdien er null -
+        // den binder ikke til object-overlasten. COM-egenskaper som MsrcSeverity
+        // mangler ofte, saa alt som leses fra COM maa gaa gjennom denne.
+        public static string Str(object o)
+        {
+            if (o == null || o == DBNull.Value) return "";
+            string s = o as string;
+            if (s != null) return s;
+            return Convert.ToString(o) ?? "";
+        }
+
         public static string Bytes(long b)
         {
             if (b < 0) return "–";

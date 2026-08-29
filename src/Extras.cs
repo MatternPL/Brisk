@@ -41,11 +41,11 @@ namespace Brisk
                     try
                     {
                         WinUpdate w = new WinUpdate();
-                        w.Title = Convert.ToString(u.Title);
+                        w.Title = Util.Str(u.Title);
                         w.Update = u;
                         try { w.Size = Convert.ToInt64(u.MaxDownloadSize); }
                         catch { }
-                        try { w.Severity = Convert.ToString(u.MsrcSeverity); }
+                        try { w.Severity = Util.Str(u.MsrcSeverity); }
                         catch { }
                         try { w.Mandatory = Convert.ToBoolean(u.IsMandatory); }
                         catch { }
