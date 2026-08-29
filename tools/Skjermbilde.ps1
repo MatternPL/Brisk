@@ -7,7 +7,8 @@ param(
 )
 
 Add-Type -AssemblyName System.Drawing
-Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @"
+$refs = @([Drawing.Bitmap].Assembly.Location, [Drawing.Point].Assembly.Location)
+Add-Type -ReferencedAssemblies $refs -TypeDefinition @"
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;

@@ -4,93 +4,63 @@ using System.Drawing.Drawing2D;
 
 namespace Brisk
 {
-    // Merket til Brisk. Tre feiestrøk i bevegelse pluss en glans —
-    // leselig helt ned til 16 piksler, der en detaljert kost bare blir grøt.
+    // Merket til Brisk: en måler slått ut til full. Tegnet som vektor slik at
+    // det blir like skarpt på 16 piksler i tittellinja som på 256 i Utforsker.
     public static class Logo
     {
-        public static readonly Color Deep = Color.FromArgb(0x16, 0x20, 0x38);
-        public static readonly Color Deep2 = Color.FromArgb(0x0E, 0x11, 0x18);
-        public static readonly Color Blue = Color.FromArgb(0x6F, 0xAB, 0xFF);
-        public static readonly Color Blue2 = Color.FromArgb(0x4E, 0x86, 0xEE);
+        public static readonly Color Deep = Color.FromArgb(0x1B, 0x24, 0x42);
+        public static readonly Color Deep2 = Color.FromArgb(0x0B, 0x0E, 0x15);
+        public static readonly Color Blue = Color.FromArgb(0x6F, 0xBA, 0xFF);
+        public static readonly Color Blue2 = Color.FromArgb(0x1E, 0x33, 0xA6);
+        public static readonly Color Pivot = Color.FromArgb(0xF4, 0xF8, 0xFF);
 
-        // Tegner merket i en kvadratisk boks med venstre-topp i (x, y).
         public static void Paint(Graphics g, float x, float y, float s, bool backdrop)
         {
             SmoothingMode old = g.SmoothingMode;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
+            // Under 24 px blir tynne detaljer til grøt. Da tegnes en tykkere,
+            // enklere utgave av samme motiv.
+            bool tiny = s < 24f;
+
             if (backdrop)
             {
-                using (GraphicsPath bg = Rounded(new RectangleF(x, y, s, s), s * (s < 28f ? 0.17f : 0.22f)))
+                using (GraphicsPath bg = Rounded(new RectangleF(x, y, s, s), s * (tiny ? 0.20f : 0.25f)))
                 using (LinearGradientBrush b = new LinearGradientBrush(
-                    new RectangleF(x - 1, y - 1, s + 2, s + 2), Deep, Deep2, 55f))
+                    new RectangleF(x - 1, y - 1, s + 2, s + 2), Deep, Deep2, 65f))
                     g.FillPath(b, bg);
             }
 
-            // Tre strøk som feier nedover mot venstre, avtagende i lengde.
-            // Under 24 px blir tre tynne strøk til grøt — da tegner vi to tykke i stedet.
-            bool tiny = s < 28f;
-            float[][] strokes = tiny
-                ? new float[][]
-                {
-                    new float[] { 0.80f, 0.17f, 0.27f, 0.66f, 0.185f, 1.00f },
-                    new float[] { 0.86f, 0.56f, 0.55f, 0.87f, 0.150f, 0.82f },
-                }
-                : new float[][]
-                {
-                    new float[] { 0.79f, 0.18f, 0.30f, 0.63f, 0.125f, 1.00f },
-                    new float[] { 0.84f, 0.43f, 0.42f, 0.77f, 0.100f, 0.86f },
-                    new float[] { 0.88f, 0.66f, 0.60f, 0.87f, 0.078f, 0.70f },
-                };
+            // Måleren: en bue som er åpen nedover, med lys som vokser mot høyre.
+            float inset = s * (tiny ? 0.30f : 0.285f);
+            RectangleF arc = new RectangleF(x + inset, y + inset, s - inset * 2, s - inset * 2);
+            float thick = s * (tiny ? 0.150f : 0.078f);
 
-            foreach (float[] k in strokes)
+            using (LinearGradientBrush lb = new LinearGradientBrush(
+                new PointF(x, y + s * 0.78f), new PointF(x + s, y + s * 0.16f), Blue2, Blue))
+            using (Pen p = new Pen(lb, thick))
             {
-                using (LinearGradientBrush lb = new LinearGradientBrush(
-                    new PointF(x + s * k[0], y + s * k[1]),
-                    new PointF(x + s * k[2], y + s * k[3]),
-                    Mix(Blue, k[5]), Mix(Blue2, k[5])))
-                using (Pen pen = new Pen(lb, s * k[4]))
-                {
-                    pen.StartCap = LineCap.Round;
-                    pen.EndCap = LineCap.Round;
-                    g.DrawLine(pen, x + s * k[0], y + s * k[1], x + s * k[2], y + s * k[3]);
-                }
+                p.StartCap = LineCap.Round;
+                p.EndCap = LineCap.Round;
+                g.DrawArc(p, arc, 148f, 244f);
             }
 
-            // Glans øverst til venstre — gir merket retning.
-            using (SolidBrush b = new SolidBrush(Color.FromArgb(245, 0xEC, 0xF3, 0xFF)))
-                Spark(g, b, x + s * (tiny ? 0.235f : 0.26f), y + s * (tiny ? 0.235f : 0.25f),
-                      s * (tiny ? 0.135f : 0.115f));
-            if (!tiny)
-                using (SolidBrush b = new SolidBrush(Color.FromArgb(150, 0xEC, 0xF3, 0xFF)))
-                    Spark(g, b, x + s * 0.45f, y + s * 0.15f, s * 0.055f);
+            // Viseren peker på enden av buen — full utslag.
+            float cx = x + s / 2f, cy = y + s / 2f;
+            float reach = (s / 2f) - inset - thick * 0.20f;
+            using (Pen p = new Pen(Pivot, s * (tiny ? 0.105f : 0.055f)))
+            {
+                p.StartCap = LineCap.Round;
+                p.EndCap = LineCap.Round;
+                g.DrawLine(p, cx, cy, cx + reach, cy + s * 0.030f);
+            }
+
+            // Navet som viseren dreier om.
+            float pr = s * (tiny ? 0.090f : 0.078f);
+            using (SolidBrush b = new SolidBrush(Pivot))
+                g.FillEllipse(b, cx - pr, cy - pr, pr * 2, pr * 2);
 
             g.SmoothingMode = old;
-        }
-
-        static Color Mix(Color c, float alpha)
-        {
-            int a = (int)Math.Round(255 * Math.Max(0f, Math.Min(1f, alpha)));
-            return Color.FromArgb(a, c.R, c.G, c.B);
-        }
-
-        static void Spark(Graphics g, Brush b, float cx, float cy, float r)
-        {
-            using (GraphicsPath p = new GraphicsPath())
-            {
-                float k = r * 0.30f;
-                p.AddPolygon(new PointF[] {
-                    new PointF(cx, cy - r),
-                    new PointF(cx + k, cy - k),
-                    new PointF(cx + r, cy),
-                    new PointF(cx + k, cy + k),
-                    new PointF(cx, cy + r),
-                    new PointF(cx - k, cy + k),
-                    new PointF(cx - r, cy),
-                    new PointF(cx - k, cy - k)
-                });
-                g.FillPath(b, p);
-            }
         }
 
         public static GraphicsPath Rounded(RectangleF r, float rad)
