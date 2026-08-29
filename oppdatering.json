@@ -1,7 +1,7 @@
 {
-  "versjon": "1.3.1",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.3.1/BriskInstaller.exe",
-  "sha256": "923225ad2ef832c8f85c8b42b989a84b817194449d4f3997c6c7f6704d8ea243",
-  "storrelse": 564736,
-  "notat": "Fixes the install, update and uninstall windows, where the buttons were drawn outside the window and could not be clicked. This affected every version since 1.0.0, so the update prompt has never actually worked - if you are reading this, you got here by downloading the installer yourself. Enter and Esc now work in those windows too."
+  "versjon": "1.3.2",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.3.2/BriskInstaller.exe",
+  "sha256": "d0de10b0e8f8d0868c1a7fb7fa147d00392d81980b55befe1eb13cb7181e595e",
+  "storrelse": 565248,
+  "notat": "Fixes a crash when scanning in the Updates tab. Reading a value from Windows Update through COM returns null when the property is absent, which is the normal case for updates that are not security fixes - and the severity field was read without guarding against it. The scan only crashed on machines that actually had pending updates, which is why it looked fine here. Every value read from Windows Update now goes through one helper that cannot return null."
 }
