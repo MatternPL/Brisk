@@ -25,7 +25,7 @@ namespace Brisk
         // Standardadresse. Kan overstyres uten å bygge på nytt ved å sette
         // HKCU\Software\Brisk\OppdateringsUrl til en annen https-adresse.
         public const string DefaultManifestUrl =
-            "https://raw.githubusercontent.com/MatternPL/Vaktmester/main/oppdatering.json";
+            "https://raw.githubusercontent.com/MatternPL/Brisk/main/oppdatering.json";
 
         const string SettingsKey = @"Software\Brisk";
 
