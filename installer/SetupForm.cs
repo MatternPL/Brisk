@@ -66,19 +66,24 @@ namespace BriskSetup
             foot.Dock = DockStyle.Bottom;
             foot.Height = 62;
             foot.BackColor = Theme.Bg;
+            // Bredden maa settes for knappene legges inn. Anchor regner ut
+            // avstanden til hoyrekanten fra panelets storrelse der og da, og
+            // uten dette blir den regnet fra standard 200 px - da havner
+            // knappene langt utenfor vinduet.
+            foot.Width = ClientSize.Width;
 
             primary = new FlatBtn(L.T(uninstallMode ? "Avinstaller" : "Installer"));
             primary.Primary();
             if (uninstallMode) primary.Danger();
             primary.Width = 150;
             primary.Height = 38;
-            primary.Location = new Point(468, 12);
+            primary.Location = new Point(478, 12);
             primary.Anchor = AnchorStyles.Top | AnchorStyles.Right;
 
             secondary = new FlatBtn(L.T("Avbryt"));
             secondary.Width = 110;
             secondary.Height = 38;
-            secondary.Location = new Point(346, 12);
+            secondary.Location = new Point(356, 12);
             secondary.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             secondary.Click += delegate { Close(); };
 
@@ -97,6 +102,11 @@ namespace BriskSetup
 
             if (uninstallMode) BuildUninstallBody();
             else BuildInstallBody();
+
+            // Tastaturutvei, slik at en feil i utformingen aldri kan sperre
+            // vinduet helt. Go() deaktiverer begge knappene mens den jobber.
+            AcceptButton = primary;
+            CancelButton = secondary;
 
             primary.Click += async delegate { await Go(); };
         }

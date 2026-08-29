@@ -55,6 +55,9 @@ namespace Brisk
             foot.Height = 92;
             foot.BackColor = Theme.Bg;
             foot.Padding = new Padding(24, 0, 24, 14);
+            // Se kommentaren i SetupForm.Build: bredden maa vaere satt for
+            // knappene legges inn, ellers regnes Anchor fra 200 px.
+            foot.Width = ClientSize.Width;
 
             bar = new Bar();
             bar.Dock = DockStyle.Top;
@@ -103,6 +106,11 @@ namespace Brisk
             Controls.Add(body);
             Controls.Add(foot);
             Controls.Add(head);
+
+            // Tastaturutvei. Begge knappene deaktiveres av Run(), saa Enter og
+            // Esc kan ikke starte eller avbryte noe midt i en nedlasting.
+            AcceptButton = bYes;
+            CancelButton = bNo;
 
             bYes.Click += async delegate { await Run(); };
             Load += delegate { Theme.DarkTitleBar(this); };

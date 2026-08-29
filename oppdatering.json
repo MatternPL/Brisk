@@ -1,7 +1,7 @@
 {
-  "versjon": "1.3.0",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.3.0/BriskInstaller.exe",
-  "sha256": "99106fdf7e16d4eeee8bc9d3fc8aa83684b4466f117d878e0f72bb9349b68c7f",
-  "storrelse": 564224,
-  "notat": "The interface is rebuilt. Options that used to hide in dropdowns are now visible tabs, and every button says on the button what it does and what it will touch. Disk space, Health and Updates were reorganised so nothing is buried a click away. New app icon, drawn to stay sharp from 16 to 256 pixels."
+  "versjon": "1.3.1",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.3.1/BriskInstaller.exe",
+  "sha256": "923225ad2ef832c8f85c8b42b989a84b817194449d4f3997c6c7f6704d8ea243",
+  "storrelse": 564736,
+  "notat": "Fixes the install, update and uninstall windows, where the buttons were drawn outside the window and could not be clicked. This affected every version since 1.0.0, so the update prompt has never actually worked - if you are reading this, you got here by downloading the installer yourself. Enter and Esc now work in those windows too."
 }
