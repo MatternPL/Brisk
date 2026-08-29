@@ -1,7 +1,7 @@
 {
-  "versjon": "1.2.0",
-  "url": "https://github.com/MatternPL/Vaktmester/releases/download/v1.2.0/Brisk-Installer.exe",
-  "sha256": "2ee2a6920216c6f91ab20e7e7fa84d9b854e67f9c48b2f3cec683ed10acb4cfb",
-  "storrelse": 584192,
-  "notat": "Disk space now shows the space Windows reserves for itself - hibernation file, restore points and page file - often tens of GB no cleaner touches. Health lists app crashes with the module that faulted. Updates shows your graphics card and driver age with a link to the maker. Browser cache is off by default and never part of the automatic cleanup, and Opera GX is now covered."
+  "versjon": "1.3.0",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.3.0/BriskInstaller.exe",
+  "sha256": "99106fdf7e16d4eeee8bc9d3fc8aa83684b4466f117d878e0f72bb9349b68c7f",
+  "storrelse": 564224,
+  "notat": "The interface is rebuilt. Options that used to hide in dropdowns are now visible tabs, and every button says on the button what it does and what it will touch. Disk space, Health and Updates were reorganised so nothing is buried a click away. New app icon, drawn to stay sharp from 16 to 256 pixels."
 }
