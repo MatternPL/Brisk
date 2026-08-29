@@ -10,7 +10,7 @@ namespace Brisk
 {
     public partial class MainForm
     {
-        // SplitterDistance kan bare settes nar kontrollen har fatt storrelse.
+        // SplitterDistance kan bare settes når kontrollen har fått størrelse.
         void SetSplit(SplitContainer sc, int distance)
         {
             Defer(delegate
@@ -25,15 +25,37 @@ namespace Brisk
             });
         }
 
+        // Meny på en handlingsflis, til valg som ikke passer som faner.
+        static ContextMenuStrip TileMenu(ActionTile tile, string[] items, Action<string> chosen)
+        {
+            ContextMenuStrip m = new ContextMenuStrip();
+            m.Renderer = new DarkMenuRenderer();
+            m.BackColor = Theme.CardHi;
+            m.ForeColor = Theme.Text;
+            m.ShowImageMargin = false;
+            foreach (string s in items)
+            {
+                string val = s;
+                ToolStripMenuItem mi = new ToolStripMenuItem(val);
+                mi.BackColor = Theme.CardHi;
+                mi.ForeColor = Theme.Text;
+                mi.Click += delegate { chosen(val); };
+                m.Items.Add(mi);
+            }
+            tile.Click += delegate { m.Show(tile, new Point(0, tile.Height)); };
+            return m;
+        }
+
         // ==============================================================
-        //  DISKPLASS — hvor plassen har blitt av
+        //  DISKPLASS
         // ==============================================================
         ListView lvFolders, lvFiles, lvDup, lvOld, lvSys;
-        Chooser cboRoot, cboMode;
+        SegmentBar segDisk;
         SplitContainer splitBig;
-        Panel dupHost, oldHost, sysHost;
+        Panel dupHost, oldHost, sysHost, rowNormal, rowSys;
         Label lblDiskSum, lblSysInfo;
-        FlatBtn btnFree;
+        ActionTile tileWhere, tileFree, tileStop, tileOpen;
+        string diskRoot = "";
         List<SpaceItem> sysItems = new List<SpaceItem>();
 
         Panel PageDisk()
@@ -42,33 +64,44 @@ namespace Brisk
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
-            cboMode = new Chooser();
-            cboMode.Width = 210;
-            cboMode.Add(L.T("Største mapper og filer"));
-            cboMode.Add(L.T("Duplikater"));
-            cboMode.Add(L.T("Glemte filer"));
-            cboMode.Add(L.T("Plass Windows holder på"));
+            // --- faner ---
+            segDisk = new SegmentBar();
+            segDisk.Add(L.T("Største"));
+            segDisk.Add(L.T("Duplikater"));
+            segDisk.Add(L.T("Glemte filer"));
+            segDisk.Add(L.T("Plass Windows holder på"));
 
-            cboRoot = new Chooser();
-            cboRoot.Width = 230;
-            foreach (VolumeInfo v in MaintenanceTools.Volumes())
-                cboRoot.Add(v.Letter);
-            cboRoot.Add(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-            cboRoot.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+            // --- handlinger ---
+            List<string> roots = new List<string>();
+            foreach (VolumeInfo v in MaintenanceTools.Volumes()) roots.Add(v.Letter);
+            roots.Add(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            roots.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+            diskRoot = roots.Count > 0 ? roots[0] : "C:\\";
 
-            FlatBtn bScan = new FlatBtn(L.T("Analyser")); bScan.Primary(); bScan.Width = 130;
-            FlatBtn bStop = new FlatBtn(L.T("Stopp")); bStop.Width = 90; bStop.Enabled = false;
-            FlatBtn bOpen = new FlatBtn(L.T("Åpne i Utforsker")); bOpen.Width = 165;
-            btnFree = new FlatBtn(L.T("Frigjør plass")); btnFree.Warn(); btnFree.Width = 165;
-            btnFree.Visible = false;
-            lblDiskSum = Theme.Lbl("", Theme.FBold, Theme.Muted);
-            lblDiskSum.Width = 300;
-            Panel bar = Toolbar(cboMode, cboRoot, bScan, bStop, bOpen, btnFree, lblDiskSum);
-            Tip(bScan, "Leser gjennom hele treet. Sletter aldri noe.");
-            Tip(bOpen, "Dobbeltklikk en rad gjør det samme.");
-            Tip(cboMode, "Største viser hvor plassen ligger. Duplikater finner like filer. Glemte filer er store filer du ikke har rørt på et halvår.");
+            ActionTile tScan = new ActionTile(L.T("Analyser"),
+                L.T("Leser gjennom hele treet. Sletter aldri noe.")).AsPrimary();
+            tileWhere = new ActionTile(diskRoot, L.T("Klikk for å velge hvor det skal søkes."));
+            tileStop = new ActionTile(L.T("Stopp"), L.T("Avbryter søket."));
+            tileOpen = new ActionTile(L.T("Åpne i Utforsker"),
+                L.T("Åpner stedet for den valgte raden. Dobbeltklikk gjør det samme."));
+            tileStop.Enabled = false;
 
-            // --- modus 1: største mapper og filer ---
+            TileMenu(tileWhere, roots.ToArray(), delegate(string v)
+            {
+                diskRoot = v;
+                tileWhere.Title = v;
+                tileWhere.Invalidate();
+            });
+
+            rowNormal = Widgets.Row(98, tScan, tileWhere, tileStop, tileOpen);
+
+            tileFree = new ActionTile(L.T("Frigjør plass"),
+                L.T("Velg en rad først. Du får se hva det koster deg før noe skjer.")).AsWarn();
+            tileFree.Enabled = false;
+            rowSys = Widgets.Row(98, tileFree);
+            rowSys.Visible = false;
+
+            // --- modus 1: største ---
             splitBig = new SplitContainer();
             splitBig.Dock = DockStyle.Fill;
             splitBig.Orientation = Orientation.Horizontal;
@@ -80,10 +113,12 @@ namespace Brisk
             splitBig.Panel2MinSize = 90;
             lvFolders = ListIn(splitBig.Panel1, false,
                 L.T("Mappe"), "620", L.T("Størrelse"), "130", L.T("Filer"), "100");
-            splitBig.Panel1.Controls.Add(SectionLabel(L.T("Største mapper")));
+            Label c1;
+            splitBig.Panel1.Controls.Add(Widgets.Head(L.T("Største mapper"), out c1));
             lvFiles = ListIn(splitBig.Panel2, false,
                 L.T("Fil"), "460", L.T("Størrelse"), "130", L.T("Mappe"), "460");
-            splitBig.Panel2.Controls.Add(SectionLabel(L.T("Største filer (over 100 MB)")));
+            Label c2;
+            splitBig.Panel2.Controls.Add(Widgets.Head(L.T("Største filer (over 100 MB)"), out c2));
 
             // --- modus 2: duplikater ---
             dupHost = new Panel();
@@ -93,7 +128,8 @@ namespace Brisk
             lvDup = ListIn(dupHost, false,
                 L.T("Fil"), "330", L.T("Kopier"), "80", L.T("Størrelse"), "110",
                 L.T("Kan spares"), "120", L.T("Hvor"), "560");
-            dupHost.Controls.Add(SectionLabel(L.T("Like filer — behold én, slett resten selv")));
+            Label c3;
+            dupHost.Controls.Add(Widgets.Head(L.T("Like filer — behold én, slett resten selv"), out c3));
 
             // --- modus 3: glemte filer ---
             oldHost = new Panel();
@@ -102,21 +138,23 @@ namespace Brisk
             oldHost.Visible = false;
             lvOld = ListIn(oldHost, false,
                 L.T("Fil"), "380", L.T("Størrelse"), "120", L.T("Sist rørt"), "140", L.T("Mappe"), "500");
-            oldHost.Controls.Add(SectionLabel(L.T("Store filer du ikke har rørt på lenge")));
+            Label c4;
+            oldHost.Controls.Add(Widgets.Head(L.T("Store filer du ikke har rørt på lenge"), out c4));
 
-            // --- modus 4: plass Windows selv holder på ---
+            // --- modus 4: plass Windows holder på ---
             sysHost = new Panel();
             sysHost.Dock = DockStyle.Fill;
             sysHost.BackColor = Theme.Bg;
             sysHost.Visible = false;
             lvSys = ListIn(sysHost, false,
                 L.T("Post"), "260", L.T("Størrelse"), "120", L.T("Hva det er"), "700");
-            sysHost.Controls.Add(SectionLabel(L.T("Dette er ikke søppel — det er plass Windows har satt av")));
+            sysHost.Controls.Add(Widgets.Head(
+                L.T("Dette er ikke søppel — det er plass Windows har satt av"), out lblDiskSum));
             lvSys.SelectedIndexChanged += delegate { SysSelected(); };
 
             Panel sysInfo = new Panel();
             sysInfo.Dock = DockStyle.Bottom;
-            sysInfo.Height = 52;
+            sysInfo.Height = 44;
             sysInfo.BackColor = Theme.Bg;
             lblSysInfo = Theme.Lbl("", Theme.FSmall, Theme.Muted);
             lblSysInfo.AutoSize = false;
@@ -133,12 +171,14 @@ namespace Brisk
 
             p.Controls.Add(body);
             p.Controls.Add(sysInfo);
-            p.Controls.Add(bar);
+            p.Controls.Add(rowSys);
+            p.Controls.Add(rowNormal);
+            p.Controls.Add(segDisk);
             SetSplit(splitBig, 300);
 
-            cboMode.Changed += delegate
+            segDisk.Changed += delegate
             {
-                int m = ModeIndex();
+                int m = segDisk.Index;
                 splitBig.Visible = m == 0;
                 dupHost.Visible = m == 1;
                 oldHost.Visible = m == 2;
@@ -148,21 +188,12 @@ namespace Brisk
                 else if (m == 3) sysHost.BringToFront();
                 else splitBig.BringToFront();
 
-                // I denne modusen er det ingenting aa skanne eller aapne;
-                // knappene byttes ut med handlingen som hoerer til.
-                cboRoot.Visible = m != 3;
-                bStop.Visible = m != 3;
-                bOpen.Visible = m != 3;
-                bScan.Visible = m != 3;
-                btnFree.Visible = m == 3;
-                if (m == 3) btnFree.Location = bScan.Location;
-                btnFree.Enabled = false;
+                rowNormal.Visible = m != 3;
+                rowSys.Visible = m == 3;
+                tileFree.Enabled = false;
                 lblSysInfo.Text = "";
-                lblDiskSum.Text = "";
                 if (m == 3) LoadSystemSpace();
             };
-
-            btnFree.Click += async delegate { await FreeSystemSpace(); };
 
             EventHandler openSel = delegate
             {
@@ -179,26 +210,27 @@ namespace Brisk
                 }
                 catch (Exception ex) { Status(L.T("Kunne ikke åpne: ") + ex.Message); }
             };
-            bOpen.Click += openSel;
+            tileOpen.Click += openSel;
             lvFolders.DoubleClick += openSel;
             lvFiles.DoubleClick += openSel;
             lvDup.DoubleClick += openSel;
             lvOld.DoubleClick += openSel;
+            tileFree.Click += async delegate { await FreeSystemSpace(); };
 
-            bScan.Click += async delegate
+            tScan.Click += async delegate
             {
-                string root = cboRoot.Value;
-                if (string.IsNullOrEmpty(root)) return;
+                if (string.IsNullOrEmpty(diskRoot)) return;
+                string root = diskRoot;
                 cts = new CancellationTokenSource();
                 CancellationToken ct = cts.Token;
-                bStop.Enabled = true;
-                int mode = ModeIndex();
+                tileStop.Enabled = true;
+                int mode = segDisk.Index;
                 DateTime t0 = DateTime.Now;
 
                 List<SizeEntry> fo = null, fi = null, old = null;
                 List<DupGroup> dups = null;
 
-                await Job(new Control[] { bScan, cboRoot, cboMode }, delegate
+                await Job(new Control[] { tScan, tileWhere }, delegate
                 {
                     if (mode == 0)
                         DiskTools.Scan(root, ct, delegate(string d) { Status(d); }, out fo, out fi);
@@ -207,7 +239,7 @@ namespace Brisk
                     else
                         old = DupTools.Forgotten(root, 180, ct);
                 });
-                bStop.Enabled = false;
+                tileStop.Enabled = false;
 
                 int secs = (int)(DateTime.Now - t0).TotalSeconds;
 
@@ -217,8 +249,6 @@ namespace Brisk
                     Fill(lvFolders, fo, false);
                     Fill(lvFiles, fi, true);
                     long biggest = fo.Count > 0 ? fo[0].Size : 0;
-                    lblDiskSum.Text = L.F("{0} mapper, {1} store filer", fo.Count, fi.Count);
-                    lblDiskSum.ForeColor = Theme.Good;
                     Status(L.F("Ferdig på {0} s. Største post: {1}.", secs, Util.Bytes(biggest)));
                 }
                 else if (mode == 1)
@@ -246,11 +276,9 @@ namespace Brisk
                         lvDup.Items.Add(li);
                     }
                     lvDup.EndUpdate();
-                    lblDiskSum.Text = L.F("{0} kan spares", Util.Bytes(wasted));
-                    lblDiskSum.ForeColor = wasted > 0 ? Theme.Warn : Theme.Good;
                     Status(dups.Count == 0
                         ? L.F("Ingen duplikater funnet. Brukte {0} s.", secs)
-                        : L.F("{0} grupper med like filer. Brukte {1} s.", dups.Count, secs));
+                        : L.F("{0} grupper med like filer. {1} kan spares.", dups.Count, Util.Bytes(wasted)));
                 }
                 else
                 {
@@ -273,97 +301,17 @@ namespace Brisk
                         lvOld.Items.Add(li);
                     }
                     lvOld.EndUpdate();
-                    lblDiskSum.Text = Util.Bytes(sum);
-                    lblDiskSum.ForeColor = Theme.Warn;
                     Status(L.F("{0} filer, til sammen {1}.", old.Count, Util.Bytes(sum)));
                 }
             };
 
-            bStop.Click += delegate
+            tileStop.Click += delegate
             {
                 if (cts != null) { try { cts.Cancel(); } catch { } }
                 Status(L.T("Avbryter …"));
             };
 
             return p;
-        }
-
-        int ModeIndex()
-        {
-            string v = cboMode.Value;
-            if (v == L.T("Duplikater")) return 1;
-            if (v == L.T("Glemte filer")) return 2;
-            if (v == L.T("Plass Windows holder på")) return 3;
-            return 0;
-        }
-
-        // ---- plass Windows selv holder på ----
-        void LoadSystemSpace()
-        {
-            try
-            {
-                sysItems = SpaceTools.Scan();
-                long sum = 0;
-                lvSys.BeginUpdate();
-                lvSys.Items.Clear();
-                foreach (SpaceItem s in sysItems)
-                {
-                    sum += s.Size;
-                    ListViewItem li = new ListViewItem(s.Name);
-                    li.SubItems.Add(Util.Bytes(s.Size));
-                    li.SubItems.Add(s.What);
-                    li.Tag = s;
-                    li.ForeColor = s.CanFree ? Theme.Text : Theme.Muted;
-                    lvSys.Items.Add(li);
-                }
-                lvSys.EndUpdate();
-                lblDiskSum.Text = Util.Bytes(sum);
-                lblDiskSum.ForeColor = Theme.Warn;
-                lblSysInfo.Text = L.T("Velg en rad for å se hva du kan frigjøre og hva det koster deg.");
-            }
-            catch (Exception ex) { Status(L.T("Kunne ikke lese: ") + ex.Message); }
-        }
-
-        void SysSelected()
-        {
-            btnFree.Enabled = false;
-            if (lvSys.SelectedItems.Count == 0) { lblSysInfo.Text = ""; return; }
-            SpaceItem s = lvSys.SelectedItems[0].Tag as SpaceItem;
-            if (s == null) return;
-            if (!s.CanFree)
-            {
-                lblSysInfo.ForeColor = Theme.Muted;
-                lblSysInfo.Text = L.T("Denne bør stå i fred. Windows styrer den selv.");
-                return;
-            }
-            btnFree.Enabled = true;
-            btnFree.Text = s.Action;
-            lblSysInfo.ForeColor = Theme.Warn;
-            lblSysInfo.Text = s.Consequence;
-        }
-
-        async Task FreeSystemSpace()
-        {
-            if (lvSys.SelectedItems.Count == 0) return;
-            SpaceItem s = lvSys.SelectedItems[0].Tag as SpaceItem;
-            if (s == null || !s.CanFree) return;
-
-            if (!Util.IsAdmin()) { Status(L.T("Krever administrator.")); return; }
-
-            if (MessageBox.Show(this,
-                    L.F("{0} — frigjør {1}.", s.Name, Util.Bytes(s.Size)) + "\n\n" +
-                    s.Consequence + "\n\n" + L.T("Fortsette?"),
-                    s.Action, MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning) != DialogResult.Yes) return;
-
-            bool ok = false;
-            await Job(new Control[] { btnFree, cboMode }, delegate
-            {
-                ok = SpaceTools.Free(s, delegate(string l) { Status(l); });
-            });
-            LoadSystemSpace();
-            RefreshOverview();
-            Status(ok ? L.F("Frigjorde {0}.", Util.Bytes(s.Size)) : L.T("Ingenting ble frigjort."));
         }
 
         void Fill(ListView lv, List<SizeEntry> items, bool showFolder)
@@ -389,12 +337,85 @@ namespace Brisk
             lv.EndUpdate();
         }
 
+        void LoadSystemSpace()
+        {
+            try
+            {
+                sysItems = SpaceTools.Scan();
+                long sum = 0, free = 0;
+                lvSys.BeginUpdate();
+                lvSys.Items.Clear();
+                foreach (SpaceItem s in sysItems)
+                {
+                    sum += s.Size;
+                    if (s.CanFree) free += s.Size;
+                    ListViewItem li = new ListViewItem(s.Name);
+                    li.SubItems.Add(Util.Bytes(s.Size));
+                    li.SubItems.Add(s.What);
+                    li.Tag = s;
+                    li.ForeColor = s.CanFree ? Theme.Text : Theme.Muted;
+                    lvSys.Items.Add(li);
+                }
+                lvSys.EndUpdate();
+                lblDiskSum.Text = L.F("{0} totalt, {1} kan frigjøres", Util.Bytes(sum), Util.Bytes(free));
+                lblDiskSum.ForeColor = Theme.Warn;
+                lblSysInfo.Text = L.T("Velg en rad for å se hva du kan frigjøre og hva det koster deg.");
+            }
+            catch (Exception ex) { Status(L.T("Kunne ikke lese: ") + ex.Message); }
+        }
+
+        void SysSelected()
+        {
+            tileFree.Enabled = false;
+            if (lvSys.SelectedItems.Count == 0) { lblSysInfo.Text = ""; return; }
+            SpaceItem s = lvSys.SelectedItems[0].Tag as SpaceItem;
+            if (s == null) return;
+            if (!s.CanFree)
+            {
+                lblSysInfo.ForeColor = Theme.Muted;
+                lblSysInfo.Text = L.T("Denne bør stå i fred. Windows styrer den selv.");
+                tileFree.Title = L.T("Frigjør plass");
+                tileFree.Info = L.T("Denne raden kan ikke frigjøres.");
+                tileFree.Invalidate();
+                return;
+            }
+            tileFree.Enabled = true;
+            tileFree.Title = s.Action;
+            tileFree.Info = L.F("Frigjør {0}.", Util.Bytes(s.Size));
+            tileFree.Invalidate();
+            lblSysInfo.ForeColor = Theme.Warn;
+            lblSysInfo.Text = s.Consequence;
+        }
+
+        async Task FreeSystemSpace()
+        {
+            if (lvSys.SelectedItems.Count == 0) return;
+            SpaceItem s = lvSys.SelectedItems[0].Tag as SpaceItem;
+            if (s == null || !s.CanFree) return;
+            if (!Util.IsAdmin()) { Status(L.T("Krever administrator.")); return; }
+
+            if (MessageBox.Show(this,
+                    L.F("{0} — frigjør {1}.", s.Name, Util.Bytes(s.Size)) + "\n\n" +
+                    s.Consequence + "\n\n" + L.T("Fortsette?"),
+                    s.Action, MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning) != DialogResult.Yes) return;
+
+            bool ok = false;
+            await Job(new Control[] { tileFree }, delegate
+            {
+                ok = SpaceTools.Free(s, delegate(string l) { Status(l); });
+            });
+            LoadSystemSpace();
+            RefreshOverview();
+            Status(ok ? L.F("Frigjorde {0}.", Util.Bytes(s.Size)) : L.T("Ingenting ble frigjort."));
+        }
+
         // ==============================================================
-        //  PROGRAMVARE — oppdatering (winget) + avinstallering
+        //  PROGRAMVARE
         // ==============================================================
         ListView lvApps, lvInstalled;
         TextBox appOut;
-        Label lblInstalledSum;
+        Label lblInstalledSum, lblUpdCount;
 
         Panel PageApps()
         {
@@ -402,10 +423,17 @@ namespace Brisk
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
-            FlatBtn bChk = new FlatBtn(L.T("Se etter oppdateringer")); bChk.Primary(); bChk.Width = 200;
-            FlatBtn bUp = new FlatBtn(L.T("Oppdater merkede")); bUp.Width = 165; bUp.Enabled = false;
-            FlatBtn bAll = new FlatBtn(L.T("Merk alle")); bAll.Width = 110;
-            Panel bar = Toolbar(bChk, bUp, bAll);
+            ActionTile tChk = new ActionTile(L.T("Se etter oppdateringer"),
+                L.T("Spør winget hvilke av programmene dine som har en nyere versjon.")).AsPrimary();
+            ActionTile tUp = new ActionTile(L.T("Oppdater merkede"),
+                L.T("Installerer de nye versjonene i bakgrunnen."));
+            ActionTile tAll = new ActionTile(L.T("Merk alle"),
+                L.T("Huker av eller vekk alle oppdateringene."));
+            ActionTile tUn = new ActionTile(L.T("Avinstaller valgt"),
+                L.T("Starter programmets egen avinstallering. Velg i den nedre lista.")).AsDanger();
+            tUp.Enabled = false;
+
+            Panel actions = Widgets.Row(98, tChk, tUp, tAll, tUn);
 
             Panel outHost = new Panel();
             outHost.Dock = DockStyle.Bottom;
@@ -417,51 +445,34 @@ namespace Brisk
             split.Dock = DockStyle.Fill;
             split.Orientation = Orientation.Horizontal;
             split.BackColor = Theme.Bg;
-            split.SplitterWidth = 12;
+            split.SplitterWidth = 14;
             split.Panel1.BackColor = Theme.Bg;
             split.Panel2.BackColor = Theme.Bg;
             split.Panel1MinSize = 90;
             split.Panel2MinSize = 90;
 
-            Label h1 = Theme.Lbl(L.T("Programoppdateringer (winget)"), Theme.FBold, Theme.Text);
-            h1.Dock = DockStyle.Top; h1.Height = 24;
             lvApps = ListIn(split.Panel1, true,
                 L.T("Program"), "290", L.T("Installert"), "130", L.T("Ny versjon"), "130", L.T("Pakke-ID"), "320");
-            split.Panel1.Controls.Add(h1);
-
-            Panel instBar = new Panel();
-            instBar.Dock = DockStyle.Top;
-            instBar.Height = 30;
-            instBar.BackColor = Theme.Bg;
-            Label h2 = Theme.Lbl(L.T("Installerte programmer"), Theme.FBold, Theme.Text);
-            h2.Location = new Point(0, 4);
-            FlatBtn bUn = new FlatBtn(L.T("Avinstaller")); bUn.Danger();
-            bUn.Width = 155; bUn.Height = 26; bUn.Location = new Point(360, 1); bUn.Font = Theme.FSmall;
-            FlatBtn bRefI = new FlatBtn(L.T("Oppdater"));
-            bRefI.Width = 130; bRefI.Height = 26; bRefI.Location = new Point(525, 1); bRefI.Font = Theme.FSmall;
-            lblInstalledSum = Theme.Lbl("", Theme.FSmall, Theme.Muted);
-            lblInstalledSum.Location = new Point(670, 6);
-            instBar.Controls.Add(h2); instBar.Controls.Add(bUn);
-            instBar.Controls.Add(bRefI); instBar.Controls.Add(lblInstalledSum);
+            split.Panel1.Controls.Add(Widgets.Head(L.T("Programoppdateringer (winget)"), out lblUpdCount));
 
             lvInstalled = ListIn(split.Panel2, false,
                 L.T("Program"), "330", L.T("Størrelse"), "110", L.T("Versjon"), "140",
                 L.T("Utgiver"), "220", L.T("Installert"), "110");
-            split.Panel2.Controls.Add(instBar);
+            split.Panel2.Controls.Add(Widgets.Head(L.T("Installerte programmer"), out lblInstalledSum));
 
             p.Controls.Add(split);
             p.Controls.Add(outHost);
-            p.Controls.Add(bar);
+            p.Controls.Add(actions);
             SetSplit(split, 250);
 
-            bAll.Click += delegate
+            tAll.Click += delegate
             {
                 bool any = false;
                 foreach (ListViewItem li in lvApps.Items) if (!li.Checked) any = true;
                 foreach (ListViewItem li in lvApps.Items) li.Checked = any;
             };
 
-            bChk.Click += async delegate
+            tChk.Click += async delegate
             {
                 if (!WingetTools.IsAvailable())
                 {
@@ -469,7 +480,7 @@ namespace Brisk
                     return;
                 }
                 List<AppUpgrade> ups = null; string note = "";
-                await Job(new Control[] { bChk, bUp, bAll }, delegate
+                await Job(new Control[] { tChk, tUp, tAll }, delegate
                 {
                     Status(L.T("Spør winget …"));
                     ups = WingetTools.ListUpgrades(out note);
@@ -486,13 +497,15 @@ namespace Brisk
                         li.Tag = a;
                         lvApps.Items.Add(li);
                     }
-                bUp.Enabled = lvApps.Items.Count > 0;
+                tUp.Enabled = lvApps.Items.Count > 0;
+                lblUpdCount.Text = L.F("{0} kan oppdateres", lvApps.Items.Count);
+                lblUpdCount.ForeColor = lvApps.Items.Count > 0 ? Theme.Warn : Theme.Good;
                 Status(lvApps.Items.Count > 0
                     ? L.F("{0} kan oppdateres.", lvApps.Items.Count)
                     : (note.Length > 0 ? note : L.T("Alt er oppdatert.")));
             };
 
-            bUp.Click += async delegate
+            tUp.Click += async delegate
             {
                 List<AppUpgrade> chosen = new List<AppUpgrade>();
                 foreach (ListViewItem li in lvApps.Items)
@@ -500,7 +513,7 @@ namespace Brisk
                 if (chosen.Count == 0) { Status(L.T("Ingenting er merket.")); return; }
 
                 int ok = 0;
-                await Job(new Control[] { bChk, bUp, bAll }, delegate
+                await Job(new Control[] { tChk, tUp, tAll }, delegate
                 {
                     foreach (AppUpgrade a in chosen)
                     {
@@ -512,10 +525,10 @@ namespace Brisk
                 Status(L.F("Oppdaterte {0} av {1}.", ok, chosen.Count));
             };
 
-            bRefI.Click += delegate { LoadInstalled(); };
-            bUn.Click += delegate
+            tUn.Click += delegate
             {
-                if (lvInstalled.SelectedItems.Count == 0) { Status(L.T("Velg et program i den nedre lista.")); return; }
+                if (lvInstalled.SelectedItems.Count == 0)
+                { Status(L.T("Velg et program i den nedre lista.")); return; }
                 InstalledApp a = lvInstalled.SelectedItems[0].Tag as InstalledApp;
                 if (a == null) return;
                 if (MessageBox.Show(this,

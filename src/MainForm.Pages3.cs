@@ -9,10 +9,10 @@ namespace Brisk
     public partial class MainForm
     {
         // ==============================================================
-        //  OPPDATERINGER — Windows-oppdateringer, drivere og problemenheter
+        //  OPPDATERINGER
         // ==============================================================
         ListView lvUpd, lvDev;
-        Label lblGpu, lblGpuNote;
+        Label lblGpu, lblUpdSum, lblDevSum;
 
         Panel PageDrivers()
         {
@@ -20,42 +20,46 @@ namespace Brisk
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
-            FlatBtn bSearch = new FlatBtn(L.T("Søk")); bSearch.Primary(); bSearch.Width = 120;
-            FlatBtn bInst = new FlatBtn(L.T("Installer merkede")); bInst.Width = 160; bInst.Enabled = false;
-            FlatBtn bDev = new FlatBtn(L.T("Enhetsbehandling")); bDev.Width = 155;
-            FlatBtn bWu = new FlatBtn("Windows Update"); bWu.Width = 155;
-            Tip(bSearch, "Spør Windows Update om drivere og systemoppdateringer. Tar gjerne et minutt.");
-            Panel bar = Toolbar(bSearch, bInst, bDev, bWu);
+            ActionTile tSearch = new ActionTile(L.T("Søk"),
+                L.T("Spør Windows Update om drivere og systemoppdateringer. Tar gjerne et minutt.")).AsPrimary();
+            ActionTile tInst = new ActionTile(L.T("Installer merkede"),
+                L.T("Henter og installerer direkte fra Microsoft. Noe krever omstart."));
+            ActionTile tDev = new ActionTile(L.T("Enhetsbehandling"),
+                L.T("Åpner Windows sitt eget verktøy for maskinvare."));
+            ActionTile tWu = new ActionTile(L.T("Windows Update"),
+                L.T("Åpner Windows-innstillingene for oppdatering."));
+            tInst.Enabled = false;
+
+            Panel actions = Widgets.Row(98, tSearch, tInst, tDev, tWu);
 
             // --- skjermkort ---
             Panel gpuHost = new Panel();
             gpuHost.Dock = DockStyle.Top;
-            gpuHost.Height = 92;
+            gpuHost.Height = 88;
             gpuHost.BackColor = Theme.Bg;
-            gpuHost.Padding = new Padding(0, 0, 0, 14);
+            gpuHost.Padding = new Padding(0, 0, 0, 12);
 
             Panel gpuCard = Theme.MakeCard();
             gpuCard.Dock = DockStyle.Fill;
 
             lblGpu = Theme.Lbl("", Theme.FCard, Theme.Text);
-            lblGpu.Location = new Point(20, 14);
-            lblGpuNote = Theme.Lbl(
+            lblGpu.Location = new Point(20, 12);
+            Label gpuNote = Theme.Lbl(
                 L.T("Windows Update ligger ofte etter for skjermkort. Nyeste driver får du hos produsenten."),
                 Theme.FSmall, Theme.Muted);
-            lblGpuNote.Location = new Point(22, 40);
+            gpuNote.Location = new Point(22, 38);
 
             FlatBtn bGpu = new FlatBtn(L.T("Hent hos produsenten"));
             bGpu.Width = 200; bGpu.Height = 34;
             bGpu.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             bGpu.Visible = false;
-            Tip(bGpu, "Åpner produsentens egen nedlastingsside. Aldri en tredjeparts «driver updater».");
 
             gpuCard.Controls.Add(lblGpu);
-            gpuCard.Controls.Add(lblGpuNote);
+            gpuCard.Controls.Add(gpuNote);
             gpuCard.Controls.Add(bGpu);
             gpuCard.Resize += delegate
             {
-                bGpu.Location = new Point(gpuCard.Width - bGpu.Width - 20, 22);
+                bGpu.Location = new Point(gpuCard.Width - bGpu.Width - 20, 20);
             };
             gpuHost.Controls.Add(gpuCard);
 
@@ -67,8 +71,7 @@ namespace Brisk
                     if (gpus.Count == 0) { lblGpu.Text = L.T("Fant ingen skjermkort."); return; }
 
                     GpuInfo g = gpus[0];
-                    string alder = g.AgeDays < 0 ? "" :
-                        "   ·   " + L.F("{0} dager gammel", g.AgeDays);
+                    string alder = g.AgeDays < 0 ? "" : "   ·   " + L.F("{0} dager gammel", g.AgeDays);
                     lblGpu.Text = g.Name + "   ·   " + L.T("driver") + " " + g.Version + alder;
                     lblGpu.ForeColor = g.AgeDays > 120 ? Theme.Warn : Theme.Text;
 
@@ -79,45 +82,45 @@ namespace Brisk
                         string url = g.Url;
                         bGpu.Click += delegate { Util.OpenPath(url); };
                     }
-                    bGpu.Location = new Point(gpuCard.Width - bGpu.Width - 20, 22);
+                    bGpu.Location = new Point(gpuCard.Width - bGpu.Width - 20, 20);
                 }
                 catch (Exception ex) { lblGpu.Text = ex.Message; }
             });
 
+            // --- enheter med problem ---
             Panel devHost = new Panel();
             devHost.Dock = DockStyle.Bottom;
-            devHost.Height = 172;
+            devHost.Height = 168;
             devHost.BackColor = Theme.Bg;
-            Label dl = Theme.Lbl(L.T("Enheter med problem"), Theme.FBold, Theme.Text);
-            dl.Dock = DockStyle.Top; dl.Height = 24;
-            lvDev = ListIn(devHost, false, L.T("Enhet"), "380", L.T("Problem"), "330", L.T("Enhets-ID"), "420");
-            devHost.Controls.Add(dl);
+            devHost.Padding = new Padding(0, 12, 0, 0);
+            lvDev = ListIn(devHost, false,
+                L.T("Enhet"), "380", L.T("Problem"), "330", L.T("Enhets-ID"), "420");
+            devHost.Controls.Add(Widgets.Head(L.T("Enheter med problem"), out lblDevSum));
 
+            // --- tilgjengelige oppdateringer ---
             Panel updHost = new Panel();
             updHost.Dock = DockStyle.Fill;
             updHost.BackColor = Theme.Bg;
-            Label dl2 = Theme.Lbl(L.T("Tilgjengelig fra Microsoft"), Theme.FBold, Theme.Text);
-            dl2.Dock = DockStyle.Top; dl2.Height = 24;
             lvUpd = ListIn(updHost, true,
                 L.T("Type"), "95", L.T("Oppdatering"), "520", L.T("Detaljer"), "230", L.T("Størrelse"), "105");
-            updHost.Controls.Add(dl2);
+            updHost.Controls.Add(Widgets.Head(L.T("Tilgjengelig fra Microsoft"), out lblUpdSum));
 
             p.Controls.Add(updHost);
             p.Controls.Add(devHost);
             p.Controls.Add(gpuHost);
-            p.Controls.Add(bar);
+            p.Controls.Add(actions);
 
-            bDev.Click += delegate { Util.OpenPath("devmgmt.msc"); };
-            bWu.Click += delegate { Util.OpenPath("ms-settings:windowsupdate"); };
+            tDev.Click += delegate { Util.OpenPath("devmgmt.msc"); };
+            tWu.Click += delegate { Util.OpenPath("ms-settings:windowsupdate"); };
 
-            bSearch.Click += async delegate
+            tSearch.Click += async delegate
             {
                 string dnote = "", wnote = "";
                 List<DriverUpdate> drv = null;
                 List<WinUpdate> win = null;
                 List<ProblemDevice> devs = null;
 
-                await Job(new Control[] { bSearch, bInst, bDev, bWu }, delegate
+                await Job(new Control[] { tSearch, tInst, tDev, tWu }, delegate
                 {
                     Status(L.T("Leser enhetsliste …"));
                     devs = DriverTools.FindProblemDevices();
@@ -128,13 +131,16 @@ namespace Brisk
                 });
 
                 lvDev.Items.Clear();
+                int devBad = 0;
                 if (devs != null)
                     foreach (ProblemDevice d in devs)
                     {
                         ListViewItem li = new ListViewItem(d.Name);
                         li.SubItems.Add(d.ErrorText);
                         li.SubItems.Add(d.DeviceId);
-                        li.ForeColor = (d.ErrorCode == 22 || d.ErrorCode == 45) ? Theme.Muted : Theme.Warn;
+                        bool alvorlig = d.ErrorCode != 22 && d.ErrorCode != 45;
+                        li.ForeColor = alvorlig ? Theme.Warn : Theme.Muted;
+                        if (alvorlig) devBad++;
                         lvDev.Items.Add(li);
                     }
                 if (lvDev.Items.Count == 0)
@@ -143,6 +149,8 @@ namespace Brisk
                     li.ForeColor = Theme.Good;
                     lvDev.Items.Add(li);
                 }
+                lblDevSum.Text = devBad > 0 ? L.F("{0} enheter melder feil", devBad) : "";
+                lblDevSum.ForeColor = Theme.Bad;
 
                 lvUpd.Items.Clear();
                 int nd = 0, nw = 0;
@@ -172,15 +180,25 @@ namespace Brisk
                         nd++;
                     }
 
-                bInst.Enabled = lvUpd.Items.Count > 0;
+                tInst.Enabled = lvUpd.Items.Count > 0;
                 if (lvUpd.Items.Count > 0)
-                    Status(L.F("{0} Windows-oppdateringer og {1} drivere.", nw, nd));
+                {
+                    lblUpdSum.Text = L.F("{0} Windows-oppdateringer og {1} drivere.", nw, nd);
+                    lblUpdSum.ForeColor = Theme.Warn;
+                }
                 else
-                    Status(L.T("Alt er oppdatert."));
+                {
+                    ListViewItem li = new ListViewItem("");
+                    li.SubItems.Add(L.T("Alt er oppdatert."));
+                    li.ForeColor = Theme.Good;
+                    lvUpd.Items.Add(li);
+                    lblUpdSum.Text = "";
+                }
+                Status("");
                 Util.Log("Oppdateringssøk: " + nw + " Windows, " + nd + " drivere.");
             };
 
-            bInst.Click += async delegate
+            tInst.Click += async delegate
             {
                 List<DriverUpdate> drivers = new List<DriverUpdate>();
                 List<WinUpdate> wins = new List<WinUpdate>();
@@ -200,7 +218,7 @@ namespace Brisk
 
                 int done = 0;
                 bool reboot = false, r1 = false, r2 = false;
-                await Job(new Control[] { bSearch, bInst, bDev, bWu }, delegate
+                await Job(new Control[] { tSearch, tInst, tDev, tWu }, delegate
                 {
                     if (wins.Count > 0)
                         done += UpdateTools.Install(wins, out r1, delegate(string s) { Status(s); });

@@ -10,12 +10,13 @@ namespace Brisk
     public partial class MainForm
     {
         // ==============================================================
-        //  HELSE — disker, kræsj og batteri
+        //  HELSE
         // ==============================================================
         ListView lvDrives, lvCrash, lvAppCrash;
-        Label lblBattery;
-        Chooser cboCrash;
+        Label lblBattery, lblCrashCount;
+        SegmentBar segHealth;
         Panel crashHost, appCrashHost;
+        ActionTile tileOpenCrash;
         List<DumpAnalysis> crashDumps = new List<DumpAnalysis>();
         List<AppCrash> appCrashes = new List<AppCrash>();
 
@@ -25,27 +26,28 @@ namespace Brisk
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
-            FlatBtn bRef = new FlatBtn(L.T("Oppdater")); bRef.Primary(); bRef.Width = 130;
-            FlatBtn bRep = new FlatBtn(L.T("Lag rapport")); bRep.Width = 150;
-            lblBattery = Theme.Lbl("", Theme.FBold, Theme.Muted);
-            lblBattery.Width = 420;
-            Panel bar = Toolbar(bRef, bRep, lblBattery);
-            Tip(bRep, "Lagrer en tekstfil på skrivebordet du kan sende til den som hjelper deg.");
+            ActionTile tRef = new ActionTile(L.T("Oppdater"),
+                L.T("Leser disker, kræsjlogger og batteri på nytt.")).AsPrimary();
+            tileOpenCrash = new ActionTile(L.T("Åpne analysen"),
+                L.T("Leser dumpfila og viser hvilken driver som feilet."));
+            ActionTile tRep = new ActionTile(L.T("Lag rapport"),
+                L.T("Lagrer en tekstfil på skrivebordet du kan sende til den som hjelper deg."));
 
-            SplitContainer split = new SplitContainer();
-            split.Dock = DockStyle.Fill;
-            split.Orientation = Orientation.Horizontal;
-            split.BackColor = Theme.Bg;
-            split.SplitterWidth = 14;
-            split.Panel1.BackColor = Theme.Bg;
-            split.Panel2.BackColor = Theme.Bg;
-            split.Panel1MinSize = 90;
-            split.Panel2MinSize = 90;
+            Panel actions = Widgets.Row(98, tRef, tileOpenCrash, tRep);
 
-            lvDrives = ListIn(split.Panel1, false,
+            Panel driveHost = new Panel();
+            driveHost.Dock = DockStyle.Top;
+            driveHost.Height = 190;
+            driveHost.BackColor = Theme.Bg;
+            driveHost.Padding = new Padding(0, 0, 0, 12);
+            lvDrives = ListIn(driveHost, false,
                 L.T("Disk"), "300", L.T("Type"), "90", L.T("Tilstand"), "120",
                 L.T("Slitasje"), "100", L.T("Temperatur"), "110", L.T("Plass"), "280");
-            split.Panel1.Controls.Add(SectionLabel(L.T("Disker")));
+            driveHost.Controls.Add(Widgets.Head(L.T("Disker"), out lblBattery));
+
+            segHealth = new SegmentBar();
+            segHealth.Add(L.T("Blåskjermer"));
+            segHealth.Add(L.T("Programkræsj"));
 
             crashHost = new Panel();
             crashHost.Dock = DockStyle.Fill;
@@ -54,8 +56,8 @@ namespace Brisk
                 L.T("Når"), "150", L.T("Stoppkode"), "210", L.T("Sannsynlig årsak"), "230",
                 L.T("Hva som skjedde"), "440");
             lvCrash.DoubleClick += delegate { OpenCrash(); };
-            crashHost.Controls.Add(SectionLabel(
-                L.T("Blåskjermer — dobbeltklikk for full analyse")));
+            crashHost.Controls.Add(Widgets.Head(
+                L.T("Dobbeltklikk en rad for full analyse"), out lblCrashCount));
 
             appCrashHost = new Panel();
             appCrashHost.Dock = DockStyle.Fill;
@@ -71,50 +73,41 @@ namespace Brisk
                 if (c != null) Status(AppCrashTools.Advice(c));
             };
             lvAppCrash.DoubleClick += delegate { OpenAppCrash(); };
-            appCrashHost.Controls.Add(SectionLabel(
-                L.T("Programkræsj siste 30 dager — dobbeltklikk for detaljer")));
+            Label c2;
+            appCrashHost.Controls.Add(Widgets.Head(
+                L.T("Siste 30 dager — dobbeltklikk for detaljer"), out c2));
 
-            split.Panel2.Controls.Add(crashHost);
-            split.Panel2.Controls.Add(appCrashHost);
+            Panel body = new Panel();
+            body.Dock = DockStyle.Fill;
+            body.BackColor = Theme.Bg;
+            body.Controls.Add(crashHost);
+            body.Controls.Add(appCrashHost);
 
-            p.Controls.Add(split);
-            p.Controls.Add(bar);
-            SetSplit(split, 260);
+            p.Controls.Add(body);
+            p.Controls.Add(segHealth);
+            p.Controls.Add(driveHost);
+            p.Controls.Add(actions);
 
-            cboCrash = new Chooser();
-            cboCrash.Width = 190;
-            cboCrash.Add(L.T("Blåskjermer"));
-            cboCrash.Add(L.T("Programkræsj"));
-            cboCrash.Changed += delegate
+            segHealth.Changed += delegate
             {
-                bool bs = cboCrash.Value == L.T("Blåskjermer");
+                bool bs = segHealth.Index == 0;
                 crashHost.Visible = bs;
                 appCrashHost.Visible = !bs;
                 if (bs) crashHost.BringToFront(); else appCrashHost.BringToFront();
-                bOpenRef.Visible = bs;
+                tileOpenCrash.Enabled = bs;
             };
 
-            FlatBtn bOpen = new FlatBtn(L.T("Åpne analysen")); bOpen.Width = 150;
-            bOpenRef = bOpen;
-            bOpen.Click += delegate { OpenCrash(); };
-            bar.Controls.Add(bOpen);
-            bOpen.Location = new Point(bRep.Left + bRep.Width + 10, bRep.Top);
-            bar.Controls.Add(cboCrash);
-            cboCrash.Location = new Point(bOpen.Left + bOpen.Width + 10, bRep.Top);
-            cboCrash.Height = bOpen.Height;
-            lblBattery.Location = new Point(cboCrash.Left + cboCrash.Width + 20, lblBattery.Top);
-            Tip(bOpen, "Leser dumpfila fra kræsjet og viser hvilken driver som feilet.");
-
-            bRef.Click += async delegate { await LoadHealth(new Control[] { bRef, bRep }); };
-            bRep.Click += async delegate
+            tRef.Click += async delegate { await LoadHealth(new Control[] { tRef, tRep }); };
+            tileOpenCrash.Click += delegate { OpenCrash(); };
+            tRep.Click += async delegate
             {
                 string text = null;
-                await Job(new Control[] { bRef, bRep }, delegate { text = Report.Build(); });
+                await Job(new Control[] { tRef, tRep }, delegate { text = Report.Build(); });
                 if (text == null) return;
                 SaveReport(text);
             };
 
-            Defer(delegate { Task ignored = LoadHealth(new Control[] { bRef, bRep }); });
+            Defer(delegate { Task ignored = LoadHealth(new Control[] { tRef, tRep }); });
             return p;
         }
 
@@ -189,10 +182,9 @@ namespace Brisk
                 }
             lvDrives.EndUpdate();
 
-            // --- kræsj ---
+            // --- blåskjermer ---
             lvCrash.BeginUpdate();
             lvCrash.Items.Clear();
-
             foreach (DumpAnalysis d in crashDumps)
             {
                 ListViewItem li = new ListViewItem(d.Time.ToString("yyyy-MM-dd HH:mm"));
@@ -206,8 +198,6 @@ namespace Brisk
                              : fersk ? Theme.Text : Theme.Muted;
                 lvCrash.Items.Add(li);
             }
-
-            // Hendelser uten dumpfil — dumpen kan være slettet eller avslått.
             if (crashes != null)
                 foreach (CrashEvent c in crashes)
                 {
@@ -222,7 +212,6 @@ namespace Brisk
                     li.ForeColor = Theme.Muted;
                     lvCrash.Items.Add(li);
                 }
-
             if (lvCrash.Items.Count == 0)
             {
                 ListViewItem li = new ListViewItem(L.T("Ingen blåskjermer i loggen."));
@@ -230,6 +219,8 @@ namespace Brisk
                 lvCrash.Items.Add(li);
             }
             lvCrash.EndUpdate();
+            lblCrashCount.Text = crashDumps.Count > 0
+                ? L.F("{0} dumpfiler analysert", crashDumps.Count) : "";
 
             // --- programkræsj ---
             lvAppCrash.BeginUpdate();
@@ -264,8 +255,6 @@ namespace Brisk
 
             Status("");
         }
-
-        FlatBtn bOpenRef;
 
         void OpenAppCrash()
         {
@@ -326,17 +315,18 @@ namespace Brisk
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
-            FlatBtn bRun = new FlatBtn(L.T("Test tilkoblingen")); bRun.Primary().Big(); bRun.Width = 190;
-            FlatBtn bSettings = new FlatBtn(L.T("Nettverksinnstillinger")); bSettings.Width = 195; bSettings.Height = 44;
-            FlatBtn bReset = new FlatBtn(L.T("Nullstill nettverket")); bReset.Danger(); bReset.Width = 190; bReset.Height = 44;
-            Panel bar = Toolbar(bRun, bSettings, bReset);
-            bar.Height = 62;
-            Tip(bRun, "Sjekker nettverkskort, gateway, internett, DNS, Wi-Fi, hosts-fil og proxy. Endrer ingenting.");
-            Tip(bReset, "Siste utvei når ingenting virker. Nullstiller Winsock og TCP/IP, og krever omstart.");
+            ActionTile tRun = new ActionTile(L.T("Test tilkoblingen"),
+                L.T("Sjekker nettverkskort, gateway, internett, DNS, Wi-Fi, hosts-fil og proxy. Endrer ingenting.")).AsPrimary();
+            ActionTile tSet = new ActionTile(L.T("Nettverksinnstillinger"),
+                L.T("Åpner Windows sine egne innstillinger."));
+            ActionTile tReset = new ActionTile(L.T("Nullstill nettverket"),
+                L.T("Siste utvei når ingenting virker. Nullstiller Winsock og TCP/IP, og krever omstart.")).AsDanger();
+
+            Panel actions = Widgets.Row(98, tRun, tSet, tReset);
 
             Panel outHost = new Panel();
             outHost.Dock = DockStyle.Bottom;
-            outHost.Height = 130;
+            outHost.Height = 120;
             outHost.BackColor = Theme.Bg;
             TextBox netOut = Console(outHost, 0);
 
@@ -344,17 +334,19 @@ namespace Brisk
             listHost.Dock = DockStyle.Fill;
             listHost.BackColor = Theme.Bg;
             lvNet = ListIn(listHost, false, L.T("Test"), "220", L.T("Resultat"), "760");
+            Label netCount;
+            listHost.Controls.Add(Widgets.Head(L.T("Tilkobling"), out netCount));
 
             p.Controls.Add(listHost);
             p.Controls.Add(outHost);
-            p.Controls.Add(bar);
+            p.Controls.Add(actions);
 
-            bSettings.Click += delegate { Util.OpenPath("ms-settings:network-status"); };
+            tSet.Click += delegate { Util.OpenPath("ms-settings:network-status"); };
 
-            bRun.Click += async delegate
+            tRun.Click += async delegate
             {
                 List<NetCheck> res = null;
-                await Job(new Control[] { bRun, bReset, bSettings }, delegate
+                await Job(new Control[] { tRun, tReset, tSet }, delegate
                 {
                     res = NetTools.RunAll(delegate(string s) { Status(s); });
                 });
@@ -371,10 +363,12 @@ namespace Brisk
                         if (c.Level >= 2) bad++;
                     }
                 lvNet.EndUpdate();
-                Status(bad == 0 ? L.T("Alt ser normalt ut.") : L.F("{0} problemer funnet.", bad));
+                netCount.Text = bad == 0 ? L.T("Alt ser normalt ut.") : L.F("{0} problemer funnet.", bad);
+                netCount.ForeColor = bad == 0 ? Theme.Good : Theme.Bad;
+                Status("");
             };
 
-            bReset.Click += async delegate
+            tReset.Click += async delegate
             {
                 if (!Util.IsAdmin()) { Status(L.T("Krever administrator.")); return; }
                 if (MessageBox.Show(this,
@@ -383,7 +377,7 @@ namespace Brisk
                         L.T("Nullstill nettverket"), MessageBoxButtons.YesNo,
                         MessageBoxIcon.Warning) != DialogResult.Yes) return;
 
-                await Job(new Control[] { bRun, bReset, bSettings }, delegate
+                await Job(new Control[] { tRun, tReset, tSet }, delegate
                 {
                     NetTools.Reset(delegate(string l) { Append(netOut, l); });
                 });
