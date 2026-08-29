@@ -1,7 +1,7 @@
 {
-  "versjon": "1.1.0",
-  "url": "https://github.com/MatternPL/Vaktmester/releases/download/v1.1.0/Brisk-Installer.exe",
-  "sha256": "dab271cca0c92e508b10135f2d0155a3290198a9af2d7e8e16c348617ad111e6",
-  "storrelse": 545280,
-  "notat": "New name, new interface. Startup now shows how many seconds each program adds to boot. New Health page reads your crash dumps and names the driver that caused each blue screen. New Network page. Disk space finds duplicates and forgotten files. English by default, Norwegian one click away."
+  "versjon": "1.2.0",
+  "url": "https://github.com/MatternPL/Vaktmester/releases/download/v1.2.0/Brisk-Installer.exe",
+  "sha256": "2ee2a6920216c6f91ab20e7e7fa84d9b854e67f9c48b2f3cec683ed10acb4cfb",
+  "storrelse": 584192,
+  "notat": "Disk space now shows the space Windows reserves for itself - hibernation file, restore points and page file - often tens of GB no cleaner touches. Health lists app crashes with the module that faulted. Updates shows your graphics card and driver age with a link to the maker. Browser cache is off by default and never part of the automatic cleanup, and Opera GX is now covered."
 }
