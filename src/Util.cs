@@ -94,8 +94,41 @@ namespace Brisk
             return Run(exe, args, onLine, Encoding.UTF8);
         }
 
+        // Som Run, men gir kalleren prosessen med en gang den er startet, slik at
+        // den kan stoppes underveis. Brukes av Verktoy-sida.
+        public static int Run(string exe, string args, Action<string> onLine,
+                              Action<Process> started)
+        {
+            return Run(exe, args, onLine, Encoding.UTF8, started);
+        }
+
+        // Stopper en prosess og alt den har startet. winget starter egne
+        // installasjonsprogrammer, saa det holder ikke aa drepe bare winget selv.
+        public static void StopTree(Process p)
+        {
+            if (p == null) return;
+            try
+            {
+                if (p.HasExited) return;
+                ProcessStartInfo psi = new ProcessStartInfo("taskkill",
+                    "/PID " + p.Id + " /T /F");
+                psi.UseShellExecute = false;
+                psi.CreateNoWindow = true;
+                using (Process k = Process.Start(psi)) { if (k != null) k.WaitForExit(5000); }
+            }
+            catch (Exception) { }
+            try { if (!p.HasExited) p.Kill(); }
+            catch (Exception) { }
+        }
+
         // Kjører et program og sender stdout/stderr linje for linje til callback.
         public static int Run(string exe, string args, Action<string> onLine, Encoding enc)
+        {
+            return Run(exe, args, onLine, enc, null);
+        }
+
+        public static int Run(string exe, string args, Action<string> onLine, Encoding enc,
+                              Action<Process> started)
         {
             ProcessStartInfo psi = new ProcessStartInfo(exe, args);
             psi.UseShellExecute = false;
@@ -118,6 +151,7 @@ namespace Brisk
                         if (e.Data != null && onLine != null) onLine(Clean(e.Data));
                     };
                     p.Start();
+                    if (started != null) started(p);
                     p.BeginOutputReadLine();
                     p.BeginErrorReadLine();
                     p.WaitForExit();

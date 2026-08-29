@@ -608,13 +608,10 @@ namespace Brisk
                 L.T("Henter versjonsfilen og sjekker nedlastingen mot sha256 før noe kjøres."));
             ActionTile tLog = new ActionTile(L.T("Vis logg"),
                 L.T("Alt programmet har gjort, med tidspunkt."));
-            ActionTile tWinUtil = new ActionTile(L.T("WinUtil"),
-                L.T("Et separat verktøy fra Chris Titus Tech for tilpasning og avinstallering. Lastes ned og sjekkes mot sha256 før det kjøres."));
 
             Panel r1 = Widgets.Row(98, tSfc, tDism, tRp);
             Panel r2 = Widgets.Row(98, tComp, tOpt, tDns);
             Panel r3 = Widgets.Row(98, tPlan, tRap, tileAuto, tLog);
-            Panel r4 = Widgets.Row(98, tWinUtil);
 
             Label outCount;
             Panel head = Widgets.Head(L.T("Utdata"), out outCount);
@@ -628,12 +625,11 @@ namespace Brisk
             outHost.Controls.Add(head);
 
             p.Controls.Add(outHost);
-            p.Controls.Add(r4);
             p.Controls.Add(r3);
             p.Controls.Add(r2);
             p.Controls.Add(r1);
 
-            Control[] all = new Control[] { tSfc, tDism, tRp, tComp, tOpt, tDns, tPlan, tRap, tileAuto, tWinUtil };
+            Control[] all = new Control[] { tSfc, tDism, tRp, tComp, tOpt, tDns, tPlan, tRap, tileAuto };
             Action<string> w = delegate(string l) { Append(maintOut, l); };
 
             tRp.Click += async delegate { await Job(all, delegate { MaintenanceTools.CreateRestorePoint(w); }); };
@@ -647,44 +643,6 @@ namespace Brisk
             tOpt.Click += async delegate { await Job(all, delegate { MaintenanceTools.OptimizeDrives(w); }); };
             tDns.Click += async delegate { await Job(all, delegate { MaintenanceTools.FlushDns(w); }); };
             tLog.Click += delegate { Show("logg"); };
-
-            // WinUtil er ikke vaart. Brukeren skal vite hva som starter, hvem som
-            // har laget det, og at Brisk sjekker fila for den kjores.
-            tWinUtil.Click += async delegate
-            {
-                if (MessageBox.Show(this,
-                        L.T("WinUtil er laget av Chris Titus Tech, ikke av Brisk. Det er åpen kildekode under MIT-lisens, og det er et eget program med sitt eget vindu.") +
-                        "\r\n\r\n" +
-                        L.T("Brisk henter nyeste utgivelse fra GitHub, sammenligner nedlastingen mot sha256-summen GitHub oppgir, og starter den først hvis den stemmer. Den vanlige oppstartsmåten kjører kode rett fra nettet uten den sjekken; det gjør ikke Brisk.") +
-                        "\r\n\r\n" +
-                        L.T("WinUtil endrer Windows-innstillinger og krever administrator. Fortsette?"),
-                        L.T("WinUtil"), MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Question) != DialogResult.Yes) return;
-
-                string err = null, path = null;
-                WinUtil.Release rel = null;
-
-                await Job(all, delegate
-                {
-                    Status(L.T("Ser etter nyeste utgivelse …"));
-                    rel = WinUtil.Latest(out err);
-                    if (rel == null) return;
-                    Append(maintOut, L.F("WinUtil {0} — {1}", rel.Version, Util.Bytes(rel.Size)));
-                    Append(maintOut, L.T("Laster ned …"));
-                    path = WinUtil.Download(rel, out err);
-                });
-
-                if (err != null || path == null)
-                {
-                    Append(maintOut, err ?? L.T("Nedlastingen feilet: "));
-                    Status("");
-                    return;
-                }
-
-                Append(maintOut, L.T("Sjekksummen stemmer. Starter WinUtil."));
-                if (!WinUtil.Run(path, out err)) Append(maintOut, err);
-                Status("");
-            };
 
             tileAuto.Click += async delegate
             {

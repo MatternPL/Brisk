@@ -170,6 +170,67 @@ namespace Brisk
         }
     }
 
+    // Firkantflis for Verktoy-sida. Navn, en kort linje om hva det gjor, og
+    // hvem som har laget det. Klikk velger; Kjor-knappen ligger under lista.
+    class ToolTile : Control
+    {
+        public readonly ExternalTool Tool;
+        bool over, picked;
+
+        public ToolTile(ExternalTool t)
+        {
+            Tool = t;
+            Size = new Size(196, 150);
+            Cursor = Cursors.Hand;
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+                     ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+            MouseEnter += delegate { over = true; Invalidate(); };
+            MouseLeave += delegate { over = false; Invalidate(); };
+        }
+
+        public bool Picked
+        {
+            get { return picked; }
+            set { if (picked != value) { picked = value; Invalidate(); } }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Parent != null ? Parent.BackColor : Theme.Bg);
+
+            Color face = picked ? Color.FromArgb(0x22, 0x2A, 0x3A)
+                       : over ? Color.FromArgb(0x1E, 0x22, 0x2B)
+                       : Theme.Card;
+            Color edge = picked ? Theme.Accent : Theme.Line;
+
+            Rectangle r = new Rectangle(0, 0, Width - 1, Height - 1);
+            using (SolidBrush b = new SolidBrush(face)) g.FillRectangle(b, r);
+            using (Pen p = new Pen(edge, picked ? 2f : 1f))
+                g.DrawRectangle(p, picked ? 1 : 0, picked ? 1 : 0,
+                                Width - (picked ? 3 : 1), Height - (picked ? 3 : 1));
+
+            // Stripe oppe viser om kommandoen henter kode fra nettet.
+            using (SolidBrush b = new SolidBrush(Tool.Remote ? Theme.Warn : Theme.Accent))
+                g.FillRectangle(b, 0, 0, Width - 1, 3);
+
+            TextRenderer.DrawText(g, Tool.Name, Theme.FCard,
+                new Rectangle(14, 18, Width - 24, 24),
+                picked ? Theme.Text : Theme.Text,
+                TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+
+            TextRenderer.DrawText(g, L.T(Tool.What), Theme.FSmall,
+                new Rectangle(14, 48, Width - 26, 58), Theme.Muted,
+                TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
+
+            TextRenderer.DrawText(g, Tool.By, Theme.FSmall,
+                new Rectangle(14, Height - 30, Width - 26, 18),
+                Color.FromArgb(0x6A, 0x72, 0x80),
+                TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+        }
+    }
+
     public static class Widgets
     {
         // Legger handlingsfliser i en rad som deler bredden likt.

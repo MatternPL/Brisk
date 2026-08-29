@@ -176,6 +176,7 @@ namespace Brisk
             navHost.BringToFront();
 
             // Omvendt rekkefølge — Dock.Top stabler nedenfra.
+            AddNav(navHost, "verktoy", L.T("Verktøy"));
             AddNav(navHost, "vedlikehold", L.T("Vedlikehold"));
             AddNav(navHost, "programmer", L.T("Programvare"));
             AddNav(navHost, "drivere", L.T("Oppdateringer"));
@@ -252,6 +253,7 @@ namespace Brisk
                 case "drivere": return L.T("Oppdateringer");
                 case "programmer": return L.T("Programvare");
                 case "vedlikehold": return L.T("Vedlikehold");
+                case "verktoy": return L.T("Verktøy");
                 default: return L.T("Logg");
             }
         }
@@ -270,6 +272,7 @@ namespace Brisk
                 case "drivere": return L.T("Fra Windows Update.");
                 case "programmer": return L.T("Oppdater eller fjern programmer.");
                 case "vedlikehold": return L.T("Reparasjon og verktøy.");
+                case "verktoy": return L.T("Gode gratisverktøy fra andre.");
                 default: return L.T("Alt som er gjort.");
             }
         }
@@ -288,6 +291,7 @@ namespace Brisk
                 case "drivere": return PageDrivers();
                 case "programmer": return PageApps();
                 case "vedlikehold": return PageMaint();
+                case "verktoy": return PageTools();
                 default: return PageLog();
             }
         }
