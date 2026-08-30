@@ -168,7 +168,15 @@ namespace Brisk
         {
             try
             {
-                if (it.Kind == StartupKind.Task) return SetTaskEnabled(it.TaskPath, enable);
+                if (it.Kind == StartupKind.Task)
+                {
+                    // Oppgaven blir slaatt av i Windows, men raden i lista leser
+                    // it.Enabled. Uten denne staar den igjen med gammel status, og
+                    // det ser ut som ingenting skjedde.
+                    bool taskOk = SetTaskEnabled(it.TaskPath, enable);
+                    if (taskOk) it.Enabled = enable;
+                    return taskOk;
+                }
 
                 RegistryKey root;
                 string approvedPath;
@@ -314,31 +322,84 @@ namespace Brisk
             catch { return ""; }
         }
 
-        public static string ExtractExe(string command)
+        // Stien slik den staar i kommandolinja, uten aa bry seg om filen finnes.
+        // Maa taale:
+        //   "C:\\Sti med mellomrom\\program.exe" -flagg      sitert
+        //   C:\\Sti med mellomrom\\program.exe -flagg        usitert, med mellomrom
+        //   ...\\Playit Tray.lnk                            snarvei, ikke exe
+        //   C:\\Program Files\\Npcap\\CheckStatus.bat        bat-fil
+        //   "\\"C:\\...\\claude.exe\\" --startup"             dobbelt sitert
+        public static string ExtractPath(string command)
         {
             if (string.IsNullOrEmpty(command)) return null;
             string c = command.Trim();
+
+            // Noen skriver \" inne i verdien. Fjern skraastrekene for vi tolker.
+            if (c.StartsWith("\"\\\"")) c = c.Replace("\\\"", "\"").Trim();
+            // Etter avskrellingen kan det staa to anfoerselstegn paa rad.
+            while (c.StartsWith("\"\"")) c = c.Substring(1);
+
+            if (c.StartsWith("\""))
+            {
+                int end = c.IndexOf('"', 1);
+                if (end > 1) return Util.Expand(c.Substring(1, end - 1));
+            }
+
+            // Usitert: kutt etter en kjent filendelse, men bare hvis det som
+            // folger er slutten eller et mellomrom - ellers treffer vi midt i et
+            // mappenavn.
+            string[] endelser = { ".exe", ".lnk", ".bat", ".cmd", ".com", ".vbs", ".ps1", ".msc" };
+            foreach (string e in endelser)
+            {
+                int idx = c.IndexOf(e, StringComparison.OrdinalIgnoreCase);
+                while (idx > 0)
+                {
+                    int etter = idx + e.Length;
+                    if (etter >= c.Length || c[etter] == ' ' || c[etter] == '"')
+                        return Util.Expand(c.Substring(0, etter));
+                    idx = c.IndexOf(e, idx + 1, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
+            // Ingen kjent endelse. Prov stadig lengre biter og ta den forste
+            // som finnes paa disk - det haandterer mapper med mellomrom.
+            int sp = c.IndexOf(' ');
+            while (sp > 0)
+            {
+                string bit = Util.Expand(c.Substring(0, sp));
+                if (File.Exists(bit)) return bit;
+                sp = c.IndexOf(' ', sp + 1);
+            }
+            string hele = Util.Expand(c);
+            if (File.Exists(hele)) return hele;
+
+            int f = c.IndexOf(' ');
+            return f > 0 ? Util.Expand(c.Substring(0, f)) : hele;
+        }
+
+        // Som ExtractPath, men gir bare tilbake stien hvis filen finnes.
+        public static string ExtractExe(string command)
+        {
             try
             {
-                if (c.StartsWith("\""))
-                {
-                    int end = c.IndexOf('"', 1);
-                    if (end > 1) c = c.Substring(1, end - 1);
-                }
-                else
-                {
-                    int idx = c.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
-                    if (idx > 0) c = c.Substring(0, idx + 4);
-                    else
-                    {
-                        int sp = c.IndexOf(' ');
-                        if (sp > 0) c = c.Substring(0, sp);
-                    }
-                }
-                c = Util.Expand(c);
-                return File.Exists(c) ? c : null;
+                string p2 = ExtractPath(command);
+                return p2 != null && File.Exists(p2) ? p2 : null;
             }
             catch { return null; }
+        }
+
+        // Peker oppforingen paa noe som ikke finnes lenger? Da er den en rest
+        // etter et avinstallert program, og kan trygt fjernes.
+        public static bool TargetMissing(string command)
+        {
+            try
+            {
+                string p2 = ExtractPath(command);
+                if (string.IsNullOrEmpty(p2)) return false;
+                if (p2.IndexOf('\\') < 0) return false;      // bare et navn, ikke en sti
+                return !File.Exists(p2) && !Directory.Exists(p2);
+            }
+            catch { return false; }
         }
     }
 }

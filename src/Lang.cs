@@ -491,6 +491,8 @@ namespace Brisk
             "Utdata vises i det vinduet, ikke her — start Brisk som administrator hvis du vil ha det her.", "Output appears in that window, not here — start Brisk as administrator if you want it here.",
             "Viser hva slags maskinvare du faktisk har.", "Shows what hardware you actually have.",
             "Eksempel: lister de tyngste prosessene.", "Example: lists the heaviest processes.",
+            "Programmet finnes ikke lenger", "The program is no longer installed",
+            "Huk av det du vil endre, og trykk «Slå av merkede». Windows måler bare programmer den mener sinker oppstarten merkbart — en strek betyr at den aldri har målt dette.", "Tick what you want to change, then press “Turn off ticked”. Windows only measures programs it thinks noticeably slow startup — a dash means it has never measured this one.",
             // ---- logg ----
             "Åpne loggfil", "Open log file",
             "Tøm visning", "Clear view",

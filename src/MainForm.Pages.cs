@@ -312,7 +312,7 @@ namespace Brisk
             note.Height = 30;
             note.BackColor = Theme.Bg;
             Label nl = Theme.Lbl(
-                L.T("Huk av det du vil endre, og trykk «Slå av merkede». Tallene kommer fra Windows' egen måling av de siste oppstartene."),
+                L.T("Huk av det du vil endre, og trykk «Slå av merkede». Windows måler bare programmer den mener sinker oppstarten merkbart — en strek betyr at den aldri har målt dette."),
                 Theme.FSmall, Theme.Muted);
             nl.AutoSize = false; nl.Dock = DockStyle.Fill;
             note.Controls.Add(nl);
@@ -370,13 +370,20 @@ namespace Brisk
                 BootDelay bd = BootTools.MatchFor(bootDelays, it);
                 ListViewItem li = new ListViewItem(it.Name);
                 li.SubItems.Add(it.Enabled ? L.T("På") : L.T("Av"));
-                li.SubItems.Add(bd != null ? BootTools.Seconds(bd.AverageMs) : "");
-                li.SubItems.Add(it.Critical ? L.T("Behold") + " — " + it.Note : "");
+                // Tomt felt ser ut som en feil. Windows maaler bare programmer den
+                // mener sinker oppstarten merkbart, saa de fleste har ingen tall.
+                li.SubItems.Add(bd != null ? BootTools.Seconds(bd.AverageMs) : "\u2014");
+
+                bool borte = StartupTools.TargetMissing(it.Command);
+                string merknad = borte ? L.T("Programmet finnes ikke lenger")
+                               : it.Critical ? L.T("Behold") + " \u2014 " + it.Note
+                               : "";
+                li.SubItems.Add(merknad);
                 li.SubItems.Add(it.Publisher);
                 li.SubItems.Add(it.KindText);
                 li.SubItems.Add(it.Command);
                 li.Tag = it;
-                li.ForeColor = it.Critical ? Theme.Warn
+                li.ForeColor = borte ? Theme.Bad : it.Critical ? Theme.Warn
                              : !it.Enabled ? Theme.Muted
                              : (bd != null && bd.AverageMs > 4000) ? Theme.Bad
                              : (bd != null && bd.AverageMs > 1500) ? Theme.Warn
