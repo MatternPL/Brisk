@@ -31,7 +31,7 @@ namespace Brisk
             // --- konsollen nederst ---
             Panel outHost = new Panel();
             outHost.Dock = DockStyle.Bottom;
-            outHost.Height = 236;
+            outHost.Height = 176;
             outHost.BackColor = Theme.Bg;
             outHost.Padding = new Padding(0, 10, 0, 0);
             toolsOut = Console(outHost, 0);

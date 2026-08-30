@@ -489,6 +489,8 @@ namespace Brisk
             "Ingen kilde svarte. Er du på nett?", "No source responded. Are you online?",
             "{0} åpnet i et eget vindu som administrator.", "{0} opened in its own window as administrator.",
             "Utdata vises i det vinduet, ikke her — start Brisk som administrator hvis du vil ha det her.", "Output appears in that window, not here — start Brisk as administrator if you want it here.",
+            "Viser hva slags maskinvare du faktisk har.", "Shows what hardware you actually have.",
+            "Eksempel: lister de tyngste prosessene.", "Example: lists the heaviest processes.",
             // ---- logg ----
             "Åpne loggfil", "Open log file",
             "Tøm visning", "Clear view",

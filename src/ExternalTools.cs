@@ -175,6 +175,33 @@ namespace Brisk
                 Icon = "programvare",
             });
 
+            l.Add(new ExternalTool
+            {
+                Name    = "CPU-Z",
+                Launch  = "CPU-Z",
+                By      = "CPUID",
+                Licence = "Gratis",
+                What    = "Viser hva slags maskinvare du faktisk har.",
+                Command = "winget install CPUID.CPU-Z",
+                Url     = "https://www.cpuid.com/softwares/cpu-z.html",
+                Icon    = "minne",
+            });
+
+            // Eksempel paa en ren PowerShell-kommando. Ingen winget, ingen
+            // installasjon - den aapner et PowerShell-vindu som blir staaende.
+            l.Add(new ExternalTool
+            {
+                Name      = "Testverktøy",
+                By        = "PowerShell",
+                Licence   = "Gratis",
+                What      = "Eksempel: lister de tyngste prosessene.",
+                Command   = "Get-Process | Sort-Object CPU -Descending | Select-Object -First 20 Name, CPU, WS | Format-Table -AutoSize",
+                Url       = "https://learn.microsoft.com/powershell/",
+                Icon      = "logg",
+                Shell     = "powershell",
+                OwnWindow = true,
+            });
+
             return l;
         }
     }
