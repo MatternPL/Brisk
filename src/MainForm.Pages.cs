@@ -575,7 +575,6 @@ namespace Brisk
         //  VEDLIKEHOLD
         // ==============================================================
         TextBox maintOut;
-        ActionTile tileAuto;
 
         Panel PageMaint()
         {
@@ -583,35 +582,76 @@ namespace Brisk
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
+            // --- oppdatering oeverst, umulig aa gaa glipp av ---
+            Panel updHost = new Panel();
+            updHost.Dock = DockStyle.Top;
+            updHost.Height = 100;
+            updHost.BackColor = Theme.Bg;
+            updHost.Padding = new Padding(0, 0, 0, 16);
+
+            Panel updCard = Theme.MakeCard();
+            updCard.Dock = DockStyle.Fill;
+            updCard.Paint += delegate(object s2, PaintEventArgs e2)
+            {
+                Icons.Draw(e2.Graphics, "nedlasting", new RectangleF(22, 24, 26, 26), Theme.Accent);
+            };
+
+            Label updName = Theme.Lbl(L.F("Brisk {0}", "v" + Updater.CurrentVersion),
+                Theme.FCard, Theme.Text);
+            updName.Location = new Point(62, 18);
+
+            Label updWhen = Theme.Lbl("", Theme.FSmall, Theme.Muted);
+            updWhen.Location = new Point(64, 44);
+            DateTime last = Updater.LastCheck;
+            updWhen.Text = last == DateTime.MinValue
+                ? L.T("Har aldri sett etter oppdatering.")
+                : L.F("Sist sjekket {0}.", last.ToString("d. MMM HH:mm"));
+
+            FlatBtn btnUpd = new FlatBtn(L.T("Se etter oppdatering"));
+            btnUpd.Primary().Big();
+            btnUpd.Width = 230; btnUpd.Height = 44;
+            updCard.Resize += delegate
+            {
+                btnUpd.Location = new Point(updCard.Width - btnUpd.Width - 20, 18);
+            };
+
+            updCard.Controls.Add(updName);
+            updCard.Controls.Add(updWhen);
+            updCard.Controls.Add(btnUpd);
+            updHost.Controls.Add(updCard);
+
             // --- reparasjon ---
             ActionTile tSfc = new ActionTile(L.T("Sjekk systemfiler"),
-                L.T("sfc /scannow finner og reparerer ødelagte Windows-filer. Tar 5–15 minutter.")).AsPrimary();
+                L.T("sfc /scannow finner og reparerer ødelagte Windows-filer. Tar 5–15 minutter.")).With("helse");
             ActionTile tDism = new ActionTile(L.T("Reparer Windows-image"),
-                L.T("DISM reparerer kilden sfc henter friske filer fra. Kjør denne først hvis sfc feiler."));
+                L.T("DISM reparerer kilden sfc henter friske filer fra. Kjør denne først hvis sfc feiler.")).With("vedlikehold");
             ActionTile tRp = new ActionTile(L.T("Gjenopprettingspunkt"),
-                L.T("Lager et punkt du kan rulle tilbake til før du endrer noe."));
+                L.T("Lager et punkt du kan rulle tilbake til før du endrer noe.")).With("skjold");
 
             // --- disk og nettverk ---
             ActionTile tComp = new ActionTile(L.T("Rydd komponentlager"),
-                L.T("Fjerner gamle oppdateringsversjoner i WinSxS. Kan ta lang tid og frigjøre flere GB."));
+                L.T("Fjerner gamle oppdateringsversjoner i WinSxS. Kan ta lang tid og frigjøre flere GB.")).With("rydding");
             ActionTile tOpt = new ActionTile(L.T("Optimaliser disker"),
-                L.T("TRIM på SSD, defragmentering på harddisk."));
+                L.T("TRIM på SSD, defragmentering på harddisk.")).With("disk");
             ActionTile tDns = new ActionTile(L.T("Tøm DNS-cache"),
-                L.T("Hjelper når en nettside peker feil etter en flytting."));
+                L.T("Hjelper når en nettside peker feil etter en flytting.")).With("nettverk");
 
             // --- automatikk og hjelp ---
             ActionTile tPlan = new ActionTile(L.T("Planlagt rydding"),
-                L.T("Lar Windows kjøre den trygge ryddingen hver uke av seg selv."));
+                L.T("Lar Windows kjøre den trygge ryddingen hver uke av seg selv.")).With("klokke");
             ActionTile tRap = new ActionTile(L.T("Systemrapport"),
-                L.T("Lagrer en tekstfil på skrivebordet du kan sende til den som hjelper deg."));
-            tileAuto = new ActionTile(L.T("Se etter oppdatering"),
-                L.T("Henter versjonsfilen og sjekker nedlastingen mot sha256 før noe kjøres."));
+                L.T("Lagrer en tekstfil på skrivebordet du kan sende til den som hjelper deg.")).With("dokument");
             ActionTile tLog = new ActionTile(L.T("Vis logg"),
-                L.T("Alt programmet har gjort, med tidspunkt."));
+                L.T("Alt programmet har gjort, med tidspunkt.")).With("logg");
+
+            Label c1, c2, c3;
+            Panel h1 = Widgets.Head(L.T("Reparasjon"), out c1);
+            Panel h2 = Widgets.Head(L.T("Disk og nettverk"), out c2);
+            Panel h3 = Widgets.Head(L.T("Automatikk og hjelp"), out c3);
 
             Panel r1 = Widgets.Row(98, tSfc, tDism, tRp);
             Panel r2 = Widgets.Row(98, tComp, tOpt, tDns);
-            Panel r3 = Widgets.Row(98, tPlan, tRap, tileAuto, tLog);
+            Panel r3 = Widgets.Row(98, tPlan, tRap, tLog);
 
             Label outCount;
             Panel head = Widgets.Head(L.T("Utdata"), out outCount);
@@ -624,12 +664,17 @@ namespace Brisk
             maintOut = Console(outHost, 0);
             outHost.Controls.Add(head);
 
+            // Hoyest indeks dokker forst, saa dette leses nedenfra og opp.
             p.Controls.Add(outHost);
             p.Controls.Add(r3);
+            p.Controls.Add(h3);
             p.Controls.Add(r2);
+            p.Controls.Add(h2);
             p.Controls.Add(r1);
+            p.Controls.Add(h1);
+            p.Controls.Add(updHost);
 
-            Control[] all = new Control[] { tSfc, tDism, tRp, tComp, tOpt, tDns, tPlan, tRap, tileAuto };
+            Control[] all = new Control[] { tSfc, tDism, tRp, tComp, tOpt, tDns, tPlan, tRap, btnUpd };
             Action<string> w = delegate(string l) { Append(maintOut, l); };
 
             tRp.Click += async delegate { await Job(all, delegate { MaintenanceTools.CreateRestorePoint(w); }); };
@@ -644,11 +689,14 @@ namespace Brisk
             tDns.Click += async delegate { await Job(all, delegate { MaintenanceTools.FlushDns(w); }); };
             tLog.Click += delegate { Show("logg"); };
 
-            tileAuto.Click += async delegate
+            btnUpd.Click += async delegate
             {
-                tileAuto.Enabled = false;
+                btnUpd.Enabled = false;
                 await CheckForUpdates(true);
-                tileAuto.Enabled = true;
+                btnUpd.Enabled = true;
+                DateTime t2 = Updater.LastCheck;
+                if (t2 != DateTime.MinValue)
+                    updWhen.Text = L.F("Sist sjekket {0}.", t2.ToString("d. MMM HH:mm"));
             };
 
             tPlan.Click += async delegate

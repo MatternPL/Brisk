@@ -11,6 +11,7 @@ namespace Brisk
         public string What = "";        // én linje paa norsk, gaar gjennom L.T
         public string Command = "";     // kommandoen brukeren kopierer
         public string Url = "";         // prosjektsiden
+        public string Icon = "verktoy"; // ikonnokkel, se src/Icons.cs
         public bool Remote;             // kommandoen henter og kjorer kode fra nettet
         public bool OwnWindow;          // aapner sitt eget vindu, utdata vises ikke her
     }
@@ -33,64 +34,64 @@ namespace Brisk
             l.Add(Make("WinUtil", "Chris Titus Tech", "MIT",
                 "Rydder Windows og fjerner apper du ikke ba om.",
                 "irm https://christitus.com/win | iex",
-                "https://github.com/ChrisTitusTech/winutil", true, true));
+                "https://github.com/ChrisTitusTech/winutil", "tilpass", true, true));
 
             l.Add(Make("PowerToys", "Microsoft", "MIT",
                 "Ekstra Windows-verktøy fra Microsoft.",
                 "winget install Microsoft.PowerToys",
-                "https://github.com/microsoft/PowerToys"));
+                "https://github.com/microsoft/PowerToys", "verktoy"));
 
             l.Add(Make("Process Explorer", "Microsoft Sysinternals", "Gratis",
                 "Ser hvilken prosess som låser en fil.",
                 "winget install Microsoft.Sysinternals.ProcessExplorer",
-                "https://learn.microsoft.com/sysinternals/downloads/process-explorer"));
+                "https://learn.microsoft.com/sysinternals/downloads/process-explorer", "logg"));
 
             l.Add(Make("Autoruns", "Microsoft Sysinternals", "Gratis",
                 "Alt som starter med Windows.",
                 "winget install Microsoft.Sysinternals.Autoruns",
-                "https://learn.microsoft.com/sysinternals/downloads/autoruns"));
+                "https://learn.microsoft.com/sysinternals/downloads/autoruns", "oppstart"));
 
             l.Add(Make("CrystalDiskInfo", "Crystal Dew World", "MIT",
                 "Diskhelse. Varsler før en disk ryker.",
                 "winget install CrystalDewWorld.CrystalDiskInfo",
-                "https://crystalmark.info/en/software/crystaldiskinfo/"));
+                "https://crystalmark.info/en/software/crystaldiskinfo/", "disk"));
 
             l.Add(Make("HWiNFO", "REALiX", "Gratis til privat bruk",
                 "Temperaturer, vifter og sensorer.",
                 "winget install REALiX.HWiNFO",
-                "https://www.hwinfo.com/"));
+                "https://www.hwinfo.com/", "temperatur"));
 
             l.Add(Make("O&O ShutUp10++", "O&O Software", "Gratis",
                 "Slår av sporing og telemetri i Windows.",
                 "winget install OO-Software.ShutUp10",
-                "https://www.oo-software.com/en/shutup10"));
+                "https://www.oo-software.com/en/shutup10", "skjold"));
 
             l.Add(Make("Everything", "voidtools", "Gratis",
                 "Finner filer på navn, med én gang.",
                 "winget install voidtools.Everything",
-                "https://www.voidtools.com/"));
+                "https://www.voidtools.com/", "sok"));
 
             l.Add(Make("Rufus", "Pete Batard", "GPLv3",
                 "Lager oppstartbar USB fra en ISO.",
                 "winget install Rufus.Rufus",
-                "https://rufus.ie/"));
+                "https://rufus.ie/", "usb"));
 
             l.Add(Make("7-Zip", "Igor Pavlov", "LGPL",
                 "Pakker ut alle arkivformater.",
                 "winget install 7zip.7zip",
-                "https://www.7-zip.org/"));
+                "https://www.7-zip.org/", "programvare"));
 
             return l;
         }
 
         static ExternalTool Make(string name, string by, string licence,
-                                 string what, string command, string url)
+                                 string what, string command, string url, string icon)
         {
-            return Make(name, by, licence, what, command, url, false, false);
+            return Make(name, by, licence, what, command, url, icon, false, false);
         }
 
         static ExternalTool Make(string name, string by, string licence,
-                                 string what, string command, string url,
+                                 string what, string command, string url, string icon,
                                  bool remote, bool ownWindow)
         {
             ExternalTool t = new ExternalTool();
@@ -100,6 +101,7 @@ namespace Brisk
             t.What = what;
             t.Command = command;
             t.Url = url;
+            t.Icon = icon;
             t.Remote = remote;
             t.OwnWindow = ownWindow;
             return t;

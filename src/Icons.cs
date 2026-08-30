@@ -105,6 +105,80 @@ namespace Brisk
                         g.DrawArc(p, x + s * 0.48f, y + s * 0.02f, s * 0.50f, s * 0.50f, 120, 260);
                         break;
 
+                    case "verktoy":             // skrunokkel og skrutrekker i kryss
+                        g.DrawLine(p, x + s * 0.16f, y + s * 0.84f, x + s * 0.60f, y + s * 0.40f);
+                        g.DrawArc(p, x + s * 0.46f, y + s * 0.04f, s * 0.46f, s * 0.46f, 120, 260);
+                        g.DrawLine(p, x + s * 0.84f, y + s * 0.84f, x + s * 0.44f, y + s * 0.44f);
+                        g.DrawLine(p, x + s * 0.10f, y + s * 0.16f, x + s * 0.30f, y + s * 0.36f);
+                        break;
+
+                    case "tilpass":             // skyveknapper
+                        for (int i = 0; i < 3; i++)
+                        {
+                            float t = y + s * (0.18f + i * 0.32f);
+                            g.DrawLine(p, x, t, x + s, t);
+                            float k = x + s * (i == 1 ? 0.68f : 0.32f);
+                            g.FillEllipse(b, k - w, t - w, w * 2, w * 2);
+                        }
+                        break;
+
+                    case "sok":                 // forstorrelsesglass
+                        g.DrawEllipse(p, x + s * 0.08f, y + s * 0.08f, s * 0.56f, s * 0.56f);
+                        g.DrawLine(p, x + s * 0.62f, y + s * 0.62f, x + s * 0.94f, y + s * 0.94f);
+                        break;
+
+                    case "disk":                // plate med nav
+                        g.DrawEllipse(p, x + s * 0.05f, y + s * 0.05f, s * 0.90f, s * 0.90f);
+                        g.FillEllipse(b, x + s * 0.40f, y + s * 0.40f, s * 0.20f, s * 0.20f);
+                        break;
+
+                    case "temperatur":          // termometer
+                        g.DrawLine(p, x + s * 0.50f, y + s * 0.10f, x + s * 0.50f, y + s * 0.62f);
+                        g.DrawEllipse(p, x + s * 0.34f, y + s * 0.60f, s * 0.32f, s * 0.32f);
+                        g.DrawLine(p, x + s * 0.62f, y + s * 0.24f, x + s * 0.82f, y + s * 0.24f);
+                        g.DrawLine(p, x + s * 0.62f, y + s * 0.42f, x + s * 0.82f, y + s * 0.42f);
+                        break;
+
+                    case "skjold":              // skjold
+                        g.DrawLine(p, x + s * 0.12f, y + s * 0.16f, x + s * 0.50f, y + s * 0.04f);
+                        g.DrawLine(p, x + s * 0.50f, y + s * 0.04f, x + s * 0.88f, y + s * 0.16f);
+                        g.DrawLine(p, x + s * 0.12f, y + s * 0.16f, x + s * 0.12f, y + s * 0.52f);
+                        g.DrawLine(p, x + s * 0.88f, y + s * 0.16f, x + s * 0.88f, y + s * 0.52f);
+                        g.DrawArc(p, x + s * 0.12f, y + s * 0.20f, s * 0.76f, s * 0.76f, 20, 140);
+                        break;
+
+                    case "usb":                 // usb-plugg
+                        g.DrawLine(p, x + s * 0.50f, y + s * 0.96f, x + s * 0.50f, y + s * 0.28f);
+                        g.DrawRectangle(p, x + s * 0.32f, y + s * 0.06f, s * 0.36f, s * 0.24f);
+                        g.DrawLine(p, x + s * 0.50f, y + s * 0.62f, x + s * 0.22f, y + s * 0.44f);
+                        g.FillEllipse(b, x + s * 0.14f, y + s * 0.36f, s * 0.16f, s * 0.16f);
+                        g.DrawLine(p, x + s * 0.50f, y + s * 0.50f, x + s * 0.78f, y + s * 0.34f);
+                        g.DrawRectangle(p, x + s * 0.70f, y + s * 0.22f, s * 0.16f, s * 0.16f);
+                        break;
+
+                    case "nedlasting":          // pil ned mot en strek
+                        g.DrawLine(p, x + s * 0.50f, y + s * 0.06f, x + s * 0.50f, y + s * 0.62f);
+                        g.DrawLine(p, x + s * 0.26f, y + s * 0.40f, x + s * 0.50f, y + s * 0.64f);
+                        g.DrawLine(p, x + s * 0.74f, y + s * 0.40f, x + s * 0.50f, y + s * 0.64f);
+                        g.DrawLine(p, x + s * 0.12f, y + s * 0.92f, x + s * 0.88f, y + s * 0.92f);
+                        break;
+
+                    case "klokke":              // urskive
+                        g.DrawEllipse(p, x + s * 0.05f, y + s * 0.05f, s * 0.90f, s * 0.90f);
+                        g.DrawLine(p, x + s * 0.50f, y + s * 0.50f, x + s * 0.50f, y + s * 0.24f);
+                        g.DrawLine(p, x + s * 0.50f, y + s * 0.50f, x + s * 0.72f, y + s * 0.62f);
+                        break;
+
+                    case "dokument":           // ark med brett
+                        g.DrawLine(p, x + s * 0.16f, y + s * 0.04f, x + s * 0.62f, y + s * 0.04f);
+                        g.DrawLine(p, x + s * 0.16f, y + s * 0.04f, x + s * 0.16f, y + s * 0.96f);
+                        g.DrawLine(p, x + s * 0.16f, y + s * 0.96f, x + s * 0.84f, y + s * 0.96f);
+                        g.DrawLine(p, x + s * 0.84f, y + s * 0.96f, x + s * 0.84f, y + s * 0.28f);
+                        g.DrawLine(p, x + s * 0.62f, y + s * 0.04f, x + s * 0.84f, y + s * 0.28f);
+                        g.DrawLine(p, x + s * 0.34f, y + s * 0.56f, x + s * 0.68f, y + s * 0.56f);
+                        g.DrawLine(p, x + s * 0.34f, y + s * 0.74f, x + s * 0.68f, y + s * 0.74f);
+                        break;
+
                     case "logg":                // linjer
                         for (int i = 0; i < 3; i++)
                         {

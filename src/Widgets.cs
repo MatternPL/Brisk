@@ -105,6 +105,7 @@ namespace Brisk
         public string Info = "";
         public Color Accent = Theme.Accent;
         public bool Primary;
+        public string Icon = "";        // valgfri ikonnokkel, se src/Icons.cs
         bool over, down;
 
         public ActionTile(string title, string info)
@@ -123,6 +124,7 @@ namespace Brisk
         }
 
         public ActionTile AsPrimary() { Primary = true; return this; }
+        public ActionTile With(string icon) { Icon = icon; return this; }
         public ActionTile AsDanger() { Accent = Theme.Bad; return this; }
         public ActionTile AsWarn() { Accent = Theme.Warn; return this; }
 
@@ -145,9 +147,17 @@ namespace Brisk
             using (SolidBrush b = new SolidBrush(Enabled ? Accent : Theme.Line))
                 g.FillRectangle(b, 0, 0, Primary ? 4 : 3, Height - 1);
 
+            int textLeft = 16;
+            if (Icon.Length > 0)
+            {
+                Icons.Draw(g, Icon, new RectangleF(16, 11, 18, 18),
+                    Enabled ? Accent : Theme.Line);
+                textLeft = 44;
+            }
+
             Color title = !Enabled ? Theme.Muted : Primary ? Accent : Theme.Text;
             TextRenderer.DrawText(g, Title, Theme.FBold,
-                new Rectangle(16, 10, Width - 26, 20), title,
+                new Rectangle(textLeft, 10, Width - textLeft - 10, 20), title,
                 TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
 
             TextRenderer.DrawText(g, Info, Theme.FSmall,
@@ -184,6 +194,9 @@ namespace Brisk
             Cursor = Cursors.Hand;
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+            // Uten dette tar en flis fokus, og rullefeltet hopper til den.
+            SetStyle(ControlStyles.Selectable, false);
+            TabStop = false;
             MouseEnter += delegate { over = true; Invalidate(); };
             MouseLeave += delegate { over = false; Invalidate(); };
         }
@@ -215,13 +228,15 @@ namespace Brisk
             using (SolidBrush b = new SolidBrush(Tool.Remote ? Theme.Warn : Theme.Accent))
                 g.FillRectangle(b, 0, 0, Width - 1, 3);
 
+            Icons.Draw(g, Tool.Icon, new RectangleF(14, 18, 22, 22),
+                Tool.Remote ? Theme.Warn : Theme.Accent);
+
             TextRenderer.DrawText(g, Tool.Name, Theme.FCard,
-                new Rectangle(14, 18, Width - 24, 24),
-                picked ? Theme.Text : Theme.Text,
+                new Rectangle(46, 17, Width - 56, 24), Theme.Text,
                 TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
 
             TextRenderer.DrawText(g, L.T(Tool.What), Theme.FSmall,
-                new Rectangle(14, 48, Width - 26, 58), Theme.Muted,
+                new Rectangle(14, 52, Width - 26, 58), Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
 
             TextRenderer.DrawText(g, Tool.By, Theme.FSmall,

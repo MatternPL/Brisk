@@ -105,7 +105,11 @@ namespace Brisk
             p.Controls.Add(outHost);
             p.Controls.Add(note);
 
-            Defer(delegate { Append(toolsOut, L.T("Ingenting kjører.")); });
+            Defer(delegate
+            {
+                Append(toolsOut, L.T("Ingenting kjører."));
+                Defer(delegate { grid.AutoScrollPosition = new Point(0, 0); });
+            });
             return p;
         }
 

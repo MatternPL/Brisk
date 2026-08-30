@@ -474,6 +474,11 @@ namespace Brisk
             "Velg et verktøy over.", "Pick a tool above.",
             "Andres programmer, ikke deler av Brisk. Velg ett, så ser du kommandoen før du kjører den.", "Other people's programs, not parts of Brisk. Pick one and you will see the command before you run it.",
             "{0} åpnet i sitt eget vindu. Utdata derfra vises ikke her.", "{0} opened in its own window. Its output is not shown here.",
+            "Reparasjon", "Repair",
+            "Disk og nettverk", "Disk and network",
+            "Automatikk og hjelp", "Automation and help",
+            "Har aldri sett etter oppdatering.", "Has never checked for an update.",
+            "Sist sjekket {0}.", "Last checked {0}.",
             // ---- logg ----
             "Åpne loggfil", "Open log file",
             "Tøm visning", "Clear view",
