@@ -21,6 +21,10 @@ namespace Brisk
         public long PowerOnHours = -1;
         public long ReadErrors = -1;
         public long WriteErrors = -1;
+        public int SpareLeft = -1;      // ledig reservekapasitet, prosent
+        public long UnsafeShutdowns = -1;
+        public long MediaErrors = -1;
+        public bool FromDrive;          // lest fra disken selv, ikke fra WMI
     }
 
     public class BatteryHealth
@@ -142,6 +146,29 @@ namespace Brisk
                             }
                         }
                         catch { }
+
+                        // Windows melder Wear = 0 og PowerOnHours = null for mange
+                        // NVMe-disker selv om disken selv vet bedre. Spor derfor
+                        // disken direkte, og la det svaret gaa foran.
+                        try
+                        {
+                            int nr;
+                            if (int.TryParse(Convert.ToString(disk["DeviceId"]), out nr))
+                            {
+                                NvmeTools.Health n = NvmeTools.Read(nr);
+                                if (n != null)
+                                {
+                                    d.Wear = n.PercentUsed;
+                                    d.SpareLeft = n.SpareLeft;
+                                    d.UnsafeShutdowns = n.UnsafeShutdowns;
+                                    d.MediaErrors = n.MediaErrors;
+                                    if (n.Temperature > 0) d.Temperature = n.Temperature;
+                                    if (n.PowerOnHours > 0) d.PowerOnHours = n.PowerOnHours;
+                                    d.FromDrive = true;
+                                }
+                            }
+                        }
+                        catch (Exception ex) { Util.Log("NVMe-logg feilet: " + ex.Message); }
 
                         list.Add(d);
                     }

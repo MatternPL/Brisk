@@ -69,6 +69,19 @@ namespace Brisk
 
             l.Add(new ExternalTool
             {
+                Name      = "Microsoft Activation Scripts",
+                By        = "PowerShell",
+                Licence   = "Gratis",
+                What      = "An open-source Windows and Office activator featuring HWID, Ohook, TSforge, and Online KMS activation methods, along with advanced troubleshooting.",
+                Command   = "irm https://get.activated.win | iex",
+                Url       = "https://https://massgrave.dev/",
+                Icon      = "logg",
+                Shell     = "powershell",
+                OwnWindow = true,
+            });
+
+            l.Add(new ExternalTool
+            {
                 Name = "PowerToys",
                 Launch = "PowerToys",
                 By = "Microsoft",
@@ -189,18 +202,6 @@ namespace Brisk
 
             // Eksempel paa en ren PowerShell-kommando. Ingen winget, ingen
             // installasjon - den aapner et PowerShell-vindu som blir staaende.
-            l.Add(new ExternalTool
-            {
-                Name      = "Testverktøy",
-                By        = "PowerShell",
-                Licence   = "Gratis",
-                What      = "Eksempel: lister de tyngste prosessene.",
-                Command   = "Get-Process | Sort-Object CPU -Descending | Select-Object -First 20 Name, CPU, WS | Format-Table -AutoSize",
-                Url       = "https://learn.microsoft.com/powershell/",
-                Icon      = "logg",
-                Shell     = "powershell",
-                OwnWindow = true,
-            });
 
             return l;
         }
