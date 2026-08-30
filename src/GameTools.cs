@@ -24,6 +24,9 @@ namespace Brisk
         public string What = "";         // hva innstillingen er
         public string Cost = "";         // hva du gir fra deg. Tom = ingenting
         public Gain Gain = Gain.Liten;
+        // Typisk maalt spenn, ikke et loefte. Hva du faar avhenger av spillet
+        // og av om det er prosessoren eller skjermkortet som er flaskehalsen.
+        public string Estimate = "";
         public bool NeedsReboot;
         public bool NeedsAdmin;
 
@@ -64,6 +67,7 @@ namespace Brisk
         {
             GameSetting g = new GameSetting();
             g.Key = "vbs";
+            g.Estimate = "5–15 %";
             g.Name = "Virtualiseringsbasert sikkerhet";
             g.What = "Kjører deler av Windows i en virtuell maskin. Koster ytelse i alle spill fordi alt går gjennom hypervisoren.";
             g.Cost = "Senker sikkerheten reelt. Credential Guard beskytter innloggingene dine mot tyveri.";
@@ -102,6 +106,7 @@ namespace Brisk
         {
             GameSetting g = new GameSetting();
             g.Key = "hvci";
+            g.Estimate = "3–10 %";
             g.Name = "Minneintegritet";
             g.What = "Kjernekode kontrolleres av hypervisoren. Merkes mest i spill som belaster prosessoren.";
             g.Cost = "Senker sikkerheten. Beskytter mot drivere som prøver å kjøre kode i kjernen.";
@@ -126,6 +131,7 @@ namespace Brisk
         {
             GameSetting g = new GameSetting();
             g.Key = "gamedvr";
+            g.Estimate = "1–5 %";
             g.Name = "Bakgrunnsopptak";
             g.What = "Windows spiller inn spillet ditt hele tiden i tilfelle du vil lagre de siste minuttene. Det koster bilder selv når du aldri lagrer noe.";
             g.Cost = "Du mister «ta opp de siste 30 sekundene» i Game Bar.";
@@ -144,6 +150,7 @@ namespace Brisk
         {
             GameSetting g = new GameSetting();
             g.Key = "gamebar";
+            g.Estimate = "0–2 %";
             g.Name = "Game Bar";
             g.What = "Overlegget som åpnes med Windows+G. Ligger og lytter etter tastetrykk mens du spiller.";
             g.Cost = "Snarveiene for opptak og skjermbilde slutter å virke.";
@@ -161,6 +168,7 @@ namespace Brisk
         {
             GameSetting g = new GameSetting();
             g.Key = "hags";
+            g.Estimate = "−5 til +5 %";
             g.Name = "Maskinvareakselerert GPU-planlegging";
             g.What = "Lar skjermkortet styre sin egen minneplanlegging i stedet for Windows.";
             g.Cost = "Ingenting, men effekten varierer. Noen spill vinner, noen taper. Enkelte eldre drivere blir ustabile.";
@@ -185,6 +193,7 @@ namespace Brisk
         {
             GameSetting g = new GameSetting();
             g.Key = "power";
+            g.Estimate = "0–15 %";
             g.Name = "Strømplan";
             g.What = "Balansert lar prosessoren senke klokken mellom bildene. På bærbare og på balansert oppsett er dette ofte det som merkes mest.";
             g.Cost = "Mer strøm og mer varme. På bærbar: kortere batteritid.";

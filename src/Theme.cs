@@ -153,6 +153,7 @@ namespace Brisk
             // hvordan kontrollen blir foreldret, og bommer man forsvinner det
             // morke temaet pa kolonneoverskriftene.
             EnableSorting(lv);
+            FitColumns(lv);
             lv.HandleCreated += delegate
             {
                 DarkControl(lv, "DarkMode_Explorer");
@@ -181,6 +182,82 @@ namespace Brisk
                 lv.ListViewItemSorter = sorter;
                 lv.Sort();
             };
+        }
+
+        // Plasserer barna i en kontroll, og gjor det paa nytt hver gang den
+        // endrer storrelse.
+        //
+        // Grunnen til at dette finnes: Resize alene fyrer ikke paalitelig for
+        // forste tegning. Legger man en kontroll i en celle i en
+        // TableLayoutPanel, faar den sin virkelige storrelse etter at handleren
+        // er koblet paa, og da blir knapper og tekst staaende plassert etter
+        // standardstorrelsen - typisk 200x100. Resultatet er knapper midt oppi
+        // teksten, og bokser som ikke staar i flukt med hverandre.
+        //
+        // Layout fyrer ogsaa naar foreldrekontrollen fordeler plassen, og
+        // kallet til slutt sorger for at oppsettet er riktig med en gang.
+        public static void Arrange(Control c, Action layout)
+        {
+            if (c == null || layout == null) return;
+            bool inne = false;
+            EventHandler kjor = delegate
+            {
+                if (inne) return;          // sett barnas storrelse kan utlose Layout paa nytt
+                inne = true;
+                try { layout(); }
+                catch (Exception) { }
+                inne = false;
+            };
+            c.SizeChanged += kjor;
+            c.Layout += delegate { kjor(c, EventArgs.Empty); };
+            kjor(c, EventArgs.Empty);
+        }
+
+        // Fordeler kolonnebreddene over hele lista, med samme innbyrdes forhold
+        // som de ble satt opp med. Uten dette blir det staaende en dod stripe
+        // til hoyre naar vinduet er bredere enn summen av kolonnene, og
+        // kolonnene renner utenfor naar det er smalere.
+        public static void FitColumns(ListView lv)
+        {
+            if (lv == null) return;
+            bool inne = false;
+            EventHandler fordel = delegate
+            {
+                if (inne || lv.Columns.Count == 0) return;
+                inne = true;
+                try
+                {
+                    int plass = lv.ClientSize.Width;
+                    if (plass < 60) { inne = false; return; }
+
+                    int sum = 0;
+                    int[] onsket = new int[lv.Columns.Count];
+                    for (int i = 0; i < lv.Columns.Count; i++)
+                    {
+                        onsket[i] = lv.Columns[i].Tag == null
+                            ? lv.Columns[i].Width
+                            : Convert.ToInt32(lv.Columns[i].Tag);
+                        lv.Columns[i].Tag = onsket[i];   // husk oppsettet
+                        sum += onsket[i];
+                    }
+                    if (sum <= 0) { inne = false; return; }
+
+                    int brukt = 0;
+                    for (int i = 0; i < lv.Columns.Count; i++)
+                    {
+                        int w = i == lv.Columns.Count - 1
+                            ? plass - brukt
+                            : (int)Math.Round(plass * (onsket[i] / (double)sum));
+                        if (w < 40) w = 40;
+                        lv.Columns[i].Width = w;
+                        brukt += w;
+                    }
+                }
+                catch (Exception) { }
+                inne = false;
+            };
+            lv.SizeChanged += fordel;
+            lv.HandleCreated += fordel;
         }
 
         public static Label Lbl(string text, Font font, Color color)

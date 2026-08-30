@@ -445,7 +445,7 @@ namespace Brisk
             heroCard.Controls.Add(ovVerdictSub);
             heroCard.Controls.Add(btnScan);
             heroCard.Controls.Add(btnCleanNow);
-            heroCard.Resize += delegate { LayoutHero(); };
+            Theme.Arrange(heroCard, delegate { LayoutHero(); });
             heroHost.Controls.Add(heroCard);
 
             // --- fire tall ---
@@ -544,28 +544,28 @@ namespace Brisk
             if (linjer == null || ovMachine == null || ovMachine.IsDisposed) return;
 
             ovMachine.Controls.Clear();
-            int y = 16;
+            int y = 10;
             foreach (MachineLine ml in linjer)
             {
                 Label k = Theme.Lbl(L.T(ml.Label), Theme.FSmall, Theme.Muted);
                 k.Location = new Point(18, y);
                 Label v = Theme.Lbl(ml.Value, Theme.FSmall, Theme.Text);
                 v.AutoSize = false;
-                v.Location = new Point(18, y + 18);
+                v.Location = new Point(18, y + 16);
                 v.Height = 18;
                 v.Width = Math.Max(120, ovMachine.Width - 36);
                 ovMachine.Controls.Add(k);
                 ovMachine.Controls.Add(v);
-                y += 38;
+                y += 34;
             }
 
             Panel kort = ovMachine;
-            ovMachine.Resize += delegate
+            Theme.Arrange(ovMachine, delegate
             {
                 foreach (Control c in kort.Controls)
                     if (c is Label && c.Font == Theme.FSmall && c.ForeColor == Theme.Text)
                         c.Width = Math.Max(120, kort.Width - 36);
-            };
+            });
         }
 
         void LayoutHero()
@@ -623,14 +623,14 @@ namespace Brisk
             bar.Location = new Point(18, 82);
 
             Label c2 = cap; Label b2 = big; Label s2 = sub; Bar r2 = bar;
-            c.Resize += delegate
+            Theme.Arrange(c, delegate
             {
                 int w = Math.Max(40, c.Width - 36);
                 c2.Width = w;
                 b2.Width = Math.Max(40, c.Width - 30);
                 s2.Width = w;
                 r2.Width = w;
-            };
+            });
 
             c.Controls.Add(cap);
             c.Controls.Add(big);

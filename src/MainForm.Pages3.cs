@@ -57,10 +57,10 @@ namespace Brisk
             gpuCard.Controls.Add(lblGpu);
             gpuCard.Controls.Add(gpuNote);
             gpuCard.Controls.Add(bGpu);
-            gpuCard.Resize += delegate
+            Theme.Arrange(gpuCard, delegate
             {
                 bGpu.Location = new Point(gpuCard.Width - bGpu.Width - 20, 20);
-            };
+            });
             gpuHost.Controls.Add(gpuCard);
 
             Defer(delegate

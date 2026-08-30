@@ -14,7 +14,7 @@ namespace Brisk
         // gir, og hva den koster. Ingen samleknapp som gjor alt paa en gang -
         // to av postene senker sikkerheten reelt, og de skal velges enkeltvis.
         Label gmVerdict, gmSub, gmReboot;
-        Panel gmList;
+        TableLayoutPanel gmList;
         bool gmNeedsReboot;
 
         Panel PageGame()
@@ -45,11 +45,11 @@ namespace Brisk
             FlatBtn refresh = new FlatBtn(L.T("Les på nytt"));
             refresh.Width = 130; refresh.Height = 38;
             refresh.Click += delegate { LoadGame(); };
-            card.Resize += delegate
+            Theme.Arrange(card, delegate
             {
                 refresh.Location = new Point(card.Width - refresh.Width - 20, 22);
                 gmSub.Width = Math.Max(200, card.Width - 220);
-            };
+            });
             gmSub.AutoSize = false;
             gmSub.Height = 22;
 
@@ -65,11 +65,18 @@ namespace Brisk
             gmReboot.Height = 0;
 
             // --- listen ---
-            gmList = new Panel();
+            // To spalter, tre rader. Seks kort under hverandre krevde rulling,
+            // og en side som viser hva som staar i veien for ytelse boer vises
+            // i sin helhet uten at man maa lete.
+            gmList = new TableLayoutPanel();
             gmList.Dock = DockStyle.Fill;
             gmList.BackColor = Theme.Bg;
-            gmList.AutoScroll = true;
-            gmList.Padding = new Padding(0, 0, 18, 8);
+            ((TableLayoutPanel)gmList).ColumnCount = 2;
+            ((TableLayoutPanel)gmList).RowCount = 3;
+            for (int i = 0; i < 2; i++)
+                ((TableLayoutPanel)gmList).ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50f));
+            for (int i = 0; i < 3; i++)
+                ((TableLayoutPanel)gmList).RowStyles.Add(new RowStyle(SizeType.Percent, 100f / 3f));
 
             // --- fotnote ---
             Panel foot = new Panel();
@@ -99,10 +106,12 @@ namespace Brisk
             gmList.Controls.Clear();
             int koster = 0, tilgjengelig = 0;
 
-            // Omvendt rekkefolge fordi Dock.Top stabler nedenfra.
-            List<GameSetting> vis = new List<GameSetting>(alle);
-            vis.Reverse();
-            foreach (GameSetting g in vis) gmList.Controls.Add(GameCard(g));
+            int n = 0;
+            foreach (GameSetting g in alle)
+            {
+                gmList.Controls.Add(GameCard(g), n % 2, n / 2);
+                n++;
+            }
 
             foreach (GameSetting g in alle)
             {
@@ -128,8 +137,6 @@ namespace Brisk
 
             ShowReboot();
 
-            // Kortene legges inn nedenfra, saa lista havner i bunn uten dette.
-            Defer(delegate { gmList.AutoScrollPosition = new Point(0, 0); });
         }
 
         void ShowReboot()
@@ -142,10 +149,9 @@ namespace Brisk
         Panel GameCard(GameSetting g)
         {
             Panel host = new Panel();
-            host.Dock = DockStyle.Top;
-            host.Height = 128;
+            host.Dock = DockStyle.Fill;
             host.BackColor = Theme.Bg;
-            host.Padding = new Padding(0, 0, 0, 12);
+            host.Padding = new Padding(0, 0, 12, 12);
 
             Panel card = Theme.MakeCard();
             card.Dock = DockStyle.Fill;
@@ -179,18 +185,26 @@ namespace Brisk
                 Theme.FSmall, Color.FromArgb(0x9A, 0x84, 0x5A));
             cost.AutoSize = false;
             cost.Location = new Point(20, 98);
-            cost.Height = 18;
+            cost.Height = 34;
 
             FlatBtn act = new FlatBtn("");
-            act.Width = 190; act.Height = 36;
-            if (!g.Available) act.Enabled = false;
+            act.Width = 170; act.Height = 34;
+            if (!g.Available) { act.Enabled = false; act.Visible = false; }
             else if (g.Optimal) { act.Text = L.T("Sett tilbake"); }
             else { act.Text = L.T("Slå av for spill"); act.Primary(); }
 
-            Label gain = Theme.Lbl(GainText(g.Gain), Theme.FSmall, Theme.Muted);
+            Label gain = Theme.Lbl(
+                g.Available && g.Estimate.Length > 0 ? g.Estimate : "",
+                new Font("Segoe UI Light", 20f),
+                g.Gain == Gain.Stor ? Theme.Accent : Theme.Muted);
             gain.AutoSize = false;
             gain.TextAlign = ContentAlignment.MiddleRight;
-            gain.Width = 190; gain.Height = 18;
+            gain.Width = 190; gain.Height = 30;
+
+            Label gainSub = Theme.Lbl(g.Available ? GainText(g.Gain) : "", Theme.FSmall, Theme.Muted);
+            gainSub.AutoSize = false;
+            gainSub.TextAlign = ContentAlignment.MiddleRight;
+            gainSub.Width = 190; gainSub.Height = 16;
 
             act.Click += async delegate
             {
@@ -229,16 +243,27 @@ namespace Brisk
             card.Controls.Add(cost);
             card.Controls.Add(act);
             card.Controls.Add(gain);
+            card.Controls.Add(gainSub);
 
-            card.Resize += delegate
+            Theme.Arrange(card, delegate
             {
                 int right = card.Width - 20;
-                act.Location = new Point(right - act.Width, 34);
-                gain.Location = new Point(right - gain.Width, 76);
-                int tekstBredde = Math.Max(200, act.Left - 40);
-                what.Width = tekstBredde;
-                cost.Width = tekstBredde;
-            };
+
+                gain.Location = new Point(right - gain.Width, 12);
+                gainSub.Location = new Point(right - gainSub.Width, 44);
+
+                // Knappen nederst til hoyre. Kostnadsteksten stopper for den,
+                // ellers legger de seg oppaa hverandre.
+                act.Location = new Point(right - act.Width, card.Height - act.Height - 14);
+
+                what.Location = new Point(20, 66);
+                what.Width = Math.Max(160, card.Width - 40);
+                what.Height = 36;
+
+                cost.Location = new Point(20, card.Height - 44);
+                cost.Width = Math.Max(120, act.Left - 32);
+                cost.Height = 34;
+            });
 
             host.Controls.Add(card);
             return host;

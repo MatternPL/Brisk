@@ -617,10 +617,10 @@ namespace Brisk
             FlatBtn btnUpd = new FlatBtn(L.T("Se etter oppdatering"));
             btnUpd.Primary().Big();
             btnUpd.Width = 230; btnUpd.Height = 44;
-            updCard.Resize += delegate
+            Theme.Arrange(updCard, delegate
             {
                 btnUpd.Location = new Point(updCard.Width - btnUpd.Width - 20, 18);
-            };
+            });
 
             updCard.Controls.Add(updName);
             updCard.Controls.Add(updWhen);

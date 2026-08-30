@@ -69,10 +69,10 @@ namespace Brisk
             bar.Controls.Add(toolsRun);
             bar.Controls.Add(toolsStop);
             bar.Controls.Add(toolsNow);
-            bar.Resize += delegate
+            Theme.Arrange(bar, delegate
             {
                 toolsNow.Width = Math.Max(120, bar.Width - toolsNow.Left);
-            };
+            });
 
             // --- flisene ---
             FlowLayoutPanel grid = new FlowLayoutPanel();
