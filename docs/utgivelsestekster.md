@@ -31,6 +31,13 @@ når du redigerer utgivelsen.
   top, with the version and when it was last checked. The rest is grouped under
   Repair, Disk and network, and Automation and help.
 - Every tile has an icon.
+
+### Fixed
+
+- **Health showed 0 % wear on every drive.** Windows reports nothing useful for
+  most NVMe drives, and Brisk repeated it. It now reads the health log from the
+  drive itself. On the machine this was found on, two drives that both read 0 %
+  turned out to be 1 % and 5 % used.
 ```
 
 ---

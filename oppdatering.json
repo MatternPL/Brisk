@@ -1,7 +1,7 @@
 {
   "versjon": "1.4.0",
   "url": "https://github.com/MatternPL/Brisk/releases/download/v1.4.0/Brisk-Installer.exe",
-  "sha256": "1e6b3e067166aeb098eda7c82a2af1e75801ba7a719c4ba92b1c5dbd6996875a",
-  "storrelse": 599040,
-  "notat": "New Tools page with free tools by other people - WinUtil, PowerToys, Process Explorer, Autoruns, CrystalDiskInfo, HWiNFO, O&O ShutUp10, Everything, Rufus, 7-Zip, CPU-Z. One click checks whether the tool is already installed, installs it only if it is missing, and then opens it. The command is always shown before it runs, output appears in a console on the page, and a Stop button ends it. Maintenance was reorganised: Check for update now sits in its own card at the top with the version and when it was last checked, and the rest is grouped under Repair, Disk and network, and Automation and help. Every tile has an icon."
+  "sha256": "79366a203703e9177ec06ff51a72ea4812329b5fc81258d07cf847ebe80897e9",
+  "storrelse": 601600,
+  "notat": "New Tools page with free tools by other people - WinUtil, PowerToys, Process Explorer, Autoruns, CrystalDiskInfo, HWiNFO, O&O ShutUp10, Everything, Rufus, 7-Zip, CPU-Z. One click checks whether the tool is already installed, installs it only if it is missing, and then opens it. The command is always shown before it runs, output appears in a console on the page, and a Stop button ends it. Health now reads drive wear from the drive itself instead of from Windows, which reported 0 per cent for every NVMe drive whether it was worn or not. Maintenance was reorganised: Check for update sits in its own card at the top with the version and when it was last checked, and the rest is grouped under Repair, Disk and network, and Automation and help. Every tile has an icon."
 }
