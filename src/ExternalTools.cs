@@ -69,20 +69,6 @@ namespace Brisk
 
             l.Add(new ExternalTool
             {
-                Name      = "Microsoft Activation Scripts",
-                By        = "Massgrave",
-                Licence   = "Gratis",
-                What      = "An open-source Windows and Office activator featuring HWID, Ohook, TSforge, and Online KMS activation methods, along with advanced troubleshooting.",
-                Command   = "irm https://get.activated.win | iex",
-                Url       = "https://https://massgrave.dev/",
-                Icon      = "logg",
-                Shell     = "powershell",
-                Admin = true,
-                OwnWindow = true,
-            });
-
-            l.Add(new ExternalTool
-            {
                 Name = "PowerToys",
                 Launch = "PowerToys",
                 By = "Microsoft",

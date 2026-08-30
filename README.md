@@ -7,12 +7,14 @@ that already ships with Windows 10 and 11.
 
 English by default. Norwegian is one click away, bottom left.
 
+[![Buy me a beer](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20beer&emoji=%F0%9F%8D%BA&slug=9Z7mOpP2wb&button_colour=5F7FFF&font_colour=ffffff&font_family=Arial&outline_colour=000000&coffee_colour=FFDD00)](https://www.buymeacoffee.com/9Z7mOpP2wb)
+
 ---
 
 ## Getting it
 
-Download **`Brisk-Installer.exe`** from
-[Releases](https://github.com/MatternPL/Vaktmester/releases).
+Download **`BriskInstaller.exe`** from
+[Releases](https://github.com/MatternPL/Brisk/releases/latest).
 
 * Installs to `%LOCALAPPDATA%\Programs\Brisk` — **no UAC prompt to install**
 * Start menu shortcut, optional desktop shortcut
@@ -95,11 +97,11 @@ file is deleted and nothing runs.
 ### Publishing a release
 
 ```bash
-utgivelse.cmd 1.2.0 https://github.com/MatternPL/Vaktmester/releases/download/v1.2.0/Brisk-Installer.exe "What changed"
+utgivelse.cmd 1.2.0 https://github.com/MatternPL/Brisk/releases/latest/download/v1.2.0/BriskInstaller.exe "What changed"
 ```
 
 Sets the version in the source, builds, computes the sha256 and writes
-`oppdatering.json`. Then upload `Brisk-Installer.exe` as a release asset and commit
+`oppdatering.json`. Then upload `BriskInstaller.exe` as a release asset and commit
 `oppdatering.json` to `main` — **in that order**, so nobody sees an update that isn't
 downloadable yet.
 
@@ -113,7 +115,7 @@ Clients read `Updater.DefaultManifestUrl` in `src/Updater.cs`.
 |---|---|
 | `Brisk.exe /auto` | Runs the safe cleanup with no window. Used by the scheduled task. |
 | `Brisk.exe /side:helse` | Opens a specific page (`oversikt`, `rydding`, `diskplass`, `oppstart`, `minne`, `helse`, `nettverk`, `drivere`, `programmer`, `vedlikehold`, `logg`). |
-| `Brisk-Installer.exe /S` | Silent install. Add `/start` to launch afterwards. |
+| `BriskInstaller.exe /S` | Silent install. Add `/start` to launch afterwards. |
 | `Uninstall.exe /uninstall` | Uninstall. Add `/S` for silent. |
 
 ---
@@ -156,6 +158,17 @@ tools/                build helpers and self-tests
 `tools/SelfTest.cs` walks memory, cleanup (measure only), startup, disks, problem
 devices and winget, and prints real numbers. `tools/sprak_sjekk.py` checks that every
 `L.T()` key in the source has an English translation.
+
+## Supporting it
+
+Brisk is free and stays free. If it saved you some time, you can
+[buy me a beer](https://www.buymeacoffee.com/9Z7mOpP2wb).
+
+Money goes to a code signing certificate first. Windows warns about unknown
+publishers on every download, and a certificate is the only thing that removes
+that warning.
+
+---
 
 ## Licence
 
