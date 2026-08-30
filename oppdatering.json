@@ -1,7 +1,7 @@
 {
-  "versjon": "1.4.0",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.4.0/Brisk-Installer.exe",
-  "sha256": "79366a203703e9177ec06ff51a72ea4812329b5fc81258d07cf847ebe80897e9",
-  "storrelse": 601600,
-  "notat": "New Tools page with free tools by other people - WinUtil, PowerToys, Process Explorer, Autoruns, CrystalDiskInfo, HWiNFO, O&O ShutUp10, Everything, Rufus, 7-Zip, CPU-Z. One click checks whether the tool is already installed, installs it only if it is missing, and then opens it. The command is always shown before it runs, output appears in a console on the page, and a Stop button ends it. Health now reads drive wear from the drive itself instead of from Windows, which reported 0 per cent for every NVMe drive whether it was worn or not. Maintenance was reorganised: Check for update sits in its own card at the top with the version and when it was last checked, and the rest is grouped under Repair, Disk and network, and Automation and help. Every tile has an icon."
+  "versjon": "1.5.0",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.5.0/BriskInstaller.exe",
+  "sha256": "cf5c3b4652538747524f3cd5444a5f776036a80377ea2f608ed9ea49f57be97b",
+  "storrelse": 604160,
+  "notat": "Startup: turning off a scheduled task looked like it did nothing. The task was switched off in Windows, but the row kept its old status, so there was no way to tell. Startup also failed to read the program path for nine entries - shortcuts, batch files and values with doubled quotes - which left the publisher blank for them. Entries pointing at programs that are no longer installed are now marked in red; they start nothing and are safe to switch off. The Delays startup column showed an empty cell for most rows. Windows only measures programs it thinks noticeably slow startup, so a dash now says it has never measured that one."
 }

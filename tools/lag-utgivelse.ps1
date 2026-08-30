@@ -1,7 +1,7 @@
 # Lager en ny utgivelse: setter versjonsnummer, bygger, regner ut sha256
 # og skriver oppdatering.json som klientene sjekker mot.
 #
-#   .\utgivelse.cmd 1.1.0 https://github.com/BRUKER/brisk/releases/download/v1.1.0/Brisk-Installer.exe "Hva som er nytt"
+#   .\utgivelse.cmd 1.1.0 https://github.com/BRUKER/brisk/releases/download/v1.1.0/BriskInstaller.exe "Hva som er nytt"
 
 param(
     [Parameter(Mandatory = $true)][string]$Versjon,
@@ -36,7 +36,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Bygget feilet" }
 } finally { Pop-Location }
 
-$exe = Join-Path $rot "Brisk-Installer.exe"
+$exe = Join-Path $rot "BriskInstaller.exe"
 
 # Regner ut summen med .NET i stedet for Get-FileHash. Den cmdleten mangler
 # hvis skriptet startes fra en PowerShell 7-okt med endret PSModulePath.
@@ -85,7 +85,7 @@ Write-Host "  Manifest   : $ut"
 Write-Host "  Utgivelsestekst: $notatFil"
 Write-Host ""
 Write-Host "Neste steg:" -ForegroundColor Yellow
-Write-Host "  1. Last opp Brisk-Installer.exe til adressen over."
+Write-Host "  1. Last opp BriskInstaller.exe til adressen over."
 Write-Host "     Tittel: Brisk $Versjon. Tekst: lim inn fra $notatFil."
 Write-Host "  2. Legg oppdatering.json der klientene henter den fra"
 Write-Host "     (se Updater.DefaultManifestUrl i src\Updater.cs)."

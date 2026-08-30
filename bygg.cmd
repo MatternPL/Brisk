@@ -1,6 +1,6 @@
 @echo off
 REM ===================================================================
-REM  Bygger Brisk.exe og Brisk-Installer.exe.
+REM  Bygger Brisk.exe og BriskInstaller.exe.
 REM  Krever ingenting installert utover Windows selv - C#-kompilatoren
 REM  folger med .NET Framework 4.8 som allerede ligger i Windows.
 REM ===================================================================
@@ -24,8 +24,8 @@ echo [2/3] Kompilerer Brisk.exe...
   -r:System.Management.dll -r:Microsoft.CSharp.dll -r:System.Xml.dll ^
   src\*.cs || goto :feil
 
-echo [3/3] Kompilerer Brisk-Installer.exe...
-"%CSC%" -nologo -target:winexe -out:Brisk-Installer.exe -optimize+ ^
+echo [3/3] Kompilerer BriskInstaller.exe...
+"%CSC%" -nologo -target:winexe -out:BriskInstaller.exe -optimize+ ^
   -win32icon:brisk.ico -win32manifest:installer\installer.manifest ^
   -resource:Brisk.exe,Brisk.payload ^
   -resource:brisk.ico,brisk.icon ^
@@ -36,7 +36,7 @@ echo [3/3] Kompilerer Brisk-Installer.exe...
 
 echo.
 echo Ferdig:
-for %%f in (Brisk.exe Brisk-Installer.exe) do @echo    %%~zf bytes  %%f
+for %%f in (Brisk.exe BriskInstaller.exe) do @echo    %%~zf bytes  %%f
 goto :slutt
 
 :feil
