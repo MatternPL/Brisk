@@ -152,6 +152,7 @@ namespace Brisk
             // Ma settes bade na og ved HandleCreated: rekkefolgen varierer med
             // hvordan kontrollen blir foreldret, og bommer man forsvinner det
             // morke temaet pa kolonneoverskriftene.
+            EnableSorting(lv);
             lv.HandleCreated += delegate
             {
                 DarkControl(lv, "DarkMode_Explorer");
@@ -163,6 +164,23 @@ namespace Brisk
                 DarkListHeader(lv);
             }
             return lv;
+        }
+
+        // Klikk paa en kolonneoverskrift sorterer. Andre klikk snur.
+        // Verdiene i listene er ofte tall med enhet - "1,9 TB", "37 °C",
+        // "5 % brukt", "4,9 s" - saa en ren tekstsortering ville satt 10 foer 9.
+        // Comparer prover derfor tall og dato foerst.
+        public static void EnableSorting(ListView lv)
+        {
+            ListSorter sorter = new ListSorter();
+            lv.ListViewItemSorter = null;
+            lv.ColumnClick += delegate(object s, ColumnClickEventArgs e)
+            {
+                if (e.Column == sorter.Column) sorter.Descending = !sorter.Descending;
+                else { sorter.Column = e.Column; sorter.Descending = false; }
+                lv.ListViewItemSorter = sorter;
+                lv.Sort();
+            };
         }
 
         public static Label Lbl(string text, Font font, Color color)
@@ -418,6 +436,81 @@ namespace Brisk
             if (w > 0)
                 using (SolidBrush b = new SolidBrush(Fill))
                     g.FillRectangle(b, 0, 0, w, Height);
+        }
+    }
+
+
+    // Sammenligner to rader i én kolonne. Prover dato, saa tall med enhet,
+    // og faller tilbake paa tekst.
+    class ListSorter : System.Collections.IComparer
+    {
+        public int Column;
+        public bool Descending;
+
+        public int Compare(object a, object b)
+        {
+            string x = Cell((ListViewItem)a, Column);
+            string y = Cell((ListViewItem)b, Column);
+            int r;
+
+            DateTime da, db;
+            if (DateTime.TryParse(x, out da) && DateTime.TryParse(y, out db))
+                r = da.CompareTo(db);
+            else
+            {
+                double na, nb;
+                bool ga = Number(x, out na), gb = Number(y, out nb);
+                if (ga && gb) r = na.CompareTo(nb);
+                else if (ga) r = -1;          // tall foer tekst
+                else if (gb) r = 1;
+                else r = string.Compare(x, y, StringComparison.CurrentCultureIgnoreCase);
+            }
+            return Descending ? -r : r;
+        }
+
+        static string Cell(ListViewItem it, int col)
+        {
+            if (it == null) return "";
+            if (col < 0 || col >= it.SubItems.Count) return "";
+            return it.SubItems[col].Text ?? "";
+        }
+
+        // Leser et tall fra starten av teksten og ganger opp med enheten, saa
+        // 1,9 TB sorteres over 900 GB.
+        static bool Number(string s, out double v)
+        {
+            v = 0;
+            if (string.IsNullOrEmpty(s)) return false;
+            string t = s.Trim().TrimStart('\u25cf', ' ');
+
+            int i = 0;
+            bool sett = false;
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            if (i < t.Length && (t[i] == '-' || t[i] == '+')) { sb.Append(t[i]); i++; }
+            while (i < t.Length && (char.IsDigit(t[i]) || t[i] == ',' || t[i] == '.'))
+            {
+                if (char.IsDigit(t[i])) sett = true;
+                sb.Append(t[i] == '.' ? ',' : t[i]);
+                i++;
+            }
+            if (!sett) return false;
+
+            double tall;
+            if (!double.TryParse(sb.ToString().Replace(",", System.Globalization.CultureInfo.CurrentCulture
+                    .NumberFormat.NumberDecimalSeparator), out tall))
+                return false;
+
+            string rest = t.Substring(i).TrimStart().ToUpperInvariant();
+            double faktor = 1;
+            if (rest.StartsWith("KB")) faktor = 1024;
+            else if (rest.StartsWith("MB")) faktor = 1024 * 1024;
+            else if (rest.StartsWith("GB")) faktor = 1024d * 1024 * 1024;
+            else if (rest.StartsWith("TB")) faktor = 1024d * 1024 * 1024 * 1024;
+            else if (rest.StartsWith("MS")) faktor = 0.001;
+            else if (rest.StartsWith("S")) faktor = 1;
+
+            v = tall * faktor;
+            return true;
         }
     }
 }

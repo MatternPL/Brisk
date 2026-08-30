@@ -182,6 +182,7 @@ namespace Brisk
             AddNav(navHost, "drivere", L.T("Oppdateringer"));
             AddNav(navHost, "nettverk", L.T("Nettverk"));
             AddNav(navHost, "helse", L.T("Helse"));
+            AddNav(navHost, "spill", L.T("Spill"));
             AddNav(navHost, "minne", L.T("Minne"));
             AddNav(navHost, "oppstart", L.T("Oppstart"));
             AddNav(navHost, "diskplass", L.T("Diskplass"));
@@ -249,6 +250,7 @@ namespace Brisk
                 case "oppstart": return L.T("Oppstart");
                 case "minne": return L.T("Minne");
                 case "helse": return L.T("Helse");
+                case "spill": return L.T("Spill");
                 case "nettverk": return L.T("Nettverk");
                 case "drivere": return L.T("Oppdateringer");
                 case "programmer": return L.T("Programvare");
@@ -268,6 +270,7 @@ namespace Brisk
                 case "oppstart": return L.T("Det som starter med Windows.");
                 case "minne": return L.T("Hva RAM-en brukes til.");
                 case "helse": return L.T("Disker, kræsj og batteri.");
+                case "spill": return L.T("Det som står i veien for bilder per sekund.");
                 case "nettverk": return L.T("Er tilkoblingen som den skal?");
                 case "drivere": return L.T("Fra Windows Update.");
                 case "programmer": return L.T("Oppdater eller fjern programmer.");
@@ -287,6 +290,7 @@ namespace Brisk
                 case "oppstart": return PageStartup();
                 case "minne": return PageMemory();
                 case "helse": return PageHealth();
+                case "spill": return PageGame();
                 case "nettverk": return PageNetwork();
                 case "drivere": return PageDrivers();
                 case "programmer": return PageApps();
@@ -392,6 +396,8 @@ namespace Brisk
         Panel heroCard;
         Color heroColor = Theme.Good;
         Label ovRam, ovRamSub, ovDisk, ovDiskSub, ovStart, ovStartSub, ovJunk, ovJunkSub;
+        Label ovWear, ovWearSub, ovCrash, ovCrashSub;
+        Panel ovMachine;
         Bar ovRamBar, ovDiskBar;
         ListView lvFindings;
         FlatBtn btnScan, btnCleanNow;
@@ -445,38 +451,72 @@ namespace Brisk
             // --- fire tall ---
             Panel cards = new Panel();
             cards.Dock = DockStyle.Top;
-            cards.Height = 140;
+            cards.Height = 268;
             cards.BackColor = Theme.Bg;
             cards.Padding = new Padding(0, 14, 0, 0);
 
             Panel c1 = StatCard(out ovRam, out ovRamSub, L.T("Minne"), out ovRamBar);
             Panel c2 = StatCard(out ovDisk, out ovDiskSub, L.T("Ledig plass"), out ovDiskBar);
-            Panel c3 = StatCard(out ovStart, out ovStartSub, L.T("Starter med Windows"), null);
-            Panel c4 = StatCard(out ovJunk, out ovJunkSub, L.T("Søppel"), null);
+            Panel c3 = StatCard(out ovJunk, out ovJunkSub, L.T("Søppel"), null);
+            Panel c4 = StatCard(out ovStart, out ovStartSub, L.T("Starter med Windows"), null);
+            Panel c5 = StatCard(out ovWear, out ovWearSub, L.T("Diskslitasje"), null);
+            Panel c6 = StatCard(out ovCrash, out ovCrashSub, L.T("Blåskjermer"), null);
 
+            // Tre i bredden, to rader. Seks paa rad ble saa smalt at bade
+            // tallene og undertekstene maatte kuttes.
             TableLayoutPanel grid = new TableLayoutPanel();
             grid.Dock = DockStyle.Fill;
-            grid.ColumnCount = 4;
-            grid.RowCount = 1;
+            grid.ColumnCount = 3;
+            grid.RowCount = 2;
             grid.BackColor = Theme.Bg;
-            for (int i = 0; i < 4; i++)
-                grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+            for (int i = 0; i < 3; i++)
+                grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 3f));
+            grid.RowStyles.Add(new RowStyle(SizeType.Percent, 50f));
+            grid.RowStyles.Add(new RowStyle(SizeType.Percent, 50f));
             grid.Controls.Add(Wrap(c1), 0, 0);
             grid.Controls.Add(Wrap(c2), 1, 0);
             grid.Controls.Add(Wrap(c3), 2, 0);
-            grid.Controls.Add(Wrap(c4), 3, 0);
+            grid.Controls.Add(Wrap(c4), 0, 1);
+            grid.Controls.Add(Wrap(c5), 1, 1);
+            grid.Controls.Add(Wrap(c6), 2, 1);
             cards.Controls.Add(grid);
 
             // --- funn ---
+            Panel bunn = new Panel();
+            bunn.Dock = DockStyle.Fill;
+            bunn.BackColor = Theme.Bg;
+            bunn.Padding = new Padding(0, 14, 0, 0);
+
+            TableLayoutPanel to = new TableLayoutPanel();
+            to.Dock = DockStyle.Fill;
+            to.BackColor = Theme.Bg;
+            to.ColumnCount = 2;
+            to.RowCount = 1;
+            to.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 63f));
+            to.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 37f));
+
             Panel listHost = new Panel();
             listHost.Dock = DockStyle.Fill;
             listHost.BackColor = Theme.Bg;
-            listHost.Padding = new Padding(0, 14, 0, 0);
-            lvFindings = ListIn(listHost, false, L.T("Funn"), "640", L.T("Hva du kan gjøre"), "420");
+            listHost.Padding = new Padding(0, 0, 14, 0);
+            lvFindings = ListIn(listHost, false, L.T("Funn"), "310", L.T("Hva du kan gjøre"), "215");
             lvFindings.DoubleClick += delegate { OpenFinding(); };
             listHost.Controls.Add(SectionLabel(L.T("Verdt å se på")));
 
-            p.Controls.Add(listHost);
+            // Maskinen til hoyre. Fylles i bakgrunnen, se RefreshMachine.
+            Panel maskinHost = new Panel();
+            maskinHost.Dock = DockStyle.Fill;
+            maskinHost.BackColor = Theme.Bg;
+            ovMachine = Theme.MakeCard();
+            ovMachine.Dock = DockStyle.Fill;
+            maskinHost.Controls.Add(ovMachine);
+            maskinHost.Controls.Add(SectionLabel(L.T("Denne maskinen")));
+
+            to.Controls.Add(listHost, 0, 0);
+            to.Controls.Add(maskinHost, 1, 0);
+            bunn.Controls.Add(to);
+
+            p.Controls.Add(bunn);
             p.Controls.Add(cards);
             p.Controls.Add(heroHost);
 
@@ -486,8 +526,46 @@ namespace Brisk
             // hva det var eller velge bort noe.
             btnCleanNow.Click += delegate { Show("rydding"); };
 
-            Defer(delegate { LayoutHero(); RefreshOverview(); });
+            Defer(delegate { LayoutHero(); RefreshOverview(); RefreshMachine(); });
             return p;
+        }
+
+        // Henter maskininfo i bakgrunnen og tegner den som etikettpar.
+        // WMI-oppslagene tar noen hundre millisekunder hver, saa de skal ikke
+        // holde vinduet igjen mens forsida aapnes.
+        async void RefreshMachine()
+        {
+            List<MachineLine> linjer = null;
+            try
+            {
+                await System.Threading.Tasks.Task.Run(delegate { linjer = MachineInfo.Read(); });
+            }
+            catch (Exception) { return; }
+            if (linjer == null || ovMachine == null || ovMachine.IsDisposed) return;
+
+            ovMachine.Controls.Clear();
+            int y = 16;
+            foreach (MachineLine ml in linjer)
+            {
+                Label k = Theme.Lbl(L.T(ml.Label), Theme.FSmall, Theme.Muted);
+                k.Location = new Point(18, y);
+                Label v = Theme.Lbl(ml.Value, Theme.FSmall, Theme.Text);
+                v.AutoSize = false;
+                v.Location = new Point(18, y + 18);
+                v.Height = 18;
+                v.Width = Math.Max(120, ovMachine.Width - 36);
+                ovMachine.Controls.Add(k);
+                ovMachine.Controls.Add(v);
+                y += 38;
+            }
+
+            Panel kort = ovMachine;
+            ovMachine.Resize += delegate
+            {
+                foreach (Control c in kort.Controls)
+                    if (c is Label && c.Font == Theme.FSmall && c.ForeColor == Theme.Text)
+                        c.Width = Math.Max(120, kort.Width - 36);
+            };
         }
 
         void LayoutHero()
@@ -510,24 +588,50 @@ namespace Brisk
             Panel w = new Panel();
             w.Dock = DockStyle.Fill;
             w.BackColor = Theme.Bg;
-            w.Padding = new Padding(0, 0, 14, 0);
+            w.Padding = new Padding(0, 0, 14, 12);
             inner.Dock = DockStyle.Fill;
             w.Controls.Add(inner);
             return w;
         }
 
+        // Kortet maa folge bredden sin. Med seks kort paa rad er hvert av dem
+        // rundt 110 px, og bade stripa og tekstene rant utenfor da de hadde
+        // faste bredder.
         Panel StatCard(out Label big, out Label sub, string caption, out Bar bar)
         {
             Panel c = Theme.MakeCard();
+
             Label cap = Theme.Lbl(caption, Theme.FSmall, Theme.Muted);
             cap.Location = new Point(18, 14);
+            cap.AutoSize = false;
+            cap.Height = 18;
+            cap.AutoEllipsis = true;
+
             big = Theme.Lbl("—", Theme.FBig, Theme.Text);
             big.Location = new Point(15, 34);
+            big.AutoSize = false;
+            big.Height = 44;
+            big.AutoEllipsis = true;
+
             sub = Theme.Lbl("", Theme.FSmall, Theme.Muted);
             sub.Location = new Point(18, 96);
+            sub.AutoSize = false;
+            sub.Height = 18;
+            sub.AutoEllipsis = true;
+
             bar = new Bar();
             bar.Location = new Point(18, 82);
-            bar.Width = 170;
+
+            Label c2 = cap; Label b2 = big; Label s2 = sub; Bar r2 = bar;
+            c.Resize += delegate
+            {
+                int w = Math.Max(40, c.Width - 36);
+                c2.Width = w;
+                b2.Width = Math.Max(40, c.Width - 30);
+                s2.Width = w;
+                r2.Width = w;
+            };
+
             c.Controls.Add(cap);
             c.Controls.Add(big);
             c.Controls.Add(sub);
@@ -586,6 +690,45 @@ namespace Brisk
 
                 ovJunk.Text = junkFound >= 0 ? Util.Bytes(junkFound) : "—";
                 ovJunkSub.Text = junkFound >= 0 ? "" : L.T("ikke målt");
+
+                // Verste disk. Tallet kommer fra disken selv naar den svarer,
+                // ellers fra Windows - se NvmeTools.
+                int verst = -1;
+                string verstNavn = "";
+                try
+                {
+                    foreach (DriveWear d in HealthTools.Drives())
+                        if (d.Wear > verst) { verst = d.Wear; verstNavn = d.Name; }
+                }
+                catch (Exception) { }
+                if (verst >= 0)
+                {
+                    ovWear.Text = verst + " %";
+                    ovWear.ForeColor = verst >= 80 ? Theme.Bad : verst >= 50 ? Theme.Warn : Theme.Text;
+                    ovWearSub.Text = verstNavn.Length > 22 ? verstNavn.Substring(0, 22) : verstNavn;
+                }
+                else
+                {
+                    ovWear.Text = "—";
+                    ovWearSub.Text = L.T("ikke rapportert");
+                }
+
+                // Blaaskjermer siste 30 dager.
+                int bsod = 0;
+                try
+                {
+                    DateTime grense = DateTime.Now.AddDays(-30);
+                    foreach (CrashEvent ce in HealthTools.Crashes(40))
+                        if (ce.Time >= grense) bsod++;
+                }
+                catch (Exception) { bsod = -1; }
+                if (bsod < 0) { ovCrash.Text = "—"; ovCrashSub.Text = L.T("ikke lest"); }
+                else
+                {
+                    ovCrash.Text = bsod.ToString();
+                    ovCrash.ForeColor = bsod > 0 ? Theme.Warn : Theme.Good;
+                    ovCrashSub.Text = L.T("siste 30 dager");
+                }
 
                 // --- funn ---
                 findingWorst = 0;

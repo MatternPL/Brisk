@@ -179,6 +179,22 @@ namespace Brisk
                         g.DrawLine(p, x + s * 0.34f, y + s * 0.74f, x + s * 0.68f, y + s * 0.74f);
                         break;
 
+                    case "spill":               // spillkontroll
+                        g.DrawArc(p, x, y + s * 0.24f, s * 0.52f, s * 0.52f, 90, 180);
+                        g.DrawArc(p, x + s * 0.48f, y + s * 0.24f, s * 0.52f, s * 0.52f, 270, 180);
+                        g.DrawLine(p, x + s * 0.26f, y + s * 0.24f, x + s * 0.74f, y + s * 0.24f);
+                        g.DrawLine(p, x + s * 0.26f, y + s * 0.76f, x + s * 0.74f, y + s * 0.76f);
+                        g.DrawLine(p, x + s * 0.20f, y + s * 0.50f, x + s * 0.36f, y + s * 0.50f);
+                        g.DrawLine(p, x + s * 0.28f, y + s * 0.42f, x + s * 0.28f, y + s * 0.58f);
+                        g.FillEllipse(b, x + s * 0.64f, y + s * 0.44f, s * 0.12f, s * 0.12f);
+                        break;
+
+                    case "fart":               // fartsstreker
+                        g.DrawLine(p, x + s * 0.06f, y + s * 0.26f, x + s * 0.74f, y + s * 0.26f);
+                        g.DrawLine(p, x + s * 0.22f, y + s * 0.50f, x + s * 0.94f, y + s * 0.50f);
+                        g.DrawLine(p, x + s * 0.06f, y + s * 0.74f, x + s * 0.62f, y + s * 0.74f);
+                        break;
+
                     case "logg":                // linjer
                         for (int i = 0; i < 3; i++)
                         {
