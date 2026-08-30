@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -135,32 +136,27 @@ namespace Brisk
             if (toolsPicked == null) return;
             ExternalTool t = toolsPicked.Tool;
 
-            // Kommandoer som henter kode fra nettet fortjener et ekstra steg.
-            // Brisk kan ikke se hva som ligger paa den andre siden.
-            if (t.Remote)
-            {
-                if (MessageBox.Show(this,
-                        L.F("{0} startes med denne kommandoen:", t.Name) + "\r\n\r\n" +
-                        t.Command + "\r\n\r\n" +
-                        L.T("Den henter kode fra nettet og kjører den med en gang, som administrator. Brisk kan ikke se hva koden gjør før den kjører. Dette er måten laget bak verktøyet selv anbefaler.") +
-                        "\r\n\r\n" + L.T("Fortsette?"),
-                        t.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
-                    return;
-            }
+            // Remote betyr at kommandoen henter kode fra nettet. Det vises med
+            // oransje stripe paa flisen og oransje kommandotekst ved Kjor-knappen,
+            // ikke med en ekstra dialog - kommandoen staar allerede synlig, og
+            // UAC spor uansett for noe kjores som administrator.
 
+            // Verktoy med eget grensesnitt aapnes i sitt eget vindu, som blir
+            // staaende (-NoExit) saa brukeren kan jobbe videre der.
             if (t.OwnWindow)
             {
+                string ownExe, ownArgs;
+                Shell(t, out ownExe, out ownArgs);
+                if (ownExe == "powershell.exe") ownArgs = "-NoExit " + ownArgs;
                 try
                 {
-                    ProcessStartInfo psi = new ProcessStartInfo("powershell.exe");
-                    psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -Command \"" +
-                                    t.Command.Replace("\"", "\\\"") + "\"";
+                    ProcessStartInfo psi = new ProcessStartInfo(ownExe, ownArgs);
                     psi.UseShellExecute = true;
                     psi.Verb = "runas";
                     Process.Start(psi);
                     Append(toolsOut, "");
                     Append(toolsOut, "> " + t.Command);
-                    Append(toolsOut, L.F("{0} åpnet i sitt eget vindu. Utdata derfra vises ikke her.", t.Name));
+                    Append(toolsOut, L.F("{0} åpnet i sitt eget vindu.", t.Name));
                     Util.Log("Verktoy startet: " + t.Command);
                 }
                 catch (Exception ex)
@@ -170,13 +166,65 @@ namespace Brisk
                 return;
             }
 
-            string full = Runnable(t.Command);
+            string id = WingetId(t.Command);
+
+            // winget-pakker: installer bare hvis den mangler, og aapne den etterpaa.
+            if (id.Length > 0)
+            {
+                toolsRun.Enabled = false;
+                toolsStop.Enabled = true;
+                Busy(true);
+
+                bool har = false;
+                Status(L.F("Ser etter {0} …", t.Name));
+                await System.Threading.Tasks.Task.Run(delegate { har = Installed(id); });
+
+                if (!har)
+                {
+                    string exe1, args1;
+                    Shell(t, out exe1, out args1);
+                    Append(toolsOut, "");
+                    Append(toolsOut, "> " + Runnable(t.Command));
+                    Util.Log("Verktoy: " + exe1 + " " + args1);
+                    Status(L.F("Installerer {0} …", t.Name));
+
+                    int rc = -1;
+                    await System.Threading.Tasks.Task.Run(delegate
+                    {
+                        rc = Util.Run(exe1, args1,
+                            delegate(string line) { Append(toolsOut, line); },
+                            delegate(Process proc) { toolsProc = proc; });
+                    });
+                    toolsProc = null;
+
+                    if (rc != 0)
+                    {
+                        Append(toolsOut, WingetSays(rc));
+                        toolsStop.Enabled = false;
+                        toolsRun.Enabled = true;
+                        Busy(false);
+                        Status("");
+                        return;
+                    }
+                    Append(toolsOut, L.F("{0} er installert.", t.Name));
+                }
+                else Append(toolsOut, L.F("{0} er allerede installert.", t.Name));
+
+                toolsStop.Enabled = false;
+                toolsRun.Enabled = true;
+                Busy(false);
+                Status("");
+                Open(t);
+                return;
+            }
+
+            // Alt annet: kjor og vis utdata her.
             string exe, args;
-            Split(full, out exe, out args);
+            Shell(t, out exe, out args);
 
             Append(toolsOut, "");
-            Append(toolsOut, "> " + full);
-            Util.Log("Verktoy: " + full);
+            Append(toolsOut, "> " + Runnable(t.Command));
+            Util.Log("Verktoy: " + exe + " " + args);
 
             toolsRun.Enabled = false;
             toolsStop.Enabled = true;
@@ -200,6 +248,127 @@ namespace Brisk
             Append(toolsOut, code == 0
                 ? L.F("{0} er ferdig.", t.Name)
                 : L.F("Avsluttet med kode {0}.", code));
+        }
+
+        // Starter programmet etter installasjon. Ser tre steder, i denne
+        // rekkefolgen: exe-fila winget legger i Links-mappa, snarveien i
+        // Start-menyen, og til slutt PATH.
+        void Open(ExternalTool t)
+        {
+            string key = t.Launch.Length > 0 ? t.Launch : t.Name;
+
+            string links = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                @"Microsoft\WinGet\Links", key + ".exe");
+            if (File.Exists(links) && Start(links, t)) return;
+
+            string lnk = FindShortcut(key);
+            if (lnk != null && Start(lnk, t)) return;
+
+            if (Start(key, t)) return;
+
+            Append(toolsOut, L.F("Fant ikke {0} etter installasjonen. Åpne den fra Start-menyen.", t.Name));
+        }
+
+        bool Start(string what, ExternalTool t)
+        {
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo(what);
+                psi.UseShellExecute = true;
+                Process.Start(psi);
+                Append(toolsOut, L.F("Åpnet {0}.", t.Name));
+                Util.Log("Verktoy aapnet: " + what);
+                return true;
+            }
+            catch (Exception) { return false; }
+        }
+
+        // Leter etter en snarvei i Start-menyen, bade felles og for denne brukeren.
+        static string FindShortcut(string key)
+        {
+            string[] roots = new string[]
+            {
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu),
+                Environment.GetFolderPath(Environment.SpecialFolder.StartMenu),
+            };
+            foreach (string root in roots)
+            {
+                try
+                {
+                    if (!Directory.Exists(root)) continue;
+                    foreach (string f in Directory.GetFiles(root, "*.lnk", SearchOption.AllDirectories))
+                    {
+                        string name = Path.GetFileNameWithoutExtension(f);
+                        if (name.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0) return f;
+                    }
+                }
+                catch (Exception) { }
+            }
+            return null;
+        }
+
+        // "winget install Noe.Id --flagg" -> "Noe.Id". Tom streng hvis det ikke
+        // er en winget-installasjon.
+        static string WingetId(string command)
+        {
+            string c = (command ?? "").Trim();
+            if (!c.StartsWith("winget install ", StringComparison.OrdinalIgnoreCase)) return "";
+            string rest = c.Substring("winget install ".Length).Trim();
+            int sp = rest.IndexOf(' ');
+            if (sp > 0) rest = rest.Substring(0, sp);
+            return rest.Trim('"');
+        }
+
+        // exit 0 = pakken finnes, -1978335212 = den finnes ikke. Maalt.
+        static bool Installed(string id)
+        {
+            try
+            {
+                int code;
+                Util.RunCapture("winget",
+                    "list --id \"" + id + "\" --exact --disable-interactivity", out code);
+                return code == 0;
+            }
+            catch (Exception) { return false; }
+        }
+
+        // De vanligste winget-kodene i klartekst i stedet for et negativt tall.
+        static string WingetSays(int code)
+        {
+            switch (code)
+            {
+                case -1978335189: return L.T("Allerede installert og oppdatert.");
+                case -1978335212: return L.T("Fant ikke pakken. Sjekk ID-en.");
+                case -1978334972: return L.T("Installasjonen ble avbrutt.");
+                case -1978335215: return L.T("Ingen kilde svarte. Er du på nett?");
+            }
+            return L.F("Avsluttet med kode {0}.", code);
+        }
+
+        // Avgjor hvilket program som faktisk startes, og med hvilke argumenter.
+        // Feltet Shell paa verktoyet styrer dette:
+        //   ""           programmet kjores rett, med argumentene sine
+        //   "powershell" hele linja sendes til powershell -Command
+        //   "cmd"        hele linja sendes til cmd /c
+        static void Shell(ExternalTool t, out string exe, out string args)
+        {
+            string cmd = Runnable(t.Command);
+
+            if (string.Equals(t.Shell, "powershell", StringComparison.OrdinalIgnoreCase))
+            {
+                exe = "powershell.exe";
+                args = "-NoProfile -ExecutionPolicy Bypass -Command \"" +
+                       cmd.Replace("\"", "\\\"") + "\"";
+                return;
+            }
+            if (string.Equals(t.Shell, "cmd", StringComparison.OrdinalIgnoreCase))
+            {
+                exe = "cmd.exe";
+                args = "/c " + cmd;
+                return;
+            }
+            Split(cmd, out exe, out args);
         }
 
         // winget spor om kildevilkaar og pakkevilkaar forste gang. Brisk fanger

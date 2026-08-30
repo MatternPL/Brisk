@@ -2,109 +2,173 @@ using System.Collections.Generic;
 
 namespace Brisk
 {
-    // Ett verktoy som Brisk peker paa, men aldri kjorer selv.
+    // Ett verktoy paa Verktoy-sida.
     public class ExternalTool
     {
-        public string Name = "";        // vises som overskrift, oversettes ikke
+        public string Name = "";        // overskrift paa flisen, oversettes ikke
         public string By = "";          // hvem som har laget det
-        public string Licence = "";     // "MIT", "Gratis", "Freeware" ...
-        public string What = "";        // én linje paa norsk, gaar gjennom L.T
-        public string Command = "";     // kommandoen brukeren kopierer
+        public string Licence = "";     // "MIT", "Gratis", "GPLv3" ...
+        public string What = "";        // én kort linje paa norsk, gaar gjennom L.T
+        public string Command = "";     // kommandoen som vises og kjores
         public string Url = "";         // prosjektsiden
         public string Icon = "verktoy"; // ikonnokkel, se src/Icons.cs
-        public bool Remote;             // kommandoen henter og kjorer kode fra nettet
-        public bool OwnWindow;          // aapner sitt eget vindu, utdata vises ikke her
+
+        // Hvordan kommandoen skal kjores:
+        //   ""           program og argumenter direkte. Gjelder winget, sfc,
+        //                ipconfig - alt som er ett program med flagg.
+        //   "powershell" hele linja sendes til powershell -Command. Trengs saa
+        //                snart du bruker ror, cmdlets, variabler eller & 'sti'.
+        //   "cmd"        hele linja sendes til cmd /c. For gammeldagse
+        //                bat-kommandoer og %-variabler.
+        public string Shell = "";
+
+        // Hva som startes naar verktoyet er installert. Kan vaere navnet paa
+        // exe-fila winget la i Links-mappa ("procexp"), eller et ord som finnes
+        // i snarveien i Start-menyen ("CrystalDiskInfo"). Er den tom, brukes
+        // Name. Gjelder ikke verktoy som selv er en kommando.
+        public string Launch = "";
+
+        public bool Remote;             // henter kode fra nettet
+        public bool OwnWindow;          // aapner eget vindu -> hevet, utdata vises ikke her
     }
 
     // ==================================================================
     //  VERKTOY-SIDA
     // ==================================================================
-    // Vil du legge til et verktoy: legg en ny blokk i listen under, og en
-    // engelsk oversettelse av What i src/Lang.cs. Se docs/verktoy.md.
+    // Legg til et verktoy ved aa lime inn en blokk under, og en engelsk
+    // oversettelse av What i src/Lang.cs. Se docs/verktoy.md.
     //
     // Regelen for denne sida: kommandoen skal alltid staa synlig, saa brukeren
-    // ser hva som kjores for han trykker. Sett Remote=true hvis kommandoen
-    // henter kode fra nettet - da kommer det en ekstra bekreftelse.
+    // ser hva som kjores for han trykker.
     public static class ExternalTools
     {
         public static List<ExternalTool> All()
         {
             List<ExternalTool> l = new List<ExternalTool>();
 
-            l.Add(Make("WinUtil", "Chris Titus Tech", "MIT",
-                "Rydder Windows og fjerner apper du ikke ba om.",
-                "irm https://christitus.com/win | iex",
-                "https://github.com/ChrisTitusTech/winutil", "tilpass", true, true));
+            l.Add(new ExternalTool
+            {
+                Name = "WinUtil",
+                By = "Chris Titus Tech",
+                Licence = "MIT",
+                What = "Rydder Windows og fjerner apper du ikke ba om.",
+                Command = "irm https://christitus.com/win | iex",
+                Url = "https://github.com/ChrisTitusTech/winutil",
+                Icon = "tilpass",
+                Shell = "powershell",
+                Remote = true,
+                OwnWindow = true,
+            });
 
-            l.Add(Make("PowerToys", "Microsoft", "MIT",
-                "Ekstra Windows-verktøy fra Microsoft.",
-                "winget install Microsoft.PowerToys",
-                "https://github.com/microsoft/PowerToys", "verktoy"));
+            l.Add(new ExternalTool
+            {
+                Name = "PowerToys",
+                Launch = "PowerToys",
+                By = "Microsoft",
+                Licence = "MIT",
+                What = "Ekstra Windows-verktøy fra Microsoft.",
+                Command = "winget install Microsoft.PowerToys",
+                Url = "https://github.com/microsoft/PowerToys",
+                Icon = "verktoy",
+            });
 
-            l.Add(Make("Process Explorer", "Microsoft Sysinternals", "Gratis",
-                "Ser hvilken prosess som låser en fil.",
-                "winget install Microsoft.Sysinternals.ProcessExplorer",
-                "https://learn.microsoft.com/sysinternals/downloads/process-explorer", "logg"));
+            l.Add(new ExternalTool
+            {
+                Name = "Process Explorer",
+                Launch = "procexp",
+                By = "Microsoft Sysinternals",
+                Licence = "Gratis",
+                What = "Ser hvilken prosess som låser en fil.",
+                Command = "winget install Microsoft.Sysinternals.ProcessExplorer",
+                Url = "https://learn.microsoft.com/sysinternals/downloads/process-explorer",
+                Icon = "logg",
+            });
 
-            l.Add(Make("Autoruns", "Microsoft Sysinternals", "Gratis",
-                "Alt som starter med Windows.",
-                "winget install Microsoft.Sysinternals.Autoruns",
-                "https://learn.microsoft.com/sysinternals/downloads/autoruns", "oppstart"));
+            l.Add(new ExternalTool
+            {
+                Name = "Autoruns",
+                Launch = "Autoruns",
+                By = "Microsoft Sysinternals",
+                Licence = "Gratis",
+                What = "Alt som starter med Windows.",
+                Command = "winget install Microsoft.Sysinternals.Autoruns",
+                Url = "https://learn.microsoft.com/sysinternals/downloads/autoruns",
+                Icon = "oppstart",
+            });
 
-            l.Add(Make("CrystalDiskInfo", "Crystal Dew World", "MIT",
-                "Diskhelse. Varsler før en disk ryker.",
-                "winget install CrystalDewWorld.CrystalDiskInfo",
-                "https://crystalmark.info/en/software/crystaldiskinfo/", "disk"));
+            l.Add(new ExternalTool
+            {
+                Name = "CrystalDiskInfo",
+                Launch = "CrystalDiskInfo",
+                By = "Crystal Dew World",
+                Licence = "MIT",
+                What = "Diskhelse. Varsler før en disk ryker.",
+                Command = "winget install CrystalDewWorld.CrystalDiskInfo",
+                Url = "https://crystalmark.info/en/software/crystaldiskinfo/",
+                Icon = "disk",
+            });
 
-            l.Add(Make("HWiNFO", "REALiX", "Gratis til privat bruk",
-                "Temperaturer, vifter og sensorer.",
-                "winget install REALiX.HWiNFO",
-                "https://www.hwinfo.com/", "temperatur"));
+            l.Add(new ExternalTool
+            {
+                Name = "HWiNFO",
+                Launch = "HWiNFO",
+                By = "REALiX",
+                Licence = "Gratis til privat bruk",
+                What = "Temperaturer, vifter og sensorer.",
+                Command = "winget install REALiX.HWiNFO",
+                Url = "https://www.hwinfo.com/",
+                Icon = "temperatur",
+            });
 
-            l.Add(Make("O&O ShutUp10++", "O&O Software", "Gratis",
-                "Slår av sporing og telemetri i Windows.",
-                "winget install OO-Software.ShutUp10",
-                "https://www.oo-software.com/en/shutup10", "skjold"));
+            l.Add(new ExternalTool
+            {
+                Name = "O&O ShutUp10++",
+                Launch = "OOSU10",
+                By = "O&O Software",
+                Licence = "Gratis",
+                What = "Slår av sporing og telemetri i Windows.",
+                Command = "winget install OO-Software.ShutUp10",
+                Url = "https://www.oo-software.com/en/shutup10",
+                Icon = "skjold",
+            });
 
-            l.Add(Make("Everything", "voidtools", "Gratis",
-                "Finner filer på navn, med én gang.",
-                "winget install voidtools.Everything",
-                "https://www.voidtools.com/", "sok"));
+            l.Add(new ExternalTool
+            {
+                Name = "Everything",
+                Launch = "Everything",
+                By = "voidtools",
+                Licence = "Gratis",
+                What = "Finner filer på navn, med én gang.",
+                Command = "winget install voidtools.Everything",
+                Url = "https://www.voidtools.com/",
+                Icon = "sok",
+            });
 
-            l.Add(Make("Rufus", "Pete Batard", "GPLv3",
-                "Lager oppstartbar USB fra en ISO.",
-                "winget install Rufus.Rufus",
-                "https://rufus.ie/", "usb"));
+            l.Add(new ExternalTool
+            {
+                Name = "Rufus",
+                Launch = "Rufus",
+                By = "Pete Batard",
+                Licence = "GPLv3",
+                What = "Lager oppstartbar USB fra en ISO.",
+                Command = "winget install Rufus.Rufus",
+                Url = "https://rufus.ie/",
+                Icon = "usb",
+            });
 
-            l.Add(Make("7-Zip", "Igor Pavlov", "LGPL",
-                "Pakker ut alle arkivformater.",
-                "winget install 7zip.7zip",
-                "https://www.7-zip.org/", "programvare"));
+            l.Add(new ExternalTool
+            {
+                Name = "7-Zip",
+                Launch = "7-Zip File Manager",
+                By = "Igor Pavlov",
+                Licence = "LGPL",
+                What = "Pakker ut alle arkivformater.",
+                Command = "winget install 7zip.7zip",
+                Url = "https://www.7-zip.org/",
+                Icon = "programvare",
+            });
 
             return l;
-        }
-
-        static ExternalTool Make(string name, string by, string licence,
-                                 string what, string command, string url, string icon)
-        {
-            return Make(name, by, licence, what, command, url, icon, false, false);
-        }
-
-        static ExternalTool Make(string name, string by, string licence,
-                                 string what, string command, string url, string icon,
-                                 bool remote, bool ownWindow)
-        {
-            ExternalTool t = new ExternalTool();
-            t.Name = name;
-            t.By = by;
-            t.Licence = licence;
-            t.What = what;
-            t.Command = command;
-            t.Url = url;
-            t.Icon = icon;
-            t.Remote = remote;
-            t.OwnWindow = ownWindow;
-            return t;
         }
     }
 }

@@ -23,23 +23,70 @@ enn den fila og språkfila for å legge til et nytt verktøy.
 Åpne `src/ExternalTools.cs` og legg til en blokk i `All()`:
 
 ```csharp
-l.Add(Make("Notepad++", "Don Ho", "GPLv3",
-    "Tekstredigerer som åpner store filer uten å henge.",
-    "winget install Notepad++.Notepad++",
-    "https://notepad-plus-plus.org/", "dokument"));
+l.Add(new ExternalTool
+{
+    Name = "Notepad++",
+    By = "Don Ho",
+    Licence = "GPLv3",
+    What = "Tekstredigerer som åpner store filer uten å henge.",
+    Command = "winget install Notepad++.Notepad++",
+    Url = "https://notepad-plus-plus.org/",
+    Icon = "dokument",
+});
 ```
 
-Feltene, i rekkefølge:
+Feltene, alle med navn så rekkefølgen ikke spiller noen rolle:
 
 | Felt | Hva det er |
 |---|---|
-| **Navn** | Står øverst på flisen. Oversettes ikke. |
-| **Laget av** | Vises nederst på flisen, med lav kontrast. |
-| **Lisens** | `MIT`, `GPLv3`, `Gratis`, `Gratis til privat bruk` … Bruker du en ny lisenstekst, må den oversettes som alt annet. |
-| **Beskrivelse** | **Én kort setning.** Flisen har plass til omtrent 60 tegn på tre linjer. Skriv hva det gjør, ikke hva det er. |
-| **Kommando** | Det som faktisk kjøres. |
-| **Nettadresse** | Prosjektsiden. |
-| **Ikon** | Nøkkel fra `src/Icons.cs`. Se listen lenger ned. |
+| `Name` | Står øverst på flisen. Oversettes ikke. |
+| `By` | Vises nederst på flisen, med lav kontrast. |
+| `Licence` | `MIT`, `GPLv3`, `Gratis`, `Gratis til privat bruk` … Bruker du en ny lisenstekst, må den oversettes som alt annet. |
+| `What` | **Én kort setning.** Flisen har plass til omtrent 60 tegn på tre linjer. Skriv hva det gjør, ikke hva det er. |
+| `Command` | Det som faktisk kjøres, og som står synlig på sida. |
+| `Url` | Prosjektsiden. |
+| `Icon` | Nøkkel fra `src/Icons.cs`. Se listen lenger ned. |
+| `Shell` | Hvordan kommandoen kjøres. Se neste avsnitt. |
+| `Launch` | Hva som åpnes etter installasjon. Se neste avsnitt. |
+| `Remote` | Merker at kommandoen henter kode fra nettet. |
+| `OwnWindow` | Verktøyet åpner sitt eget vindu. |
+
+De fire siste kan du utelate — de blir tomme og `false`.
+
+## Hva som skjer når noen trykker Kjør
+
+For en winget-pakke gjør Brisk dette, i ett klikk:
+
+1. Sjekker om pakken alt er installert (`winget list --id … --exact`)
+2. Installerer den bare hvis den mangler, med utdata i konsollen
+3. **Åpner programmet**
+
+Punkt 3 er hele poenget — er verktøyet installert fra før, hopper den rett dit.
+
+`Launch` sier hvordan programmet finnes igjen. Brisk leter tre steder, i denne
+rekkefølgen:
+
+1. `%LOCALAPPDATA%\Microsoft\WinGet\Links\<Launch>.exe` — her legger winget
+   alias for verktøy som kommer som zip, for eksempel `procexp.exe`
+2. En snarvei i Start-menyen der navnet **inneholder** `Launch`
+3. `Launch` som kommando på PATH
+
+Er `Launch` tom, brukes `Name`. Det holder ofte, men ikke alltid: O&O ShutUp10++
+heter `OOSU10` i Start-menyen, og 7-Zip heter *7-Zip File Manager*. Derfor står
+de eksplisitt.
+
+Finn riktig verdi slik, etter at du har installert verktøyet én gang:
+
+```powershell
+Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
+```
+
+```powershell
+Get-ChildItem "$env:ProgramData\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter *.lnk | Select-Object BaseName
+```
+
+Finner Brisk ingenting, sier konsollen fra at du må åpne det fra Start-menyen —
+den later ikke som om noe skjedde.
 
 ### Beskrivelsen
 
@@ -99,28 +146,62 @@ skriver den ut ferdige linjer du kan lime rett inn.
 
 ## Verktøy som ikke bruker winget
 
-To ekstra brytere finnes, og de settes ved å bruke den lange `Make(...)`:
+`Shell` bestemmer hvordan kommandoen faktisk startes. Dette er det du trenger når
+verktøyet ikke er en winget-pakke.
+
+| `Shell` | Hva som skjer | Bruk den når |
+|---|---|---|
+| *(utelatt)* | Første ord er programmet, resten er argumenter | `winget install …`, `sfc /scannow`, `ipconfig /all` — ett program med flagg |
+| `"powershell"` | Hele linja sendes til `powershell -NoProfile -ExecutionPolicy Bypass -Command` | Rør, cmdlets, variabler, `& 'sti\til\skript.ps1'` |
+| `"cmd"` | Hele linja sendes til `cmd /c` | Gammeldagse bat-kommandoer, `%VARIABLER%`, `&&` |
+
+Uten `Shell` deles kommandoen bare på første mellomrom. Det går bra for
+`winget install X`, men `Get-Process | Where-Object …` ville blitt forsøkt startet
+som et program som heter `Get-Process`, og feilet.
+
+### PowerShell-kommando
 
 ```csharp
-l.Add(Make("WinUtil", "Chris Titus Tech", "MIT",
-    "Rydder Windows og fjerner apper du ikke ba om.",
-    "irm https://christitus.com/win | iex",
-    "https://github.com/ChrisTitusTech/winutil", "tilpass", true, true));
-//                                                          ^^^^  ^^^^
-//                                                      Remote  OwnWindow
+l.Add(new ExternalTool
+{
+    Name = "Vis store filer",
+    By = "PowerShell",
+    Licence = "Gratis",
+    What = "Lister de tjue største filene i nedlastingsmappa.",
+    Command = "Get-ChildItem $env:USERPROFILE\\Downloads -File | Sort-Object Length -Descending | Select-Object -First 20 Name, Length",
+    Url = "https://learn.microsoft.com/powershell/",
+    Icon = "diskplass",
+    Shell = "powershell",
+});
 ```
 
-**`Remote`** — sett den når kommandoen henter kode fra nettet og kjører den med
-en gang. Da får flisen oransje stripe i stedet for blå, og brukeren får en ekstra
-bekreftelse som viser hele kommandoen før noe skjer. Brisk kan ikke se hva som
-ligger på den andre siden, og det skal brukeren få vite.
+### Eget skript
 
-**`OwnWindow`** — sett den når verktøyet åpner sitt eget vindu. Da startes det i
-hevet PowerShell, og konsollen sier fra at utdata ikke vises i Brisk. Uten denne
-prøver Brisk å fange utdata fra noe som aldri skriver noe, og det ser ut som om
-ingenting skjer.
+Har du et `.ps1`-skript, pek på det med `&`:
 
-Bruker du den korte `Make(...)` med sju felter, blir begge `false`.
+```csharp
+Command = "& 'C:\\Verktoy\\mitt-skript.ps1'",
+Shell   = "powershell",
+```
+
+Ligger skriptet på nettet og bare kan hentes med `irm … | iex`, setter du
+`Remote = true` i tillegg. Da får flisen oransje stripe og oransje kommandotekst,
+så det er tydelig at koden hentes utenfra.
+
+### Verktøy med eget vindu
+
+```csharp
+Shell     = "powershell",
+Remote    = true,
+OwnWindow = true,
+```
+
+`OwnWindow` starter kommandoen i **hevet** PowerShell, utenfor Brisk. Bruk den når
+verktøyet har sitt eget grensesnitt — WinUtil, for eksempel. Konsollen sier da fra
+at utdata ikke vises i Brisk, i stedet for å stå tom og se ut som ingenting skjer.
+
+Uten `OwnWindow` fanges utdata og strømmes til konsollen linje for linje, og
+Stopp-knappen kan avbryte den.
 
 ---
 
