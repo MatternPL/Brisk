@@ -7,9 +7,6 @@ that already ships with Windows 10 and 11.
 
 English by default. Norwegian is one click away, bottom left.
 
-> Brisk was called *Vaktmester* up to version 1.0. The installer removes the old one
-> automatically.
-
 ---
 
 ## Getting it
