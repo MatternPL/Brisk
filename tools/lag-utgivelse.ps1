@@ -72,7 +72,28 @@ $ut = Join-Path $rot "oppdatering.json"
 $notatMappe = Join-Path $rot "docs\utgivelser"
 if (-not (Test-Path $notatMappe)) { New-Item -ItemType Directory -Path $notatMappe | Out-Null }
 $notatFil = Join-Path $notatMappe "$Versjon.md"
-$notatTekst = "# Brisk $Versjon`r`n`r`n$Notat`r`n"
+$notatTekst = @"
+# Brisk $Versjon
+
+### New
+
+-
+
+### Changed
+
+-
+
+### Fixed
+
+-
+
+<!-- Utkast fra manifestet. Del det opp i punktene over, og slett det du ikke
+     bruker. Skriv hva brukeren merker, ikke hva som ble endret i koden.
+     Denne teksten limes inn i "Describe this release" paa GitHub.
+
+$Notat
+-->
+"@
 [IO.File]::WriteAllText($notatFil, $notatTekst, (New-Object Text.UTF8Encoding $false))
 
 Write-Host ""

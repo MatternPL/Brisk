@@ -3,6 +3,10 @@
 Teksten som skal stå på hver utgivelse på GitHub. Lim inn i beskrivelsesfeltet
 når du redigerer utgivelsen.
 
+Fra og med 1.5.0 lager `utgivelse.cmd` fila selv, i `docs/utgivelser/<versjon>.md`,
+med seksjonene ferdig satt opp og manifest-teksten som utkast i en kommentar.
+Du fyller ut punktene og limer hele fila inn i «Describe this release».
+
 **Regler for disse tekstene**, så de blir like:
 
 - Tittel: `Brisk X.Y.Z` — ikke `vX.Y.Z`, ikke en commit-tittel
