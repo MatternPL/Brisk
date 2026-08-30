@@ -67,6 +67,14 @@ $json = @"
 $ut = Join-Path $rot "oppdatering.json"
 [IO.File]::WriteAllText($ut, $json, (New-Object Text.UTF8Encoding $false))
 
+# Skriver ogsaa teksten som skal staa paa utgivelsen paa GitHub, saa den ikke
+# blir en tilfeldig commit-melding. Tittelen skal vaere "Brisk X.Y.Z".
+$notatMappe = Join-Path $rot "docs\utgivelser"
+if (-not (Test-Path $notatMappe)) { New-Item -ItemType Directory -Path $notatMappe | Out-Null }
+$notatFil = Join-Path $notatMappe "$Versjon.md"
+$notatTekst = "# Brisk $Versjon`r`n`r`n$Notat`r`n"
+[IO.File]::WriteAllText($notatFil, $notatTekst, (New-Object Text.UTF8Encoding $false))
+
 Write-Host ""
 Write-Host "== Ferdig ==" -ForegroundColor Green
 Write-Host "  Versjon    : $Versjon"
@@ -74,9 +82,11 @@ Write-Host "  Installer  : $exe"
 Write-Host "  Størrelse  : $([math]::Round($size/1KB,1)) KB"
 Write-Host "  sha256     : $sha"
 Write-Host "  Manifest   : $ut"
+Write-Host "  Utgivelsestekst: $notatFil"
 Write-Host ""
 Write-Host "Neste steg:" -ForegroundColor Yellow
 Write-Host "  1. Last opp Brisk-Installer.exe til adressen over."
+Write-Host "     Tittel: Brisk $Versjon. Tekst: lim inn fra $notatFil."
 Write-Host "  2. Legg oppdatering.json der klientene henter den fra"
 Write-Host "     (se Updater.DefaultManifestUrl i src\Updater.cs)."
 Write-Host "  3. Klientene oppdager den innen et døgn, eller straks med"
