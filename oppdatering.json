@@ -1,7 +1,7 @@
 {
-  "versjon": "1.5.0",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.5.0/BriskInstaller.exe",
-  "sha256": "cf5c3b4652538747524f3cd5444a5f776036a80377ea2f608ed9ea49f57be97b",
-  "storrelse": 604160,
-  "notat": "Startup: turning off a scheduled task looked like it did nothing. The task was switched off in Windows, but the row kept its old status, so there was no way to tell. Startup also failed to read the program path for nine entries - shortcuts, batch files and values with doubled quotes - which left the publisher blank for them. Entries pointing at programs that are no longer installed are now marked in red; they start nothing and are safe to switch off. The Delays startup column showed an empty cell for most rows. Windows only measures programs it thinks noticeably slow startup, so a dash now says it has never measured that one."
+  "versjon": "1.6.0",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.0/BriskInstaller.exe",
+  "sha256": "e1fe2e36632952afc803e36435d72ffbea8376ac73b6043431dfb8126b45f540",
+  "storrelse": 647168,
+  "notat": "New Games page listing only the settings that can actually be measured in frames per second, each with an estimated range and an honest note about what it costs you. Overview rebuilt with six numbers and a This machine panel. Every list can be sorted by clicking a column heading. Layout fixes across every page so buttons, text and progress bars stay inside their boxes and scale with the window."
 }
