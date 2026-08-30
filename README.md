@@ -7,7 +7,7 @@ that already ships with Windows 10 and 11.
 
 English by default. Norwegian is one click away, bottom left.
 
-[![Buy me a beer](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20beer&emoji=%F0%9F%8D%BA&slug=9Z7mOpP2wb&button_colour=5F7FFF&font_colour=ffffff&font_family=Arial&outline_colour=000000&coffee_colour=FFDD00)](https://www.buymeacoffee.com/9Z7mOpP2wb)
+[![Buy me a beer](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20beer&emoji=%F0%9F%8D%BA&slug=mattern&button_colour=5F7FFF&font_colour=ffffff&font_family=Arial&outline_colour=000000&coffee_colour=FFDD00)](https://www.buymeacoffee.com/mattern)
 
 ---
 
@@ -162,7 +162,7 @@ devices and winget, and prints real numbers. `tools/sprak_sjekk.py` checks that 
 ## Supporting it
 
 Brisk is free and stays free. If it saved you some time, you can
-[buy me a beer](https://www.buymeacoffee.com/9Z7mOpP2wb).
+[buy me a beer](https://www.buymeacoffee.com/mattern).
 
 Money goes to a code signing certificate first. Windows warns about unknown
 publishers on every download, and a certificate is the only thing that removes
