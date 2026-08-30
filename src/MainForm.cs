@@ -428,12 +428,12 @@ namespace Brisk
             btnScan.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             Tip(btnScan, "Måler søppelfiler og ser etter ting som er verdt å gjøre noe med. Endrer ingenting.");
 
-            btnCleanNow = new FlatBtn(L.T("Rydd opp"));
-            btnCleanNow.Good().Big();
-            btnCleanNow.Width = 170;
+            btnCleanNow = new FlatBtn(L.T("Se hva som kan ryddes"));
+            btnCleanNow.Primary().Big();
+            btnCleanNow.Width = 210;
             btnCleanNow.Visible = false;
             btnCleanNow.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            Tip(btnCleanNow, "Sletter bare det som er merket trygt. Windows.old og dine egne filer røres aldri.");
+            Tip(btnCleanNow, "Åpner Rydding, der du merker av hva som skal slettes. Ingenting slettes herfra.");
 
             heroCard.Controls.Add(ovVerdict);
             heroCard.Controls.Add(ovVerdictSub);
@@ -481,7 +481,10 @@ namespace Brisk
             p.Controls.Add(heroHost);
 
             btnScan.Click += async delegate { await FullScan(); };
-            btnCleanNow.Click += async delegate { await QuickClean(); };
+            // Sender til Rydding i stedet for aa slette herfra. Foer gikk den
+            // rett paa alt som var merket trygt, uten at brukeren fikk se
+            // hva det var eller velge bort noe.
+            btnCleanNow.Click += delegate { Show("rydding"); };
 
             Defer(delegate { LayoutHero(); RefreshOverview(); });
             return p;
@@ -712,36 +715,6 @@ namespace Brisk
         }
 
         // Rydder bare de trygge kategoriene, med tydelig bekreftelse først.
-        async Task QuickClean()
-        {
-            if (MessageBox.Show(this,
-                    L.F("Sletter {0} søppelfiler.", Util.Bytes(junkFound)) + "\n\n" +
-                    L.T("Dine egne filer, bilder, passord og bokmerker røres ikke.") + "\n\n" +
-                    L.T("Fortsette?"),
-                    L.T("Rydd opp"), MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question) != DialogResult.Yes) return;
-
-            cts = new CancellationTokenSource();
-            CancellationToken ct = cts.Token;
-            long freed = 0;
-            int deleted = 0, skipped = 0;
-            await Job(new Control[] { btnScan, btnCleanNow }, delegate
-            {
-                foreach (CleanTarget t in Cleaner.BuildTargets())
-                {
-                    if (t.Risk != Risk.Trygg) continue;
-                    Status(L.T(t.Name));
-                    Cleaner.CleanResult r = Cleaner.Clean(t, ct, null);
-                    freed += r.Freed; deleted += r.Deleted; skipped += r.Skipped;
-                }
-            });
-            junkFound = 0;
-            RefreshOverview();
-            Status(L.F("Frigjorde {0}. {1} filer slettet, {2} var i bruk.",
-                Util.Bytes(freed), deleted.ToString("N0"), skipped));
-            Util.Log("Hurtigrydding: " + Util.Bytes(freed) + " frigjort.");
-        }
-
         // ==============================================================
         //  LOGG
         // ==============================================================
