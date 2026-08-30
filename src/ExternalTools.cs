@@ -28,6 +28,12 @@ namespace Brisk
         // Name. Gjelder ikke verktoy som selv er en kommando.
         public string Launch = "";
 
+        // Kommandoen trenger administrator. Kjorer Brisk allerede som admin,
+        // arver kommandoen det, og utdata vises i konsollen som vanlig. Gjor den
+        // ikke det, aapnes kommandoen i et hevet vindu i stedet - Windows lar
+        // ikke en vanlig prosess fange utdata fra en hevet.
+        public bool Admin;
+
         public bool Remote;             // henter kode fra nettet
         public bool OwnWindow;          // aapner eget vindu -> hevet, utdata vises ikke her
     }
@@ -56,6 +62,7 @@ namespace Brisk
                 Url = "https://github.com/ChrisTitusTech/winutil",
                 Icon = "tilpass",
                 Shell = "powershell",
+                Admin = true,
                 Remote = true,
                 OwnWindow = true,
             });

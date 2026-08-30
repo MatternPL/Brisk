@@ -487,6 +487,8 @@ namespace Brisk
             "Fant ikke pakken. Sjekk ID-en.", "Package not found. Check the ID.",
             "Installasjonen ble avbrutt.", "The install was cancelled.",
             "Ingen kilde svarte. Er du på nett?", "No source responded. Are you online?",
+            "{0} åpnet i et eget vindu som administrator.", "{0} opened in its own window as administrator.",
+            "Utdata vises i det vinduet, ikke her — start Brisk som administrator hvis du vil ha det her.", "Output appears in that window, not here — start Brisk as administrator if you want it here.",
             // ---- logg ----
             "Åpne loggfil", "Open log file",
             "Tøm visning", "Clear view",

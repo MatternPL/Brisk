@@ -141,22 +141,30 @@ namespace Brisk
             // ikke med en ekstra dialog - kommandoen staar allerede synlig, og
             // UAC spor uansett for noe kjores som administrator.
 
-            // Verktoy med eget grensesnitt aapnes i sitt eget vindu, som blir
-            // staaende (-NoExit) saa brukeren kan jobbe videre der.
-            if (t.OwnWindow)
+            // Eget vindu trengs i to tilfeller: verktoyet har sitt eget
+            // grensesnitt, eller det krever administrator og Brisk kjorer ikke
+            // som det. Windows lar ikke en vanlig prosess fange utdata fra en
+            // hevet, saa da maa kommandoen ut i sitt eget vindu.
+            bool maaHeve = t.Admin && !Util.IsAdmin();
+            if (t.OwnWindow || maaHeve)
             {
                 string ownExe, ownArgs;
                 Shell(t, out ownExe, out ownArgs);
                 if (ownExe == "powershell.exe") ownArgs = "-NoExit " + ownArgs;
+                else if (ownExe == "cmd.exe") ownArgs = "/k " + ownArgs.Substring(3);
                 try
                 {
                     ProcessStartInfo psi = new ProcessStartInfo(ownExe, ownArgs);
                     psi.UseShellExecute = true;
-                    psi.Verb = "runas";
+                    if (t.Admin) psi.Verb = "runas";
                     Process.Start(psi);
                     Append(toolsOut, "");
                     Append(toolsOut, "> " + t.Command);
-                    Append(toolsOut, L.F("{0} åpnet i sitt eget vindu.", t.Name));
+                    Append(toolsOut, t.Admin
+                        ? L.F("{0} åpnet i et eget vindu som administrator.", t.Name)
+                        : L.F("{0} åpnet i sitt eget vindu.", t.Name));
+                    if (maaHeve && !t.OwnWindow)
+                        Append(toolsOut, L.T("Utdata vises i det vinduet, ikke her — start Brisk som administrator hvis du vil ha det her."));
                     Util.Log("Verktoy startet: " + t.Command);
                 }
                 catch (Exception ex)
