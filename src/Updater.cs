@@ -114,6 +114,15 @@ namespace Brisk
                 using (WebClient wc = new WebClient())
                 {
                     wc.Headers.Add("User-Agent", "Brisk/" + CurrentVersion);
+                    // Versjonsfila er liten og skal alltid vaere fersk. Et
+                    // engangsledd i adressen er ikke nok alene: bade .NET sin
+                    // egen mellomlagring og eventuelle mellomtjenere maa faa
+                    // beskjed. En ny utgivelse ble en gang meldt som «du har
+                    // nyeste» i flere minutter etter at den var publisert.
+                    wc.Headers.Add("Cache-Control", "no-cache");
+                    wc.Headers.Add("Pragma", "no-cache");
+                    wc.CachePolicy = new System.Net.Cache.RequestCachePolicy(
+                        System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
                     wc.Encoding = Encoding.UTF8;
                     json = wc.DownloadString(url + (url.IndexOf('?') >= 0 ? "&" : "?") +
                                              "t=" + DateTime.UtcNow.Ticks);
