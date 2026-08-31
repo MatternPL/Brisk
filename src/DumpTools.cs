@@ -140,6 +140,39 @@ namespace Brisk
             return files;
         }
 
+        // Hvor mange kraesj vi faktisk kan si noe om. Forsida teller dette og
+        // ikke hendelsene i systemloggen: er dumpfila ryddet bort, har Brisk
+        // ingenting aa vise brukeren, og da skal den heller ikke maase om det.
+        // Aa aapne fila er unodig her - tidspunktet holder.
+        public static int RecentCount(int dager)
+        {
+            int n = 0;
+            DateTime grense = DateTime.Now.AddDays(-dager);
+            try
+            {
+                foreach (string f in Find())
+                    if (File.GetLastWriteTime(f) >= grense) n++;
+            }
+            catch (Exception) { }
+            return n;
+        }
+
+        // Nyeste dumpfil, eller DateTime.MinValue om det ikke finnes noen.
+        public static DateTime Newest()
+        {
+            DateTime t = DateTime.MinValue;
+            try
+            {
+                foreach (string f in Find())
+                {
+                    DateTime w = File.GetLastWriteTime(f);
+                    if (w > t) t = w;
+                }
+            }
+            catch (Exception) { }
+            return t;
+        }
+
         // ---------------------------------------------------------------
         public static DumpAnalysis Analyse(string path)
         {

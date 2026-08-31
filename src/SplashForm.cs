@@ -154,16 +154,16 @@ namespace Brisk
                     }
                     catch (Exception ex) { Util.Log("Oppstartsmåling, disk: " + ex.Message); }
 
-                    Vis(L.T("Leser blåskjermlogg …"), 0.93);
+                    Vis(L.T("Analyserer dumpfiler …"), 0.93);
                     try
                     {
-                        int n = 0;
-                        DateTime grense = DateTime.Now.AddDays(-30);
-                        List<CrashEvent> alle = HealthTools.Crashes(40);
-                        foreach (CrashEvent ce in alle)
-                            if (ce.Time >= grense) n++;
+                        // Teller dumpfiler, ikke loggforte hendelser: er dumpen
+                        // borte har Helse ingenting aa vise, og da skal forsida
+                        // ikke paastaa at det finnes noe aa se paa.
+                        int n = DumpTools.RecentCount(30);
                         result.BlueScreens = n;
-                        result.BlueScreensNew = HealthTools.UnseenCrashes(alle);
+                        result.BlueScreensNew =
+                            DumpTools.Newest() > HealthTools.CrashesSeenUntil ? n : 0;
                     }
                     catch (Exception ex) { Util.Log("Oppstartsmåling, blåskjermer: " + ex.Message); }
 

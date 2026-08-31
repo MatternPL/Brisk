@@ -788,10 +788,11 @@ namespace Brisk
                     ovWearSub.Text = L.T("ikke rapportert");
                 }
 
-                // Blaaskjermer siste 30 dager. bsod er alle, bsodNy er de som
-                // ikke er kvittert ut. Tallet leses fra Windows-loggen, ikke
-                // fra dumpfilene - rydder man bort dumpene staar hendelsen der
-                // fortsatt, og det skal den, det er historikk og ikke soppel.
+                // Blaaskjermer siste 30 dager, talt som dumpfiler og ikke som
+                // hendelser i systemloggen. Er dumpen ryddet bort, kan Helse
+                // ikke vise noe som helst om kraesjet - og da skal ikke forsida
+                // sende brukeren dit heller. De to sidene skal fortelle det
+                // samme. bsodNy er de som ikke er kvittert ut.
                 int bsod = 0, bsodNy = 0;
                 if (startScan != null && startScan.BlueScreens >= 0)
                 {
@@ -802,11 +803,8 @@ namespace Brisk
                 {
                     try
                     {
-                        DateTime grense = DateTime.Now.AddDays(-30);
-                        List<CrashEvent> alle = HealthTools.Crashes(40);
-                        foreach (CrashEvent ce in alle)
-                            if (ce.Time >= grense) bsod++;
-                        bsodNy = HealthTools.UnseenCrashes(alle);
+                        bsod = DumpTools.RecentCount(30);
+                        bsodNy = DumpTools.Newest() > HealthTools.CrashesSeenUntil ? bsod : 0;
                     }
                     catch (Exception) { bsod = -1; }
                 }

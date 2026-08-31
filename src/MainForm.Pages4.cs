@@ -13,7 +13,7 @@ namespace Brisk
         //  HELSE
         // ==============================================================
         ListView lvDrives, lvCrash, lvAppCrash;
-        Label lblBattery, lblCrashCount;
+        Label lblBattery, lblCrashCount, lblCrashEmpty;
         SegmentBar segHealth;
         Panel crashHost, appCrashHost;
         ActionTile tileOpenCrash, tileSeen;
@@ -59,6 +59,18 @@ namespace Brisk
                 L.T("Når"), "150", L.T("Stoppkode"), "210", L.T("Sannsynlig årsak"), "230",
                 L.T("Hva som skjedde"), "440");
             lvCrash.DoubleClick += delegate { OpenCrash(); };
+
+            // Uten dumpfiler er lista tom, og en enslig rad i den forste
+            // kolonnen blir kuttet paa midten. Da er en vanlig tekst over hele
+            // bredda bedre - den har ogsaa plass til aa forklare hvorfor.
+            lblCrashEmpty = Theme.Lbl("", Theme.F, Theme.Muted);
+            lblCrashEmpty.AutoSize = false;
+            lblCrashEmpty.Dock = DockStyle.Fill;
+            lblCrashEmpty.Padding = new Padding(14, 16, 14, 0);
+            lblCrashEmpty.Visible = false;
+            // Inne i selve kortet, ikke ved siden av det, saa ramma blir staaende.
+            lvCrash.Parent.Controls.Add(lblCrashEmpty);
+
             crashHost.Controls.Add(Widgets.Head(
                 L.T("Dobbeltklikk en rad for full analyse"), out lblCrashCount));
 
@@ -97,7 +109,7 @@ namespace Brisk
                 crashHost.Visible = bs;
                 appCrashHost.Visible = !bs;
                 if (bs) crashHost.BringToFront(); else appCrashHost.BringToFront();
-                tileOpenCrash.Enabled = bs;
+                tileOpenCrash.Enabled = bs && crashDumps.Count > 0;
             };
 
             tRef.Click += async delegate { await LoadHealth(new Control[] { tRef, tRep }); };
@@ -218,37 +230,43 @@ namespace Brisk
                              : fersk ? Theme.Text : Theme.Muted;
                 lvCrash.Items.Add(li);
             }
+            // Kraesj som bare staar i systemloggen faar ingen rad. Uten dumpfil
+            // er det ingenting aa vise og ingenting aa dobbeltklikke paa - da
+            // er raden bare stoy. Antallet naevnes i teksten over lista i
+            // stedet, saa man fortsatt vet at de finnes.
+            int utenDump = 0;
             if (crashes != null)
                 foreach (CrashEvent c in crashes)
                 {
                     bool har = false;
                     foreach (DumpAnalysis d in crashDumps)
                         if (Math.Abs((d.Time - c.Time).TotalMinutes) < 10) { har = true; break; }
-                    if (har) continue;
-                    ListViewItem li = new ListViewItem(c.Time.ToString("yyyy-MM-dd HH:mm"));
-                    li.SubItems.Add(c.Code);
-                    li.SubItems.Add("—");
-                    // Dumpfila er borte, men hendelsen ligger i systemloggen.
-                    // Si det rett ut, saa det ikke ser ut som en feil i Brisk.
-                    li.SubItems.Add(c.Meaning + "  (" + L.T("ingen dumpfil — kun loggført") + ")");
-                    li.ForeColor = Theme.Muted;
-                    lvCrash.Items.Add(li);
+                    if (!har && (DateTime.Now - c.Time).TotalDays < 30) utenDump++;
                 }
-            if (lvCrash.Items.Count == 0)
-            {
-                ListViewItem li = new ListViewItem(L.T("Ingen blåskjermer i loggen."));
-                li.ForeColor = Theme.Good;
-                lvCrash.Items.Add(li);
-            }
-            lvCrash.EndUpdate();
-            lblCrashCount.Text = crashDumps.Count > 0
-                ? L.F("{0} dumpfiler analysert", crashDumps.Count) : "";
 
-            // Nyeste hendelse i loggen er det vi kvitterer ut til og med.
+            lvCrash.EndUpdate();
+
+            bool tom = lvCrash.Items.Count == 0;
+            lvCrash.Visible = !tom;
+            lblCrashEmpty.Visible = tom;
+            lblCrashEmpty.Text = !tom ? ""
+                : utenDump > 0
+                  ? L.T("Ingen dumpfiler å analysere.") + "\r\n\r\n"
+                    + L.F("{0} blåskjermer står i Windows-loggen, men dumpfilene er ryddet bort. Uten dem kan ikke Brisk si hvilken driver som feilet.", utenDump)
+                  : L.T("Ingen blåskjermer siste 30 dager.");
+            lblCrashEmpty.ForeColor = utenDump > 0 ? Theme.Muted : Theme.Good;
+            if (segHealth.Index == 0) tileOpenCrash.Enabled = crashDumps.Count > 0;
+
+            string teller = crashDumps.Count > 0
+                ? L.F("{0} dumpfiler analysert", crashDumps.Count) : "";
+            if (utenDump > 0)
+                teller = (teller.Length > 0 ? teller + "  ·  " : "")
+                       + L.F("{0} i loggen uten dumpfil", utenDump);
+            lblCrashCount.Text = teller;
+
+            // Nyeste dumpfil er det vi kvitterer ut til og med. Bare dumper -
+            // det er de forsida teller.
             crashNewest = DateTime.MinValue;
-            if (crashes != null)
-                foreach (CrashEvent c in crashes)
-                    if (c.Time > crashNewest) crashNewest = c.Time;
             foreach (DumpAnalysis d in crashDumps)
                 if (d.Time > crashNewest) crashNewest = d.Time;
             tileSeen.Enabled = crashNewest > HealthTools.CrashesSeenUntil;
