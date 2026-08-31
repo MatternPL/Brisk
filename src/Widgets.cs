@@ -280,6 +280,21 @@ namespace Brisk
         }
 
         // Overskrift over en liste, med valgfri teller til høyre.
+        // Celle i et rutenett. Lufta ligger paa hoyre og under, men ALDRI paa
+        // hoyre side av siste spalte: da stopper rutenettet innenfor kortet
+        // over, og hele siden ser skjev ut. Bruk denne i stedet for aa sette
+        // Padding for hand paa hver celle, saa er det ett sted aa gjore feil.
+        public static Panel Cell(Control inner, bool sisteSpalte)
+        {
+            Panel w = new Panel();
+            w.Dock = DockStyle.Fill;
+            w.BackColor = Theme.Bg;
+            w.Padding = new Padding(0, 0, sisteSpalte ? 0 : 12, 12);
+            inner.Dock = DockStyle.Fill;
+            w.Controls.Add(inner);
+            return w;
+        }
+
         public static Panel Head(string text, out Label counter)
         {
             Label ignorert;

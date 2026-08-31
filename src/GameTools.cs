@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Management;
 using Microsoft.Win32;
@@ -74,8 +74,8 @@ namespace Brisk
             g.Key = "vbs";
             g.Estimate = "5–15 %";
             g.Name = "Virtualiseringsbasert sikkerhet";
-            g.What = "Kjører deler av Windows i en virtuell maskin. Koster ytelse i alle spill fordi alt går gjennom hypervisoren.";
-            g.Cost = "Senker sikkerheten reelt. Credential Guard beskytter innloggingene dine mot tyveri.";
+            g.What = "Kjører deler av Windows i en virtuell maskin. Koster bilder i alle spill.";
+            g.Cost = "Svakere beskyttelse av innloggingene dine.";
             g.Gain = Gain.Stor;
             g.NeedsReboot = true;
             g.NeedsAdmin = true;
@@ -127,8 +127,8 @@ namespace Brisk
             g.Key = "hvci";
             g.Estimate = "3–10 %";
             g.Name = "Minneintegritet";
-            g.What = "Kjernekode kontrolleres av hypervisoren. Merkes mest i spill som belaster prosessoren.";
-            g.Cost = "Senker sikkerheten. Beskytter mot drivere som prøver å kjøre kode i kjernen.";
+            g.What = "Hypervisoren kontrollerer kjernekode. Merkes mest i prosessortunge spill.";
+            g.Cost = "Svakere beskyttelse mot ondsinnede drivere.";
             g.Gain = Gain.Stor;
             g.NeedsReboot = true;
             g.NeedsAdmin = true;
@@ -152,8 +152,8 @@ namespace Brisk
             g.Key = "gamedvr";
             g.Estimate = "1–5 %";
             g.Name = "Bakgrunnsopptak";
-            g.What = "Windows spiller inn spillet ditt hele tiden i tilfelle du vil lagre de siste minuttene. Det koster bilder selv når du aldri lagrer noe.";
-            g.Cost = "Du mister «ta opp de siste 30 sekundene» i Game Bar.";
+            g.What = "Windows spiller inn i bakgrunnen i tilfelle du vil lagre et klipp.";
+            g.Cost = "«Ta opp de siste 30 sekundene» slutter å virke.";
             g.Gain = Gain.Liten;
             g.NeedsAdmin = false;
 
@@ -171,8 +171,8 @@ namespace Brisk
             g.Key = "gamebar";
             g.Estimate = "0–2 %";
             g.Name = "Game Bar";
-            g.What = "Overlegget som åpnes med Windows+G. Ligger og lytter etter tastetrykk mens du spiller.";
-            g.Cost = "Snarveiene for opptak og skjermbilde slutter å virke.";
+            g.What = "Overlegget som åpnes med Windows+G. Ligger alltid i minnet.";
+            g.Cost = "Snarveier for opptak og skjermbilde slutter å virke.";
             g.Gain = Gain.Liten;
             g.NeedsAdmin = false;
 
@@ -189,8 +189,8 @@ namespace Brisk
             g.Key = "hags";
             g.Estimate = "−5 til +5 %";
             g.Name = "Maskinvareakselerert GPU-planlegging";
-            g.What = "Lar skjermkortet styre sin egen minneplanlegging i stedet for Windows.";
-            g.Cost = "Ingenting, men effekten varierer. Noen spill vinner, noen taper. Enkelte eldre drivere blir ustabile.";
+            g.What = "Skjermkortet styrer sin egen minneplanlegging i stedet for Windows.";
+            g.Cost = "Effekten varierer. Noen spill vinner, noen taper.";
             g.Gain = Gain.Varierer;
             g.NeedsReboot = true;
             g.NeedsAdmin = true;
@@ -214,8 +214,8 @@ namespace Brisk
             g.Key = "power";
             g.Estimate = "0\u201315 %";
             g.Name = "Str\u00f8mplan";
-            g.What = "Balansert lar prosessoren senke klokken mellom bildene. P\u00e5 b\u00e6rbare og p\u00e5 balansert oppsett er dette ofte det som merkes mest.";
-            g.Cost = "Mer str\u00f8m og mer varme. P\u00e5 b\u00e6rbar: kortere batteritid.";
+            g.What = "Balansert lar prosessoren senke klokken mellom bildene.";
+            g.Cost = "Mer str\u00f8m og varme. P\u00e5 b\u00e6rbar: kortere batteritid.";
             g.Gain = Gain.Varierer;
             g.NeedsAdmin = true;
 

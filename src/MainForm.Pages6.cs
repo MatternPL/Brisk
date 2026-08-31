@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
@@ -84,7 +84,7 @@ namespace Brisk
             foot.Height = 46;
             foot.BackColor = Theme.Bg;
             Label fl = Theme.Lbl(
-                L.T("Her står bare ting som lar seg måle i bilder per sekund. Brisk rører ikke tidsoppløsning, «unparking» av kjerner eller SystemResponsiveness — det er triks uten effekt, og de hører ikke hjemme her."),
+                L.T("Bare ting som lar seg måle i bilder per sekund. Triks som «unparking» av kjerner og SystemResponsiveness gjør ingenting, og står derfor ikke her."),
                 Theme.FSmall, Theme.Muted);
             fl.AutoSize = false;
             fl.Dock = DockStyle.Fill;
@@ -109,7 +109,7 @@ namespace Brisk
             int n = 0;
             foreach (GameSetting g in alle)
             {
-                gmList.Controls.Add(GameCard(g), n % 3, n / 3);
+                gmList.Controls.Add(GameCard(g, n % 3 == 2), n % 3, n / 3);
                 n++;
             }
 
@@ -132,7 +132,7 @@ namespace Brisk
                     ? L.T("Én innstilling koster deg bilder")
                     : L.F("{0} innstillinger koster deg bilder", koster);
                 gmVerdict.ForeColor = Theme.Warn;
-                gmSub.Text = L.T("Les hva hver enkelt koster deg før du slår den av. To av dem senker sikkerheten.");
+                gmSub.Text = L.T("Se hva hver enkelt koster før du endrer den. To av dem senker sikkerheten.");
             }
 
             foreach (GameSetting g2 in alle)
@@ -148,13 +148,8 @@ namespace Brisk
             gmReboot.Height = 30;
         }
 
-        Panel GameCard(GameSetting g)
+        Panel GameCard(GameSetting g, bool sisteSpalte)
         {
-            Panel host = new Panel();
-            host.Dock = DockStyle.Fill;
-            host.BackColor = Theme.Bg;
-            host.Padding = new Padding(0, 0, 12, 12);
-
             Panel card = Theme.MakeCard();
             card.Dock = DockStyle.Fill;
 
@@ -173,10 +168,13 @@ namespace Brisk
             name.Height = 22;
             name.AutoEllipsis = true;
 
+            // Én ting skal svare paa «har jeg gjort dette eller ikke». Foer sto
+            // det en tilstandstekst her - «Fine as it is · Off» - som ikke
+            // svarte paa spoersmaalet i det hele tatt.
             string merke = !g.Available ? L.T("Ikke tilgjengelig")
-                         : g.PendingReboot ? L.T(g.State)
-                         : g.Optimal ? L.T("Alt i orden") + "  ·  " + L.T(g.State)
-                         : L.T(g.State);
+                         : g.PendingReboot ? L.T("Optimalisert — krever omstart")
+                         : g.Optimal ? L.T("Optimalisert")
+                         : L.T("Ikke optimalisert");
             Label state = Theme.Lbl(merke, Theme.FSmall,
                 !g.Available ? Theme.Muted
                 : g.PendingReboot ? Theme.Accent
@@ -192,18 +190,23 @@ namespace Brisk
             what.Height = 34;
 
             Label cost = Theme.Lbl(
-                g.Available && g.Cost.Length > 0 ? L.T("Koster deg:") + " " + L.T(g.Cost) : "",
+                g.Available && g.Cost.Length > 0 ? L.T("Koster:") + " " + L.T(g.Cost) : "",
                 Theme.FSmall, Color.FromArgb(0x9A, 0x84, 0x5A));
             cost.AutoSize = false;
             cost.Location = new Point(20, 98);
             cost.Height = 34;
 
+            // To knappetekster for hele sida: den ene gjor det, den andre
+            // angrer. «Slå av for spill» og «Sett tilbake» sa ingenting om
+            // hvilken vei man var paa vei.
             FlatBtn act = new FlatBtn("");
             act.Width = 170; act.Height = 34;
             if (!g.Available) { act.Enabled = false; act.Visible = false; }
-            else if (g.PendingReboot) { act.Text = L.T("Sett tilbake"); }
-            else if (g.Optimal) { act.Text = L.T("Sett tilbake"); }
-            else { act.Text = L.T("Slå av for spill"); act.Primary(); }
+            else if (g.Optimal || g.PendingReboot) { act.Text = L.T("Angre"); }
+            else { act.Text = L.T("Optimaliser"); act.Primary(); }
+            Tip(act, g.Optimal || g.PendingReboot
+                ? "Setter innstillingen tilbake slik Windows hadde den."
+                : "Endrer innstillingen slik spill liker den.");
 
             Label gain = Theme.Lbl(
                 g.Available && g.Estimate.Length > 0 ? g.Estimate : "",
@@ -287,8 +290,7 @@ namespace Brisk
                 act.Width = bredde;
             });
 
-            host.Controls.Add(card);
-            return host;
+            return Widgets.Cell(card, sisteSpalte);
         }
 
         static string GainText(Gain g)
