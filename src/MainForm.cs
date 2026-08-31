@@ -396,11 +396,15 @@ namespace Brisk
         }
 
         // Overskrift over en liste.
+        // Overskrift over en boks. Hoyden inkluderer luft under teksten, ellers
+        // klistrer boksen seg rett opp i bokstavene.
         static Label SectionLabel(string text)
         {
             Label l = Theme.Lbl(text, Theme.FBold, Theme.Text);
             l.Dock = DockStyle.Top;
-            l.Height = 26;
+            l.AutoSize = false;
+            l.Height = 34;
+            l.TextAlign = ContentAlignment.TopLeft;
             return l;
         }
 
@@ -466,7 +470,7 @@ namespace Brisk
             // --- fire tall ---
             Panel cards = new Panel();
             cards.Dock = DockStyle.Top;
-            cards.Height = 268;
+            cards.Height = 292;
             cards.BackColor = Theme.Bg;
             cards.Padding = new Padding(0, 14, 0, 0);
 
@@ -623,19 +627,21 @@ namespace Brisk
             cap.AutoEllipsis = true;
 
             big = Theme.Lbl("—", Theme.FBig, Theme.Text);
-            big.Location = new Point(15, 34);
+            big.Location = new Point(15, 32);
             big.AutoSize = false;
             big.Height = 44;
             big.AutoEllipsis = true;
 
+            // Stripa og teksten under den trenger luft mellom seg, og teksten
+            // trenger luft ned til kanten av kortet.
+            bar = new Bar();
+            bar.Location = new Point(18, 84);
+
             sub = Theme.Lbl("", Theme.FSmall, Theme.Muted);
-            sub.Location = new Point(18, 96);
+            sub.Location = new Point(18, 102);
             sub.AutoSize = false;
             sub.Height = 18;
             sub.AutoEllipsis = true;
-
-            bar = new Bar();
-            bar.Location = new Point(18, 82);
 
             Label c2 = cap; Label b2 = big; Label s2 = sub; Bar r2 = bar;
             Theme.Arrange(c, delegate
@@ -659,7 +665,7 @@ namespace Brisk
             Bar b;
             Panel p = StatCard(out big, out sub, caption, out b);
             b.Visible = false;
-            sub.Location = new Point(18, 84);
+            sub.Location = new Point(18, 88);
             return p;
         }
 
