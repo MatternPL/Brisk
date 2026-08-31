@@ -35,10 +35,14 @@ namespace Brisk
                             break;
                         }
 
-                    case "rydding":             // feiestrøk
-                        g.DrawLine(p, x + s * 0.82f, y + s * 0.12f, x + s * 0.34f, y + s * 0.62f);
-                        g.DrawLine(p, x + s * 0.58f, y + s * 0.52f, x + s * 0.14f, y + s * 0.92f);
-                        g.DrawLine(p, x + s * 0.86f, y + s * 0.55f, x + s * 0.60f, y + s * 0.86f);
+                    case "rydding":             // boette med lokk
+                        g.DrawLine(p, x + s * 0.08f, y + s * 0.22f, x + s * 0.92f, y + s * 0.22f);
+                        g.DrawLine(p, x + s * 0.36f, y + s * 0.22f, x + s * 0.40f, y + s * 0.08f);
+                        g.DrawLine(p, x + s * 0.40f, y + s * 0.08f, x + s * 0.60f, y + s * 0.08f);
+                        g.DrawLine(p, x + s * 0.60f, y + s * 0.08f, x + s * 0.64f, y + s * 0.22f);
+                        g.DrawLine(p, x + s * 0.18f, y + s * 0.22f, x + s * 0.28f, y + s * 0.94f);
+                        g.DrawLine(p, x + s * 0.82f, y + s * 0.22f, x + s * 0.72f, y + s * 0.94f);
+                        g.DrawLine(p, x + s * 0.28f, y + s * 0.94f, x + s * 0.72f, y + s * 0.94f);
                         break;
 
                     case "diskplass":           // sektor i en sirkel
@@ -100,16 +104,26 @@ namespace Brisk
                         g.DrawLine(p, x + s / 2, y + s * 0.24f, x + s / 2, y + s * 0.46f);
                         break;
 
-                    case "vedlikehold":         // skiftenøkkel
-                        g.DrawLine(p, x + s * 0.20f, y + s * 0.80f, x + s * 0.62f, y + s * 0.38f);
-                        g.DrawArc(p, x + s * 0.48f, y + s * 0.02f, s * 0.50f, s * 0.50f, 120, 260);
+                    case "vedlikehold":         // skjold med hake
+                        {
+                            GraphicsPath sk = new GraphicsPath();
+                            sk.AddLine(x + s * 0.50f, y + s * 0.02f, x + s * 0.94f, y + s * 0.20f);
+                            sk.AddBezier(x + s * 0.94f, y + s * 0.20f, x + s * 0.94f, y + s * 0.70f,
+                                         x + s * 0.72f, y + s * 0.90f, x + s * 0.50f, y + s * 0.98f);
+                            sk.AddBezier(x + s * 0.50f, y + s * 0.98f, x + s * 0.28f, y + s * 0.90f,
+                                         x + s * 0.06f, y + s * 0.70f, x + s * 0.06f, y + s * 0.20f);
+                            sk.CloseFigure();
+                            g.DrawPath(p, sk);
+                            sk.Dispose();
+                            g.DrawLine(p, x + s * 0.30f, y + s * 0.48f, x + s * 0.44f, y + s * 0.64f);
+                            g.DrawLine(p, x + s * 0.44f, y + s * 0.64f, x + s * 0.72f, y + s * 0.32f);
+                        }
                         break;
 
-                    case "verktoy":             // skrunokkel og skrutrekker i kryss
-                        g.DrawLine(p, x + s * 0.16f, y + s * 0.84f, x + s * 0.60f, y + s * 0.40f);
-                        g.DrawArc(p, x + s * 0.46f, y + s * 0.04f, s * 0.46f, s * 0.46f, 120, 260);
-                        g.DrawLine(p, x + s * 0.84f, y + s * 0.84f, x + s * 0.44f, y + s * 0.44f);
-                        g.DrawLine(p, x + s * 0.10f, y + s * 0.16f, x + s * 0.30f, y + s * 0.36f);
+                    case "verktoy":             // verktoykasse med haandtak
+                        g.DrawArc(p, x + s * 0.32f, y + s * 0.04f, s * 0.36f, s * 0.30f, 180, 180);
+                        g.DrawRectangle(p, x + s * 0.04f, y + s * 0.30f, s * 0.92f, s * 0.62f);
+                        g.DrawLine(p, x + s * 0.04f, y + s * 0.52f, x + s * 0.96f, y + s * 0.52f);
                         break;
 
                     case "tilpass":             // skyveknapper

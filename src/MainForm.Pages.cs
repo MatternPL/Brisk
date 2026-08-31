@@ -294,6 +294,9 @@ namespace Brisk
         bool showTasks;
         List<BootDelay> bootDelays;
         Label lblBoot;
+        ActionTile tStartToggle;
+        ListViewGroup grpStartOn, grpStartOff;
+        bool startToggleOn;         // true = knappen slaar paa, false = slaar av
 
         Panel PageStartup()
         {
@@ -301,16 +304,18 @@ namespace Brisk
             p.Dock = DockStyle.Fill;
             p.BackColor = Theme.Bg;
 
-            ActionTile tOff = new ActionTile(L.T("Slå av merkede"),
-                L.T("Programmet starter ikke lenger med Windows. Ingenting avinstalleres.")).AsWarn();
-            ActionTile tOn = new ActionTile(L.T("Slå på merkede"),
-                L.T("Lar det starte med Windows igjen."));
+            // Én knapp, ikke to. Den ser paa hva som er huket av og gjor det
+            // motsatte av flertallet: er de fleste paa, slaar den av. Teksten
+            // sier alltid hva som kommer til aa skje, saa man slipper aa gjette.
+            tStartToggle = new ActionTile(L.T("Slå av merkede"),
+                L.T("Huk av oppføringer i lista først.")).AsWarn();
+            tStartToggle.Enabled = false;
             ActionTile tTasks = new ActionTile(L.T("Vis planlagte oppgaver"),
                 L.T("Tar med oppgaver som starter ved pålogging, ikke bare vanlige oppstartsprogrammer."));
             ActionTile tRef = new ActionTile(L.T("Oppdater listen"),
                 L.T("Leser oppføringene og henter oppstartstidene på nytt.")).AsPrimary();
 
-            Panel actions = Widgets.Row(110, tRef, tOff, tOn, tTasks);
+            Panel actions = Widgets.Row(110, tRef, tStartToggle, tTasks);
             Panel head = Widgets.Head(L.T("Starter med Windows"), out lblBoot);
 
             Panel listHost = new Panel();
@@ -320,6 +325,16 @@ namespace Brisk
                 L.T("Navn"), "200", L.T("Status"), "80", L.T("Sinker oppstart"), "140",
                 L.T("Merknad"), "195", L.T("Utgiver"), "165", L.T("Hvor"), "150",
                 L.T("Kommando"), "320");
+
+            // De paaslaatte samles for seg og de avslaatte for seg, med antall i
+            // overskriften. Ellers maa man lese Status-kolonnen rad for rad for
+            // aa se hva som faktisk starter med maskina.
+            grpStartOn = new ListViewGroup("", HorizontalAlignment.Left);
+            grpStartOff = new ListViewGroup("", HorizontalAlignment.Left);
+            lvStart.Groups.Add(grpStartOn);
+            lvStart.Groups.Add(grpStartOff);
+            lvStart.ShowGroups = true;
+            lvStart.ItemChecked += delegate { OppdaterOppstartKnapp(); };
             listHost.Controls.Add(head);
 
             Panel note = new Panel();
@@ -327,7 +342,7 @@ namespace Brisk
             note.Height = 30;
             note.BackColor = Theme.Bg;
             Label nl = Theme.Lbl(
-                L.T("Huk av det du vil endre, og trykk «Slå av merkede». Windows måler bare programmer den mener sinker oppstarten merkbart — en strek betyr at den aldri har målt dette."),
+                L.T("Huk av det du vil endre. Knappen ser selv om de skal slås av eller på. Windows måler bare programmer den mener sinker oppstarten merkbart — en strek betyr at den aldri har målt dette."),
                 Theme.FSmall, Theme.Muted);
             nl.AutoSize = false; nl.Dock = DockStyle.Fill;
             note.Controls.Add(nl);
@@ -336,7 +351,7 @@ namespace Brisk
             p.Controls.Add(note);
             p.Controls.Add(actions);
 
-            Control[] btns = new Control[] { tRef, tOff, tOn, tTasks };
+            Control[] btns = new Control[] { tRef, tStartToggle, tTasks };
             tRef.Click += async delegate { await LoadStartup(btns); };
             tTasks.Click += async delegate
             {
@@ -345,11 +360,55 @@ namespace Brisk
                 tTasks.Invalidate();
                 await LoadStartup(btns);
             };
-            tOff.Click += async delegate { await ToggleStartup(false, btns); };
-            tOn.Click += async delegate { await ToggleStartup(true, btns); };
+            tStartToggle.Click += async delegate { await ToggleStartup(startToggleOn, btns); };
 
             Defer(delegate { Task ignored = LoadStartup(btns); });
             return p;
+        }
+
+        // Ser paa det som er huket av og bestemmer hva knappen skal gjore.
+        // Flertallet vinner; staar det likt, slaar den av - det er den retningen
+        // man er paa denne sida for, og ingenting avinstalleres uansett.
+        void OppdaterOppstartKnapp()
+        {
+            if (tStartToggle == null || lvStart == null) return;
+
+            int paa = 0, av = 0;
+            foreach (ListViewItem li in lvStart.Items)
+            {
+                if (!li.Checked) continue;
+                StartupItem it = li.Tag as StartupItem;
+                if (it == null) continue;
+                if (it.Enabled) paa++; else av++;
+            }
+
+            int merket = paa + av;
+            tStartToggle.Enabled = merket > 0;
+            startToggleOn = paa < av;      // flertallet er av -> slaa paa
+
+            if (merket == 0)
+            {
+                tStartToggle.Title = L.T("Slå av merkede");
+                tStartToggle.Info = L.T("Huk av oppføringer i lista først.");
+                tStartToggle.Accent = Theme.Warn;
+            }
+            else if (startToggleOn)
+            {
+                tStartToggle.Title = L.F("Slå på {0} merkede", av);
+                tStartToggle.Info = paa > 0
+                    ? L.F("{0} av dem står allerede på og røres ikke.", paa)
+                    : L.T("Lar dem starte med Windows igjen.");
+                tStartToggle.Accent = Theme.Accent;
+            }
+            else
+            {
+                tStartToggle.Title = L.F("Slå av {0} merkede", paa);
+                tStartToggle.Info = av > 0
+                    ? L.F("{0} av dem står allerede av og røres ikke.", av)
+                    : L.T("De starter ikke lenger med Windows. Ingenting avinstalleres.");
+                tStartToggle.Accent = Theme.Warn;
+            }
+            tStartToggle.Invalidate();
         }
 
         async Task LoadStartup(Control[] btns)
@@ -403,9 +462,13 @@ namespace Brisk
                              : (bd != null && bd.AverageMs > 4000) ? Theme.Bad
                              : (bd != null && bd.AverageMs > 1500) ? Theme.Warn
                              : Theme.Text;
+                li.Group = it.Enabled ? grpStartOn : grpStartOff;
                 lvStart.Items.Add(li);
             }
+            grpStartOn.Header = L.F("På — {0}", active);
+            grpStartOff.Header = L.F("Av — {0}", items.Count - active);
             lvStart.EndUpdate();
+            OppdaterOppstartKnapp();
 
             lblBoot.Text = L.F("{0} oppføringer, {1} på", items.Count, active) +
                 (bootText.Length > 0 ? "   ·   " + bootText : "");
@@ -415,8 +478,18 @@ namespace Brisk
 
         async Task ToggleStartup(bool enable, Control[] btns)
         {
+            // Bare de som faktisk skal endres. Er en oppforing alt i den
+            // tilstanden knappen sikter mot, er det ingenting aa gjore med den.
             List<ListViewItem> sel = new List<ListViewItem>();
-            foreach (ListViewItem li in lvStart.Items) if (li.Checked) sel.Add(li);
+            int hoppet = 0;
+            foreach (ListViewItem li in lvStart.Items)
+            {
+                if (!li.Checked) continue;
+                StartupItem si = li.Tag as StartupItem;
+                if (si == null) continue;
+                if (si.Enabled == enable) { hoppet++; continue; }
+                sel.Add(li);
+            }
             if (sel.Count == 0) { Status(L.T("Huk av oppføringene du vil endre først.")); return; }
 
             if (!enable)
@@ -452,13 +525,26 @@ namespace Brisk
                         li.ForeColor = !r ? Theme.Bad
                             : it.Critical ? Theme.Warn
                             : it.Enabled ? Theme.Text : Theme.Muted;
+                        // Raden hopper over i riktig flokk med en gang, saa
+                        // lista alltid stemmer med det som staar i Status.
+                        if (r) li.Group = it.Enabled ? grpStartOn : grpStartOff;
                         li.Checked = false;
                     });
                 }
             });
+
+            int paaNaa = 0;
+            foreach (ListViewItem li in lvStart.Items)
+                if (li.Tag is StartupItem && ((StartupItem)li.Tag).Enabled) paaNaa++;
+            grpStartOn.Header = L.F("På — {0}", paaNaa);
+            grpStartOff.Header = L.F("Av — {0}", lvStart.Items.Count - paaNaa);
+
             Status(fail > 0
                 ? L.F("Endret {0}. {1} feilet — krever administrator.", ok, fail)
-                : L.F("Endret {0}.", ok));
+                : hoppet > 0
+                  ? L.F("Endret {0}. {1} sto allerede slik.", ok, hoppet)
+                  : L.F("Endret {0}.", ok));
+            OppdaterOppstartKnapp();
             RefreshOverview();
         }
 
