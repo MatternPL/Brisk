@@ -731,24 +731,25 @@ namespace Brisk
             c.Dock = DockStyle.Fill;
 
             Label cap = Theme.Lbl(caption, Theme.FSmall, Theme.Muted);
-            cap.Location = new Point(18, 14);
+            cap.Location = new Point(18, 12);
             cap.AutoSize = false;
             cap.Height = 18;
             cap.AutoEllipsis = true;
 
             big = Theme.Lbl("—", Theme.FBig, Theme.Text);
-            big.Location = new Point(15, 32);
+            big.Location = new Point(15, 28);
             big.AutoSize = false;
-            big.Height = 44;
+            big.Height = 42;
             big.AutoEllipsis = true;
 
             // Stripa og teksten under den trenger luft mellom seg, og teksten
-            // trenger luft ned til kanten av kortet.
+            // trenger luft ned til kanten av feltet. Hele blokka ligger hoyere
+            // enn for: nederste linje sto nesten nede paa kanten.
             bar = new Bar();
-            bar.Location = new Point(18, 84);
+            bar.Location = new Point(18, 76);
 
             sub = Theme.Lbl("", Theme.FSmall, Theme.Muted);
-            sub.Location = new Point(18, 102);
+            sub.Location = new Point(18, 92);
             sub.AutoSize = false;
             sub.Height = 18;
             sub.AutoEllipsis = true;
@@ -776,7 +777,9 @@ namespace Brisk
             Bar b;
             Panel p = StatCard(out big, out sub, caption, out b);
             b.Visible = false;
-            sub.Location = new Point(18, 88);
+            // Undertekstene skal staa paa samme hoyde i alle ni feltene, ogsaa
+            // der stripa mangler. For laa de to piksler fra hverandre og
+            // rutenettet saa skjevt ut paa tvers.
             return p;
         }
 
