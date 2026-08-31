@@ -1,7 +1,7 @@
 {
-  "versjon": "1.6.3",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.3/BriskInstaller.exe",
-  "sha256": "804ab7ea48bbfdba998606086164820d1f9a4d7ecf7e02d0c6cad39bd3424808",
-  "storrelse": 690688,
-  "notat": "Brisk now checks for a new version every time it starts. Until now the check was skipped unless twenty hours had passed since the last one, so a release could sit unnoticed for most of a day. The check is one small text file fetched in the background and does not slow the start-up."
+  "versjon": "1.6.4",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.4/BriskInstaller.exe",
+  "sha256": "c506629ae4b37d595994e15e85a1f98bc758d1fed326f6fedfe892359983a40e",
+  "storrelse": 697344,
+  "notat": "Startup splits into On and Off with a count in each heading, so you can see what actually starts with Windows at a glance. Its two buttons became one that works out whether to turn the ticked entries off or on. Cleanup, Maintenance and Tools have new icons; the last two were both a wrench and hard to tell apart. The sidebar separates Updates from Fix, and the numbers on the front page sit higher in their fields with their bottom lines aligned."
 }
