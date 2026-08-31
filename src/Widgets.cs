@@ -282,6 +282,14 @@ namespace Brisk
         // Overskrift over en liste, med valgfri teller til høyre.
         public static Panel Head(string text, out Label counter)
         {
+            Label ignorert;
+            return Head(text, out counter, out ignorert);
+        }
+
+        // Overskrifta gis ut naar den maa kunne endres senere - en instruks om
+        // aa dobbeltklikke en rad hoerer ikke hjemme over en tom liste.
+        public static Panel Head(string text, out Label counter, out Label title)
+        {
             Panel p = new Panel();
             p.Dock = DockStyle.Top;
             p.Height = 28;
@@ -298,6 +306,7 @@ namespace Brisk
 
             p.Controls.Add(counter);
             p.Controls.Add(l);
+            title = l;
             return p;
         }
     }

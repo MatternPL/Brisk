@@ -441,6 +441,7 @@ namespace Brisk
         Color heroColor = Theme.Good;
         Label ovRam, ovRamSub, ovDisk, ovDiskSub, ovStart, ovStartSub, ovJunk, ovJunkSub;
         Label ovWear, ovWearSub, ovCrash, ovCrashSub;
+        Control ovCrashCell;
         Panel ovMachine;
         Bar ovRamBar, ovDiskBar;
         ListView lvFindings;
@@ -524,7 +525,11 @@ namespace Brisk
             grid.Controls.Add(Wrap(c3), 2, 0);
             grid.Controls.Add(Wrap(c4), 0, 1);
             grid.Controls.Add(Wrap(c5), 1, 1);
-            grid.Controls.Add(Wrap(c6), 2, 1);
+            // Blaaskjermkortet ligger nederst til hoyre og skjules naar det
+            // ikke finnes noen kraesj aa vise. Da blir hjornet staaende tomt,
+            // og det ser ut som luft - ikke som et hull midt i rutenettet.
+            ovCrashCell = Wrap(c6);
+            grid.Controls.Add(ovCrashCell, 2, 1);
             cards.Controls.Add(grid);
 
             // --- funn ---
@@ -809,14 +814,15 @@ namespace Brisk
                     catch (Exception) { bsod = -1; }
                 }
                 crashUnseen = bsodNy;
-                if (bsod < 0) { ovCrash.Text = "—"; ovCrashSub.Text = L.T("ikke lest"); }
-                else
+                // Ingen kraesj aa vise: da skal kortet vaere borte. Et grønt
+                // null er ogsaa en paastand om noe brukeren ikke spurte om.
+                if (ovCrashCell != null) ovCrashCell.Visible = bsod > 0;
+                if (bsod > 0)
                 {
                     ovCrash.Text = bsod.ToString();
                     ovCrash.ForeColor = bsodNy > 0 ? Theme.Warn : Theme.Good;
-                    ovCrashSub.Text = bsod == 0 ? L.T("siste 30 dager")
-                                    : bsodNy == 0 ? L.T("siste 30 dager · sett")
-                                    : L.T("siste 30 dager · fra Windows-loggen");
+                    ovCrashSub.Text = bsodNy == 0 ? L.T("siste 30 dager · sett")
+                                                  : L.T("siste 30 dager");
                 }
 
                 // --- funn ---
