@@ -38,6 +38,39 @@ namespace Brisk
     public static class HealthTools
     {
         // ---------------------------------------------------------------
+        // Hendelsene i systemloggen kan ikke slettes uten aa toemme hele
+        // System-loggen, og det skal ikke et vedlikeholdsprogram gjore - det
+        // ville tatt med all annen historikk ogsaa. Dumpfilene kan ryddes,
+        // men hendelsen staar igjen. Derfor kan brukeren i stedet kvittere
+        // ut kraesjene han har sett paa, saa forsida slutter aa mase om dem.
+        const string SeenKey = "BlaaskjermSett";
+
+        public static DateTime CrashesSeenUntil
+        {
+            get
+            {
+                string s = Util.Setting(SeenKey);
+                long t;
+                if (s != null && long.TryParse(s, out t) && t > 0 && t <= DateTime.MaxValue.Ticks)
+                    return new DateTime(t);
+                return DateTime.MinValue;
+            }
+            set { Util.SetSetting(SeenKey, value.Ticks.ToString()); }
+        }
+
+        // Antall kraesj siste 30 dager som brukeren ikke har kvittert ut.
+        public static int UnseenCrashes(List<CrashEvent> alle)
+        {
+            if (alle == null) return 0;
+            DateTime sett = CrashesSeenUntil;
+            DateTime grense = DateTime.Now.AddDays(-30);
+            int n = 0;
+            foreach (CrashEvent c in alle)
+                if (c.Time >= grense && c.Time > sett) n++;
+            return n;
+        }
+
+        // ---------------------------------------------------------------
         // Blåskjermer. Windows skriver én hendelse per kræsj.
         public static List<CrashEvent> Crashes(int max)
         {

@@ -17,7 +17,8 @@ namespace Brisk
         public int StartupTotal = -1;
         public int Wear = -1;
         public string WearDrive = "";
-        public int BlueScreens = -1;
+        public int BlueScreens = -1;     // alle siste 30 dager
+        public int BlueScreensNew = -1;  // de brukeren ikke har kvittert ut
         public bool Done;
     }
 
@@ -158,9 +159,11 @@ namespace Brisk
                     {
                         int n = 0;
                         DateTime grense = DateTime.Now.AddDays(-30);
-                        foreach (CrashEvent ce in HealthTools.Crashes(40))
+                        List<CrashEvent> alle = HealthTools.Crashes(40);
+                        foreach (CrashEvent ce in alle)
                             if (ce.Time >= grense) n++;
                         result.BlueScreens = n;
+                        result.BlueScreensNew = HealthTools.UnseenCrashes(alle);
                     }
                     catch (Exception ex) { Util.Log("Oppstartsmåling, blåskjermer: " + ex.Message); }
 

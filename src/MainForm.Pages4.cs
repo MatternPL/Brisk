@@ -16,7 +16,8 @@ namespace Brisk
         Label lblBattery, lblCrashCount;
         SegmentBar segHealth;
         Panel crashHost, appCrashHost;
-        ActionTile tileOpenCrash;
+        ActionTile tileOpenCrash, tileSeen;
+        DateTime crashNewest = DateTime.MinValue;
         List<DumpAnalysis> crashDumps = new List<DumpAnalysis>();
         List<AppCrash> appCrashes = new List<AppCrash>();
 
@@ -30,10 +31,12 @@ namespace Brisk
                 L.T("Leser disker, kræsjlogger og batteri på nytt.")).AsPrimary();
             tileOpenCrash = new ActionTile(L.T("Åpne analysen"),
                 L.T("Leser dumpfila og viser hvilken driver som feilet."));
+            tileSeen = new ActionTile(L.T("Merk som sett"),
+                L.T("Blåskjermene blir stående i Windows-loggen, men forsida slutter å påpeke dem."));
             ActionTile tRep = new ActionTile(L.T("Lag rapport"),
                 L.T("Lagrer en tekstfil på skrivebordet du kan sende til den som hjelper deg."));
 
-            Panel actions = Widgets.Row(110, tRef, tileOpenCrash, tRep);
+            Panel actions = Widgets.Row(110, tRef, tileOpenCrash, tileSeen, tRep);
 
             Panel driveHost = new Panel();
             driveHost.Dock = DockStyle.Top;
@@ -99,6 +102,23 @@ namespace Brisk
 
             tRef.Click += async delegate { await LoadHealth(new Control[] { tRef, tRep }); };
             tileOpenCrash.Click += delegate { OpenCrash(); };
+
+            // Kvitterer ut alt som ligger i loggen naa. Nye kraesj etter dette
+            // dukker opp paa forsida som for - det er bare historikken som
+            // slutter aa mase.
+            tileSeen.Click += delegate
+            {
+                if (crashNewest == DateTime.MinValue) return;
+                HealthTools.CrashesSeenUntil = crashNewest;
+                Util.Log("Blåskjermer merket som sett til og med " +
+                    crashNewest.ToString("yyyy-MM-dd HH:mm"));
+                // Oppstartsmaalingen talte opp for kvitteringen, saa den maa
+                // rettes her - ellers viser forsida det gamle tallet.
+                if (startScan != null) startScan.BlueScreensNew = 0;
+                tileSeen.Enabled = false;
+                Status(L.T("Blåskjermene er merket som sett."));
+                RefreshOverview();
+            };
             tRep.Click += async delegate
             {
                 string text = null;
@@ -208,7 +228,9 @@ namespace Brisk
                     ListViewItem li = new ListViewItem(c.Time.ToString("yyyy-MM-dd HH:mm"));
                     li.SubItems.Add(c.Code);
                     li.SubItems.Add("—");
-                    li.SubItems.Add(c.Meaning + "  (" + L.T("ingen dumpfil") + ")");
+                    // Dumpfila er borte, men hendelsen ligger i systemloggen.
+                    // Si det rett ut, saa det ikke ser ut som en feil i Brisk.
+                    li.SubItems.Add(c.Meaning + "  (" + L.T("ingen dumpfil — kun loggført") + ")");
                     li.ForeColor = Theme.Muted;
                     lvCrash.Items.Add(li);
                 }
@@ -221,6 +243,15 @@ namespace Brisk
             lvCrash.EndUpdate();
             lblCrashCount.Text = crashDumps.Count > 0
                 ? L.F("{0} dumpfiler analysert", crashDumps.Count) : "";
+
+            // Nyeste hendelse i loggen er det vi kvitterer ut til og med.
+            crashNewest = DateTime.MinValue;
+            if (crashes != null)
+                foreach (CrashEvent c in crashes)
+                    if (c.Time > crashNewest) crashNewest = c.Time;
+            foreach (DumpAnalysis d in crashDumps)
+                if (d.Time > crashNewest) crashNewest = d.Time;
+            tileSeen.Enabled = crashNewest > HealthTools.CrashesSeenUntil;
 
             // --- programkræsj ---
             lvAppCrash.BeginUpdate();

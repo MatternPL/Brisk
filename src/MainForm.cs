@@ -35,7 +35,12 @@ namespace Brisk
             //
             // Passer det ikke paa skjermen, krympes det til det som er ledig -
             // ellers ville vinduet havnet delvis utenfor paa mindre skjermer.
-            Size onsket = new Size(1320, 900);
+            //
+            // Tittellinja er vaar egen og ligger inne i klientflata, saa den
+            // maa legges til i hoyden - ellers ville sidene mistet 38 piksler
+            // mot for.
+            FormBorderStyle = FormBorderStyle.None;
+            Size onsket = new Size(1320, 900 + TitleBar.H);
             Rectangle plass = Screen.FromPoint(Cursor.Position).WorkingArea;
             ClientSize = new Size(
                 Math.Min(onsket.Width, plass.Width - 60),
@@ -45,7 +50,7 @@ namespace Brisk
             // ikke gaa aa dra vinduet.
             MinimumSize = new Size(
                 Math.Min(1120, plass.Width),
-                Math.Min(820, plass.Height));
+                Math.Min(820 + TitleBar.H, plass.Height));
             BackColor = Theme.Bg;
             ForeColor = Theme.Text;
             Font = Theme.F;
@@ -100,6 +105,13 @@ namespace Brisk
             side.Width = 224;
             side.BackColor = Theme.Side;
             Controls.Add(side);
+
+            // Dokking gaar bakfra i z-rekkefolgen: den bakerste plasseres
+            // forst og faar hele bredda. Uten SendToBack ville linja startet
+            // til hoyre for sidemenyen.
+            chrome = new TitleBar(this);
+            Controls.Add(chrome);
+            chrome.SendToBack();
 
             statusBar = new Panel();
             statusBar.Dock = DockStyle.Bottom;
@@ -217,16 +229,18 @@ namespace Brisk
 
             Panel brand = new Panel();
             brand.Dock = DockStyle.Top;
-            brand.Height = 96;
+            // Lufta over logoen var beregnet paa at Windows sin tittellinje laa
+            // rett over. Naa ligger vaar egen der, og da ble det for mye.
+            brand.Height = 78;
             brand.BackColor = Theme.Side;
             brand.Paint += delegate(object s, PaintEventArgs e)
             {
-                Logo.Paint(e.Graphics, 20, 26, 40, true);
+                Logo.Paint(e.Graphics, 20, 8, 40, true);
             };
             Label b1 = Theme.Lbl("Brisk", new Font("Segoe UI Light", 19f), Theme.Text);
-            b1.Location = new Point(70, 24);
+            b1.Location = new Point(70, 6);
             Label b2 = Theme.Lbl("v" + Updater.CurrentVersion, Theme.FSmall, Theme.Muted);
-            b2.Location = new Point(72, 58);
+            b2.Location = new Point(72, 40);
             brand.Controls.Add(b1);
             brand.Controls.Add(b2);
             navHost.Controls.Add(brand);
@@ -431,6 +445,7 @@ namespace Brisk
         Bar ovRamBar, ovDiskBar;
         ListView lvFindings;
         FlatBtn btnScan, btnCleanNow;
+        int crashUnseen = 0;        // blaaskjermer brukeren ikke har kvittert ut
         long junkFound = -1;        // alt som finnes
         long junkDefault = -1;      // bare det som er huket av som standard
 
@@ -773,30 +788,37 @@ namespace Brisk
                     ovWearSub.Text = L.T("ikke rapportert");
                 }
 
-                // Blaaskjermer siste 30 dager.
-                int bsod = 0;
+                // Blaaskjermer siste 30 dager. bsod er alle, bsodNy er de som
+                // ikke er kvittert ut. Tallet leses fra Windows-loggen, ikke
+                // fra dumpfilene - rydder man bort dumpene staar hendelsen der
+                // fortsatt, og det skal den, det er historikk og ikke soppel.
+                int bsod = 0, bsodNy = 0;
                 if (startScan != null && startScan.BlueScreens >= 0)
+                {
                     bsod = startScan.BlueScreens;
+                    bsodNy = startScan.BlueScreensNew >= 0 ? startScan.BlueScreensNew : bsod;
+                }
                 else
                 {
                     try
                     {
                         DateTime grense = DateTime.Now.AddDays(-30);
-                        foreach (CrashEvent ce in HealthTools.Crashes(40))
+                        List<CrashEvent> alle = HealthTools.Crashes(40);
+                        foreach (CrashEvent ce in alle)
                             if (ce.Time >= grense) bsod++;
+                        bsodNy = HealthTools.UnseenCrashes(alle);
                     }
                     catch (Exception) { bsod = -1; }
                 }
+                crashUnseen = bsodNy;
                 if (bsod < 0) { ovCrash.Text = "—"; ovCrashSub.Text = L.T("ikke lest"); }
                 else
                 {
                     ovCrash.Text = bsod.ToString();
-                    ovCrash.ForeColor = bsod > 0 ? Theme.Warn : Theme.Good;
-                    // Tallet kommer fra Windows-loggen, ikke fra dumpfilene.
-                    // Rydder man bort dumpene, staar hendelsene der fortsatt -
-                    // og det skal det staa, det er historikk og ikke soppel.
-                    ovCrashSub.Text = bsod > 0 ? L.T("siste 30 dager · fra Windows-loggen")
-                                               : L.T("siste 30 dager");
+                    ovCrash.ForeColor = bsodNy > 0 ? Theme.Warn : Theme.Good;
+                    ovCrashSub.Text = bsod == 0 ? L.T("siste 30 dager")
+                                    : bsodNy == 0 ? L.T("siste 30 dager · sett")
+                                    : L.T("siste 30 dager · fra Windows-loggen");
                 }
 
                 // --- funn ---
@@ -847,18 +869,13 @@ namespace Brisk
                         AddFinding(2, L.F("Disken {0} melder «{1}»", d.Name, L.T(d.Health)),
                             L.T("Ta sikkerhetskopi nå"), "helse");
 
-                try
-                {
-                    List<CrashEvent> cr = HealthTools.Crashes(20);
-                    int recent = 0;
-                    foreach (CrashEvent c in cr)
-                        if ((DateTime.Now - c.Time).TotalDays < 30) recent++;
-                    if (recent > 0)
-                        AddFinding(recent > 2 ? 2 : 1,
-                            L.F("{0} blåskjermer siste måned", recent),
-                            L.T("Se detaljene under Helse"), "helse");
-                }
-                catch { }
+                // Bare de kraesjene brukeren ikke allerede har sett paa. Har han
+                // vaert innom Helse og kvittert dem ut, er det ikke noe han
+                // trenger aa bli minnet om hver gang han aapner programmet.
+                if (crashUnseen > 0)
+                    AddFinding(crashUnseen > 2 ? 2 : 1,
+                        L.F("{0} blåskjermer siste måned", crashUnseen),
+                        L.T("Se detaljene under Helse"), "helse");
 
                 if (lvFindings.Items.Count == 0)
                 {

@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using Microsoft.Win32;
 
 namespace Brisk
 {
@@ -13,6 +14,31 @@ namespace Brisk
             "Brisk", "brisk.log");
 
         public static event Action<string> LogWritten;
+
+        // ---------------------------------------------------------------
+        // Smaa innstillinger. Samme nokkel som spraakvalget bruker, saa alt
+        // Brisk husker ligger paa ett sted og folger brukeren, ikke maskina.
+        const string SettingsKey = @"Software\Brisk";
+
+        public static string Setting(string name)
+        {
+            try
+            {
+                using (RegistryKey k = Registry.CurrentUser.OpenSubKey(SettingsKey))
+                    return k == null ? null : Convert.ToString(k.GetValue(name));
+            }
+            catch (Exception) { return null; }
+        }
+
+        public static void SetSetting(string name, string value)
+        {
+            try
+            {
+                using (RegistryKey k = Registry.CurrentUser.CreateSubKey(SettingsKey))
+                    if (k != null) k.SetValue(name, value == null ? "" : value);
+            }
+            catch (Exception) { }
+        }
 
         public static void Log(string message)
         {
