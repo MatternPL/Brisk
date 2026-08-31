@@ -106,6 +106,10 @@ namespace Brisk
             "Språk", "Language",
 
             "Oversikt", "Overview",
+            "Plass", "Space",
+            "Ytelse", "Speed",
+            "Diagnose", "Diagnostics",
+            "Oppdater og fiks", "Update and fix",
             "Rydding", "Cleanup",
             "Diskplass", "Disk space",
             "Oppstart", "Startup",

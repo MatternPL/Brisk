@@ -436,7 +436,9 @@ namespace Brisk
         public NavBtn(string text)
         {
             Text = text;
-            Height = 46;
+            // 44 og ikke 46: med fire gruppeoverskrifter i tillegg maa tolv
+            // punkter fortsatt faa plass naar vinduet staar paa minstehoyden.
+            Height = 44;
             Dock = DockStyle.Top;
             Cursor = Cursors.Hand;
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |

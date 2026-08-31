@@ -210,21 +210,37 @@ namespace Brisk
             Panel navHost = new Panel();
             navHost.Dock = DockStyle.Fill;
             navHost.BackColor = Theme.Side;
+            // Sikkerhetsnett: paa en skjerm som er lavere enn minstehoyden vaar
+            // skal menypunkter kunne rulles til, ikke bli borte.
+            navHost.AutoScroll = true;
             side.Controls.Add(navHost);
             navHost.BringToFront();
 
+            // Tolv like punkter etter hverandre gir ingen antydning om hva som
+            // hoerer sammen. Overskriftene deler dem i fire flokker etter hva
+            // man er ute etter: plass, fart, tilstand, og aa holde maskina i
+            // orden. Oversikt staar alene overst uten overskrift.
+            //
             // Omvendt rekkefølge — Dock.Top stabler nedenfra.
             AddNav(navHost, "verktoy", L.T("Verktøy"));
             AddNav(navHost, "vedlikehold", L.T("Vedlikehold"));
             AddNav(navHost, "programmer", L.T("Programvare"));
             AddNav(navHost, "drivere", L.T("Oppdateringer"));
+            AddNavHead(navHost, L.T("Oppdater og fiks"));
+
             AddNav(navHost, "nettverk", L.T("Nettverk"));
             AddNav(navHost, "helse", L.T("Helse"));
+            AddNavHead(navHost, L.T("Diagnose"));
+
             AddNav(navHost, "spill", L.T("Spill"));
             AddNav(navHost, "minne", L.T("Minne"));
             AddNav(navHost, "oppstart", L.T("Oppstart"));
+            AddNavHead(navHost, L.T("Ytelse"));
+
             AddNav(navHost, "diskplass", L.T("Diskplass"));
             AddNav(navHost, "rydding", L.T("Rydding"));
+            AddNavHead(navHost, L.T("Plass"));
+
             AddNav(navHost, "oversikt", L.T("Oversikt"));
 
             Panel brand = new Panel();
@@ -244,6 +260,19 @@ namespace Brisk
             brand.Controls.Add(b1);
             brand.Controls.Add(b2);
             navHost.Controls.Add(brand);
+        }
+
+        // Overskrift over en flokk i sidemenyen. Store bokstaver og dempet
+        // farge, saa den leses som en etikett og ikke som enda et menypunkt.
+        static void AddNavHead(Panel parent, string text)
+        {
+            Label l = Theme.Lbl(text.ToUpperInvariant(), Theme.FSmall,
+                Color.FromArgb(0x5E, 0x67, 0x78));
+            l.AutoSize = false;
+            l.Dock = DockStyle.Top;
+            l.Height = 30;
+            l.Padding = new Padding(21, 12, 0, 0);
+            parent.Controls.Add(l);
         }
 
         void AddNav(Panel parent, string key, string text)
