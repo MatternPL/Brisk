@@ -136,7 +136,7 @@ namespace Brisk
             "Plass", "Space",
             "Ytelse", "Speed",
             "Diagnose", "Diagnostics",
-            "Oppdater og fiks", "Update and fix",
+            "Fiks", "Fix",
             "Rydding", "Cleanup",
             "Diskplass", "Disk space",
             "Oppstart", "Startup",

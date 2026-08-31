@@ -231,11 +231,16 @@ namespace Brisk
             // orden. Oversikt staar alene overst uten overskrift.
             //
             // Omvendt rekkefølge — Dock.Top stabler nedenfra.
+            // Aa holde maskina oppdatert og aa reparere den er to forskjellige
+            // aerender. Oppdateringer og Programvare henter nye versjoner;
+            // Vedlikehold og Verktoy retter opp naar noe er galt.
             AddNav(navHost, "verktoy", L.T("Verktøy"));
             AddNav(navHost, "vedlikehold", L.T("Vedlikehold"));
+            AddNavHead(navHost, L.T("Fiks"));
+
             AddNav(navHost, "programmer", L.T("Programvare"));
             AddNav(navHost, "drivere", L.T("Oppdateringer"));
-            AddNavHead(navHost, L.T("Oppdater og fiks"));
+            AddNavHead(navHost, L.T("Oppdateringer"));
 
             AddNav(navHost, "nettverk", L.T("Nettverk"));
             AddNav(navHost, "helse", L.T("Helse"));
