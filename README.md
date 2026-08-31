@@ -1,9 +1,9 @@
 # Brisk
 
-Windows maintenance that does what it says. No paywall, no subscription, no telemetry.
+Windows maintenance that does what it says. Free, no subscription, no telemetry.
 
-One 330 KB executable. Nothing to install first — it runs on the .NET Framework 4.8
-that already ships with Windows 10 and 11.
+One executable under half a megabyte. Nothing to install first: it runs on the
+.NET Framework 4.8 that already ships with Windows 10 and 11.
 
 English by default. Norwegian is one click away, bottom left.
 
@@ -16,10 +16,10 @@ English by default. Norwegian is one click away, bottom left.
 Download **`BriskInstaller.exe`** from
 [Releases](https://github.com/MatternPL/Brisk/releases/latest).
 
-* Installs to `%LOCALAPPDATA%\Programs\Brisk` — **no UAC prompt to install**
+* Installs to `%LOCALAPPDATA%\Programs\Brisk`, with no UAC prompt
 * Start menu shortcut, optional desktop shortcut
-* Shows up in Apps & features, uninstalls from there
-* Or just run `Brisk.exe` on its own from a USB stick
+* Shows up in Apps & features and uninstalls from there
+* Or run `Brisk.exe` on its own from a USB stick
 
 The files are not code-signed, so SmartScreen will warn you the first time:
 *More info → Run anyway*. A certificate costs money every year; this doesn't.
@@ -28,57 +28,86 @@ The files are not code-signed, so SmartScreen will warn you the first time:
 
 ## What it does
 
-**Overview** opens with a verdict — *Everything looks fine*, or *3 things are worth a
-look* — and a list of what those things are. Double-click a row to go there. One blue
-button per page, and the colour tells you what a button does: blue acts, green is safe,
-red deletes.
+Brisk measures the machine while it starts, so the front page has real numbers
+the moment it opens: memory, free space, junk files, start-up programs, drive
+wear and temperature, graphics driver, uptime, and crashes. Above them is a
+verdict — *Everything looks fine*, or a list of what is worth a look.
+Double-click a row to go there.
 
 | Page | |
 |---|---|
-| **Cleanup** | Temp files, Windows Update leftovers, crash dumps, browser and shader caches, system logs. On the machine it was built on: 39 GB. |
-| **Disk space** | Four modes. *Largest* shows where the space sits, *Duplicates* finds identical files by content, *Forgotten files* lists big files you haven't touched in six months, and *Space Windows reserves* shows the hibernation file, restore points and page file — usually tens of GB that no cleaner touches. |
-| **Startup** | Everything that starts with Windows, with **how many seconds each one adds to boot** — read from Windows' own measurements, not guesswork. |
+| **Cleanup** | Temp files, Windows Update leftovers, crash dumps, browser and shader caches, system logs. Browser cache, crash dumps and Windows.old are unticked by default. |
+| **Disk space** | Four modes. *Largest* shows where the space sits. *Duplicates* finds identical files by content. *Forgotten files* lists big files you haven't touched in six months. *Space Windows reserves* shows the hibernation file, restore points and page file, usually tens of GB that no cleaner touches. |
+| **Startup** | Everything that starts with Windows, with how many seconds each one adds to boot. Read from Windows' own measurements, not guesswork. |
 | **Memory** | What is actually using RAM, and an honest note about why "RAM boosters" don't help. |
-| **Health** | Drive wear and temperature, battery capacity on laptops, a **blue screen analyser** that reads the crash dump and names the driver that failed, and **app crashes** — which programs crash, how often, and which module faulted. |
-| **Network** | Adapter, gateway, internet, DNS, Wi-Fi signal, and a check of the hosts file and proxy — the two things malware likes to hijack. |
-| **Updates** | Drivers and Windows updates from Microsoft's own catalog through the Windows Update API, plus your graphics card and its driver age — with a link to the maker, because Windows Update is always behind on those. |
+| **Games** | Settings that measurably affect frame rate: virtualisation-based security, memory integrity, Game DVR, Game Bar, hardware-accelerated GPU scheduling and the power plan. Each one says what it costs you and roughly what it gains, and whether it needs a restart. |
+| **Health** | Drive wear and temperature, battery capacity on laptops, a blue screen analyser that reads the crash dump and names the driver that failed, and app crashes: which programs crash, how often, and which module faulted. |
+| **Network** | Adapter, gateway, internet, DNS, Wi-Fi signal, and a check of the hosts file and proxy, the two things malware likes to hijack. |
+| **Updates** | Drivers and Windows updates from Microsoft's own catalog through the Windows Update API. Also checks your graphics driver against NVIDIA or AMD directly and can download a newer one, because Windows Update is always behind on those. |
 | **Software** | winget updates, plus every installed program sorted by size, with uninstall. |
 | **Maintenance** | sfc, DISM, TRIM, restore point, system report, weekly scheduled cleanup. |
+| **Tools** | Well-known free tools by other people, installed and opened in one click: WinUtil, PowerToys, Process Explorer, Autoruns, CrystalDiskInfo, HWiNFO, O&O ShutUp10++, Everything, Rufus, 7-Zip, CPU-Z. The command is shown before it runs, output appears on the page, and a Stop button ends it. |
+
+Adding your own tool takes one block in one file: see
+[docs/verktoy.md](docs/verktoy.md).
 
 ### What it does not do
 
-* **RAM "boosters" are mostly theatre.** Windows uses free RAM as cache on purpose.
-  The two buttons under Memory do something real, but rarely help — and the app says so.
-  Fewer startup programs is the fix that lasts.
 * **No registry cleaning.** It has never produced a measurable speedup.
-* **No third-party driver scraping.** Drivers come from Microsoft, signed.
-* **No CPU temperature.** That needs a kernel driver. Not worth it.
+* **No third-party driver scraping.** Windows drivers come from Microsoft,
+  signed. Graphics drivers come from NVIDIA or AMD over https, from their own
+  domains, and Brisk checks the address before downloading anything.
+* **No CPU temperature.** That needs a kernel driver.
+* **No RAM "booster" claims.** Windows uses free RAM as cache on purpose. The
+  two buttons under Memory do something real but rarely help, and the app says
+  so. Fewer startup programs is the fix that lasts.
+
+### Graphics drivers
+
+Updates shows the driver version the way NVIDIA and AMD write it themselves,
+not Windows' internal number, and can look up whether something newer exists.
+
+NVIDIA is asked through their own driver search. The series, product and OS ids
+are looked up at the time of the check rather than kept as a table in the code,
+so it also works for cards released after any given build of Brisk. AMD is read
+from the version in the Adrenalin installer link on their download page.
+
+A newer driver is downloaded to your Downloads folder, only over https and only
+from the manufacturer's own domain. Brisk does not run it: a driver install
+blanks the screen, and that is yours to start when you are ready.
 
 ### Reading a blue screen
 
 Double-click a crash under Health and Brisk parses the kernel dump Windows wrote
-(`PAGEDU64`), pulls out the stop code, the loaded module list and the call stack, and
-maps the fault address to a module. It then tells you which driver is the likely cause,
-where each driver came from, and what to do about it — with a *Copy summary* button for
-when you need to ask someone else.
+(`PAGEDU64`), pulls out the stop code, the loaded module list and the call stack,
+and maps the fault address to a module. It then names the driver that most likely
+caused it, where each driver came from, and what to do about it. A *Copy summary*
+button gives you something to paste when you need to ask someone else.
 
-The parsing is self-checking: the stop code and its four parameters must match what
-Windows logged, and module 0 must be `ntoskrnl.exe`. If either fails, it says it could
-not read the dump rather than guessing.
+The parsing is self-checking: the stop code and its four parameters must match
+what Windows logged, and module 0 must be `ntoskrnl.exe`. If either fails, it
+says it could not read the dump rather than guessing.
 
-Crash dumps are therefore **excluded from the automatic cleanup** and unticked by
-default — deleting them throws away the evidence. Brisk also reads the real dump path
-from the registry rather than assuming the default, since Windows does not always use it.
+Crash dumps are therefore excluded from the automatic cleanup and unticked by
+default, since deleting them throws away the evidence. Brisk reads the real dump
+path from the registry rather than assuming the default, because Windows does not
+always use it.
+
+The crash count comes from the dumps, not from the event log. If there is no dump
+to read, Brisk says nothing about blue screens rather than reporting a number it
+cannot explain.
 
 ### Safety
 
-* Cleanup has a hard-coded list of folders that can never be touched: your user folder,
-  Documents, Desktop, Pictures, Windows, Program Files and the drive root.
+* Cleanup has a hard-coded list of folders that can never be touched: your user
+  folder, Documents, Desktop, Pictures, Windows, Program Files and the drive root.
 * Files in use are skipped and counted, not forced.
-* Windows.old, crash dumps and browser cache are unticked by default and never part of the automatic weekly cleanup.
-* Browser cleanup removes cached pages and images only. History, passwords, bookmarks, logins and autofill live in other files and are never touched.
-* Startup entries that matter (audio, touchpad, antivirus, password manager) are flagged
-  amber and warn before being disabled.
+* Windows.old, crash dumps and browser cache are unticked by default and are
+  never part of the automatic weekly cleanup.
+* Browser cleanup removes cached pages and images only. History, passwords,
+  bookmarks, logins and autofill live in other files and are never touched.
+* Startup entries that matter (audio, touchpad, antivirus, password manager) are
+  flagged amber and warn before being disabled.
 * Duplicates and forgotten files are listed, never deleted for you.
 * Everything lands in `%LOCALAPPDATA%\Brisk\brisk.log`.
 
@@ -86,26 +115,18 @@ from the registry rather than assuming the default, since Windows does not alway
 
 ## Updating itself
 
-Checks at most once a day, in the background. If there is a newer version you get a
-dialog with the release notes and two buttons. Nothing happens unless you say yes.
-Turn it off under *Maintenance → Automatic*.
+Brisk looks for a new version each time it starts, on a background thread. If
+there is one you get a dialog with the release notes and two buttons. Nothing is
+downloaded or installed unless you say yes. *Check for update* under Maintenance
+does the same thing on demand.
 
-Both the version file and the download must be `https`, and the download is verified
-against a sha256 from the version file **before** it is executed. Mismatch means the
-file is deleted and nothing runs.
+Both the version file and the download must be `https`, and the download is
+verified against a sha256 from the version file **before** it is executed. A
+mismatch means the file is deleted and nothing runs.
 
-### Publishing a release
-
-```bash
-utgivelse.cmd 1.2.0 https://github.com/MatternPL/Brisk/releases/latest/download/v1.2.0/BriskInstaller.exe "What changed"
-```
-
-Sets the version in the source, builds, computes the sha256 and writes
-`oppdatering.json`. Then upload `BriskInstaller.exe` as a release asset and commit
-`oppdatering.json` to `main` — **in that order**, so nobody sees an update that isn't
-downloadable yet.
-
-Clients read `Updater.DefaultManifestUrl` in `src/Updater.cs`.
+To turn the automatic check off, set `SjekkAutomatisk` to `0` under
+`HKCU\Software\Brisk`. The manifest address can be overridden the same way with
+`OppdateringsUrl`.
 
 ---
 
@@ -114,7 +135,7 @@ Clients read `Updater.DefaultManifestUrl` in `src/Updater.cs`.
 | | |
 |---|---|
 | `Brisk.exe /auto` | Runs the safe cleanup with no window. Used by the scheduled task. |
-| `Brisk.exe /side:helse` | Opens a specific page (`oversikt`, `rydding`, `diskplass`, `oppstart`, `minne`, `helse`, `nettverk`, `drivere`, `programmer`, `vedlikehold`, `logg`). |
+| `Brisk.exe /side:helse` | Opens a page directly: `oversikt`, `rydding`, `diskplass`, `oppstart`, `minne`, `spill`, `helse`, `nettverk`, `drivere`, `programmer`, `vedlikehold`, `verktoy`, `logg`. |
 | `BriskInstaller.exe /S` | Silent install. Add `/start` to launch afterwards. |
 | `Uninstall.exe /uninstall` | Uninstall. Add `/S` for silent. |
 
@@ -126,38 +147,48 @@ Clients read `Updater.DefaultManifestUrl` in `src/Updater.cs`.
 bygg.cmd
 ```
 
-No Visual Studio, no NuGet, no SDK — it uses the C# compiler already sitting in
-`C:\Windows\Microsoft.NET\Framework64\v4.0.30319`. That compiler only supports C# 5,
-so no string interpolation, no `?.`, no `nameof`.
+No Visual Studio, no NuGet, no SDK. It uses the C# compiler already sitting in
+`C:\Windows\Microsoft.NET\Framework64\v4.0.30319`. That compiler only supports
+C# 5, so no string interpolation, no `?.`, no `nameof`.
 
 ```
 src/
   Program.cs          entry point, arguments, error handling
+  SplashForm.cs       the start-up measurement and its window
   MainForm*.cs        window and pages
-  Lang.cs             English/Norwegian, Norwegian text is the key
-  Theme.cs            dark theme, buttons, dark list headers
+  Chrome.cs           the title bar, window dragging and resizing
+  Theme.cs Widgets.cs dark theme, cards, buttons, lists
   Logo.cs Icons.cs    the mark and the sidebar glyphs
+  Lang.cs             English/Norwegian, Norwegian text is the key
   Cleaner.cs          cleanup engine and the do-not-touch list
+  SpaceTools.cs       hibernation file, restore points, page file
   StartupTools.cs     startup entries and scheduled tasks
   BootTools.cs        boot time and what delays it, from the event log
-  HealthTools.cs      drive wear, blue screens, battery
-  AppCrashTools.cs    app crashes from the event log
-  SpaceTools.cs       hibernation file, restore points, page file
+  GameTools.cs        the settings on the Games page
+  HealthTools.cs      drive wear, battery, crash events
+  NvmeTools.cs        SMART data read from NVMe drives directly
   DumpTools.cs        kernel crash dump parser
   CrashDialog.cs      the blue screen analysis window
+  AppCrashTools.cs    app crashes from the event log
   NetTools.cs         connectivity, hosts file, proxy
-  SystemTools.cs      memory, winget, disk health, maintenance
+  GpuTools.cs         graphics driver version and the NVIDIA/AMD lookup
   DriverTools.cs      drivers via Windows Update
+  SystemTools.cs      memory, winget, disk health, maintenance
+  MachineInfo.cs      what kind of machine this is
+  ExternalTools.cs    the list behind the Tools page
   Extras.cs           Windows updates, disk usage, duplicates, uninstall, report
-  Updater.cs          self-update
-  Native.cs           P/Invoke
+  Updater.cs UpdateDialog.cs   self-update
+  Native.cs Util.cs   P/Invoke and shared helpers
 installer/            the installer
 tools/                build helpers and self-tests
+docs/                 guides and release notes
 ```
 
 `tools/SelfTest.cs` walks memory, cleanup (measure only), startup, disks, problem
-devices and winget, and prints real numbers. `tools/sprak_sjekk.py` checks that every
-`L.T()` key in the source has an English translation.
+devices and winget, and prints real numbers. `tools/sprak_sjekk.py` checks that
+every `L.T()` key in the source has an English translation.
+
+Releasing is documented in [docs/utgivelser.md](docs/utgivelser.md).
 
 ## Supporting it
 
