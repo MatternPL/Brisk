@@ -1,7 +1,7 @@
 {
-  "versjon": "1.6.4",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.4/BriskInstaller.exe",
-  "sha256": "c506629ae4b37d595994e15e85a1f98bc758d1fed326f6fedfe892359983a40e",
-  "storrelse": 697344,
-  "notat": "Startup splits into On and Off with a count in each heading, so you can see what actually starts with Windows at a glance. Its two buttons became one that works out whether to turn the ticked entries off or on. Cleanup, Maintenance and Tools have new icons; the last two were both a wrench and hard to tell apart. The sidebar separates Updates from Fix, and the numbers on the front page sit higher in their fields with their bottom lines aligned."
+  "versjon": "1.6.5",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.5/BriskInstaller.exe",
+  "sha256": "baa36be17271d5237cfbf301b34494186ab2d8935fd21e36731756a2b3c71caf",
+  "storrelse": 699392,
+  "notat": "Games now says whether each setting is optimised or not, with one button that either optimises it or undoes it, and half the text it had. The update check asks for a fresh copy of the version file, so a new release is not reported as 'you have the latest'. The installer carries version and publisher information it was missing entirely, which is one of the things antivirus heuristics look at. Releases now also include Brisk.exe on its own, for anyone who would rather not run an installer."
 }
