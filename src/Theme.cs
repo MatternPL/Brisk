@@ -71,6 +71,20 @@ namespace Brisk
             catch { }
         }
 
+        // Runde hjorner som resten av Windows 11. Et rammelost vindu faar dem
+        // ikke av seg selv - Windows runder bare vinduer den tegner ramma paa.
+        // Attributtet finnes fra build 22000; paa eldre Windows gjor kallet
+        // ingenting, og da staar hjornene skarpe slik de alltid har gjort.
+        public static void RoundCorners(Form f)
+        {
+            try
+            {
+                int rundt = 2;   // DWMWCP_ROUND
+                DwmSetWindowAttribute(f.Handle, 33, ref rundt, 4);
+            }
+            catch (Exception) { }
+        }
+
         // Kombobokser blir hvite uansett BackColor. DarkMode_CFD er temaet
         // Windows selv bruker pa mork combobox fra 1903 og utover.
         public static void DarkCombo(ComboBox c)

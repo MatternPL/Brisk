@@ -79,6 +79,7 @@ namespace Brisk
             Load += delegate
             {
                 Theme.DarkTitleBar(this);
+                Theme.RoundCorners(this);
                 if (Updater.AutoCheck && (DateTime.Now - Updater.LastCheck).TotalHours >= 20)
                 {
                     Task.Run((Action)delegate
