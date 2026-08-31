@@ -156,8 +156,13 @@ will.
 it runs anything it downloads. You can paste the same hash into VirusTotal to
 see what the engines say about the exact file you got:
 
-> **1.6.4** — `c506629ae4b37d595994e15e85a1f98bc758d1fed326f6fedfe892359983a40e`
-> · [look it up on VirusTotal](https://www.virustotal.com/gui/file/c506629ae4b37d595994e15e85a1f98bc758d1fed326f6fedfe892359983a40e)
+> **1.6.5 · BriskInstaller.exe**
+> `baa36be17271d5237cfbf301b34494186ab2d8935fd21e36731756a2b3c71caf`
+> · [look it up](https://www.virustotal.com/gui/file/baa36be17271d5237cfbf301b34494186ab2d8935fd21e36731756a2b3c71caf)
+>
+> **1.6.5 · Brisk.exe**
+> `1082a13c63e88147ca7e754a37a6e2ed972f822be62c3f299651ea3f2ffada6e`
+> · [look it up](https://www.virustotal.com/gui/file/1082a13c63e88147ca7e754a37a6e2ed972f822be62c3f299651ea3f2ffada6e)
 
 ### Antivirus flags it. Here is why, and what to do
 
