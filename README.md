@@ -23,6 +23,23 @@ Download **`BriskInstaller.exe`** from
 
 The files are not code-signed, so SmartScreen will warn you the first time:
 *More info → Run anyway*. A certificate costs money every year; this doesn't.
+See [Is it safe?](#is-it-safe) for what that warning does and does not mean.
+
+---
+
+## What it looks like
+
+![Overview](docs/skjermbilder/overview.png)
+
+The front page measures the machine while Brisk starts, so the numbers are
+there the moment the window opens.
+
+| | |
+|---|---|
+| ![Cleanup](docs/skjermbilder/cleanup.png) | ![Startup](docs/skjermbilder/startup.png) |
+| **Cleanup.** Measure first, delete second. Crash dumps, browser cache and Windows.old are unticked, and stay unticked. | **Startup.** Split into what is on and what is off, with the seconds each one adds to boot, read from Windows' own measurements. |
+| ![Games](docs/skjermbilder/games.png) | ![Health](docs/skjermbilder/health.png) |
+| **Games.** Each setting says whether it is optimised, roughly what it gains, and what it costs you. | **Health.** Drive wear and temperature, battery, blue screens and app crashes. |
 
 ---
 
@@ -110,6 +127,78 @@ cannot explain.
   flagged amber and warn before being disabled.
 * Duplicates and forgotten files are listed, never deleted for you.
 * Everything lands in `%LOCALAPPDATA%\Brisk\brisk.log`.
+
+---
+
+## Is it safe?
+
+A cleanup tool asks for a lot of trust: it wants administrator, it deletes
+files, and it is not signed. "Trust me" is not an answer, so here is what you
+can check for yourself.
+
+**Read it.** Every line that ships is in this repository, MIT licensed. There
+is no build server and no minified anything — what you see is what runs.
+
+**Build it.** `bygg.cmd` uses the C# compiler that already ships with Windows.
+No SDK, no NuGet, nothing downloaded. If you would rather run your own copy
+than mine, you can have one in about ten seconds.
+
+One honest limitation: the build is **not** byte-for-byte reproducible, so your
+`Brisk.exe` will not have the same checksum as the released one. Comparing
+hashes will not prove anything. Reading the source and building your own copy
+will.
+
+**Scan it.** Every release publishes the sha256 of its installer in
+[`oppdatering.json`](oppdatering.json), and Brisk verifies that checksum before
+it runs anything it downloads. You can paste the same hash into VirusTotal to
+see what the engines say about the exact file you got:
+
+> **1.6.4** — `c506629ae4b37d595994e15e85a1f98bc758d1fed326f6fedfe892359983a40e`
+> · [look it up on VirusTotal](https://www.virustotal.com/gui/file/c506629ae4b37d595994e15e85a1f98bc758d1fed326f6fedfe892359983a40e)
+
+An unsigned installer that touches system folders is exactly the shape of thing
+heuristics dislike, so do not be surprised by the odd generic detection from an
+engine you have never heard of. Judge it on the engines you have.
+
+**Why SmartScreen warns.** Not because anything was detected. Windows warns
+about executables from publishers it has not seen before, and "seen before"
+means a code signing certificate, which costs money every year. That is the
+whole story. Money from the coffee link goes to a certificate first, and the
+warning disappears the day there is one.
+
+### What it sends, and where
+
+Nothing is uploaded, ever. There is no account, no analytics, no crash
+reporting, no ads. These are every address Brisk can reach, and when:
+
+| Where | When | What for |
+|---|---|---|
+| `raw.githubusercontent.com` | At every start | Reads one small version file |
+| `github.com` | Only if you accept an update | Downloads the installer, checked against its sha256 |
+| `nvidia.com`, `geforce.com` | Only when you press *Check for a new driver* | Looks up the newest driver for your card |
+| `amd.com`, `drivers.amd.com` | Same | Same |
+| Whatever `winget` uses | Only when you install something from Software or Tools | Microsoft's own package manager does the work |
+| A tool's own website | Only when you click its name | Opens your browser, nothing more |
+
+The one exception worth naming: **WinUtil** on the Tools page runs
+`irm https://christitus.com/win | iex`, which downloads and runs someone else's
+PowerShell script. That is how its author distributes it. Brisk shows you the
+command before it runs and does not hide what it is, but it is other people's
+code from another domain — treat it as such.
+
+### What needs administrator, and why
+
+Brisk starts without it and most of the program works. These need it, and they
+say so before they run:
+
+* Cleaning Windows' own folders (Update leftovers, system logs, Windows.old)
+* `sfc`, `DISM`, TRIM, restore points, the scheduled cleanup
+* Startup entries that belong to all users, not just you
+* Installing Windows updates and drivers
+* Virtualisation-based security, memory integrity and the power plan under Games
+
+Everything it does lands in `%LOCALAPPDATA%\Brisk\brisk.log` with timestamps,
+including the failures.
 
 ---
 

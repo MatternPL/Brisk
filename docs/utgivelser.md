@@ -20,6 +20,10 @@ Så, **i denne rekkefølgen**:
    ```
 4. Last ned fila fra utgivelses-URLen og sjekk at sha256 stemmer med manifestet.
 5. Først nå: commit og push `oppdatering.json`.
+6. Dra `BriskInstaller.exe` inn på [virustotal.com](https://www.virustotal.com/gui/home/upload)
+   og oppdater hash-en i README-en under «Is it safe?». Opplasting krever ingen
+   konto. Uten dette peker lenka i README-en på en side som sier «not found»,
+   og da er den verre enn ingen lenke.
 
 Rekkefølgen er ikke pedanteri. Manifestet er det klientene leser; pusher du det
 først, peker det på en nedlasting som ikke finnes ennå. Det skjedde i 1.6.0.
