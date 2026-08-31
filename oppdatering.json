@@ -1,7 +1,7 @@
 {
-  "versjon": "1.6.2",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.2/BriskInstaller.exe",
-  "sha256": "c5f893af6d0b3db926db169d8c7d77536276d6783c10f85c4950496e0942f184",
+  "versjon": "1.6.3",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.3/BriskInstaller.exe",
+  "sha256": "804ab7ea48bbfdba998606086164820d1f9a4d7ecf7e02d0c6cad39bd3424808",
   "storrelse": 690688,
-  "notat": "Brisk now opens with a start-up screen that measures the machine, so the front page has real numbers the moment it appears. The front page itself is one box with nine fields instead of scattered cards, and it can check for a new NVIDIA or AMD graphics driver and download it for you. The window has its own title bar with rounded corners, and the sidebar is grouped into Space, Speed, Diagnostics and Update and fix."
+  "notat": "Brisk now checks for a new version every time it starts. Until now the check was skipped unless twenty hours had passed since the last one, so a release could sit unnoticed for most of a day. The check is one small text file fetched in the background and does not slow the start-up."
 }
