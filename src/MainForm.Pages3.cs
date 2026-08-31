@@ -15,6 +15,17 @@ namespace Brisk
         TextBox updOut;
         Label lblGpu, lblUpdSum, lblDevSum;
 
+        // Viser hva som staar paa maskina naa. Versjonen er den leverandoren
+        // selv bruker, ikke Windows sitt interne nummer.
+        void GpuVis()
+        {
+            if (gpu == null) return;
+            string alder = gpu.DriverDate == DateTime.MinValue ? ""
+                : "   ·   " + L.F("{0} dager gammel",
+                    (int)(DateTime.Now - gpu.DriverDate).TotalDays);
+            lblGpu.Text = gpu.Name + "   ·   " + L.T("driver") + " " + gpu.Installed + alder;
+        }
+
         Panel PageDrivers()
         {
             Panel p = new Panel();
@@ -46,22 +57,34 @@ namespace Brisk
             lblGpu = Theme.Lbl("", Theme.FCard, Theme.Text);
             lblGpu.Location = new Point(20, 12);
             Label gpuNote = Theme.Lbl(
-                L.T("Windows Update ligger ofte etter for skjermkort. Nyeste driver får du hos produsenten."),
+                L.T("Windows Update ligger ofte etter for skjermkort. Brisk spør NVIDIA og AMD direkte."),
                 Theme.FSmall, Theme.Muted);
             gpuNote.Location = new Point(22, 38);
 
-            FlatBtn bGpu = new FlatBtn(L.T("Hent hos produsenten"));
-            bGpu.Width = 200; bGpu.Height = 34;
+            // To knapper: den forste sjekker, den andre dukker opp forst naar
+            // det faktisk finnes noe nytt. En knapp som laster ned uten aa ha
+            // sjekket ville bare gjettet.
+            FlatBtn bGpuGet = new FlatBtn(L.T("Last ned"));
+            bGpuGet.Primary();
+            bGpuGet.Width = 150; bGpuGet.Height = 34;
+            bGpuGet.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            bGpuGet.Visible = false;
+
+            FlatBtn bGpu = new FlatBtn(L.T("Se etter ny driver"));
+            bGpu.Width = 180; bGpu.Height = 34;
             bGpu.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             bGpu.Visible = false;
 
             gpuCard.Controls.Add(lblGpu);
             gpuCard.Controls.Add(gpuNote);
             gpuCard.Controls.Add(bGpu);
+            gpuCard.Controls.Add(bGpuGet);
             Theme.Arrange(gpuCard, delegate
             {
-                bGpu.Location = new Point(gpuCard.Width - bGpu.Width - 20, 20);
-                // Teksten maa stoppe for knappen, ellers legger de seg oppaa
+                bGpuGet.Location = new Point(gpuCard.Width - bGpuGet.Width - 20, 20);
+                bGpu.Location = new Point(
+                    (bGpuGet.Visible ? bGpuGet.Left : gpuCard.Width - 20) - bGpu.Width - 10, 20);
+                // Teksten maa stoppe for knappene, ellers legger de seg oppaa
                 // hverandre naar vinduet er smalt.
                 int plass = Math.Max(160, bGpu.Left - 40);
                 gpuNote.AutoSize = false;
@@ -77,25 +100,78 @@ namespace Brisk
             {
                 try
                 {
-                    List<GpuInfo> gpus = DriverTools.Graphics();
-                    if (gpus.Count == 0) { lblGpu.Text = L.T("Fant ingen skjermkort."); return; }
+                    if (gpu == null) gpu = GpuTools.Read();
+                    if (gpu.Name.Length == 0) { lblGpu.Text = L.T("Fant ingen skjermkort."); return; }
+                    GpuVis();
 
-                    GpuInfo g = gpus[0];
-                    string alder = g.AgeDays < 0 ? "" : "   ·   " + L.F("{0} dager gammel", g.AgeDays);
-                    lblGpu.Text = g.Name + "   ·   " + L.T("driver") + " " + g.Version + alder;
-                    lblGpu.ForeColor = g.AgeDays > 120 ? Theme.Warn : Theme.Text;
-
-                    if (g.Url.Length > 0)
-                    {
-                        bGpu.Visible = true;
-                        bGpu.Text = L.F("Hent hos {0}", g.Vendor);
-                        string url = g.Url;
-                        bGpu.Click += delegate { Util.OpenPath(url); };
-                    }
-                    bGpu.Location = new Point(gpuCard.Width - bGpu.Width - 20, 20);
+                    bGpu.Visible = gpu.Known;
+                    if (!gpu.Known)
+                        gpuNote.Text = L.T("Brisk kan bare sjekke drivere for NVIDIA- og AMD-skjermkort.");
+                    gpuCard.PerformLayout();
                 }
                 catch (Exception ex) { lblGpu.Text = ex.Message; }
             });
+
+            bGpu.Click += async delegate
+            {
+                string feil = null;
+                GpuDriver d = null;
+                gpuNote.Text = L.F("Spør {0} …", gpu.Vendor);
+                await Job(new Control[] { bGpu, bGpuGet }, delegate
+                {
+                    d = GpuTools.Latest(gpu, out feil);
+                });
+
+                if (d == null)
+                {
+                    gpuNote.Text = feil;
+                    gpuNote.ForeColor = Theme.Warn;
+                    Append(updOut, feil); Status(feil);
+                    return;
+                }
+
+                gpuLatest = d;
+                bGpuGet.Visible = d.Newer;
+                gpuNote.ForeColor = d.Newer ? Theme.Warn : Theme.Good;
+                gpuNote.Text = d.Newer
+                    ? L.F("{0} er ute. Du har {1}.", d.Version, gpu.Installed)
+                      + (d.Released.Length > 0 ? "   ·   " + d.Released : "")
+                    : L.F("Du har nyeste driver ({0}).", gpu.Installed);
+                Append(updOut, gpuNote.Text); Status(gpuNote.Text);
+                gpuCard.PerformLayout();
+                RefreshOverview();
+            };
+
+            bGpuGet.Click += async delegate
+            {
+                if (gpuLatest == null) return;
+                string feil = null, fil = null;
+                GpuDriver d = gpuLatest;
+                string merke = gpu.Vendor;
+
+                Append(updOut, L.F("Laster ned {0}-driver {1} …", merke, d.Version));
+                await Job(new Control[] { bGpu, bGpuGet }, delegate
+                {
+                    long sist = 0;
+                    fil = GpuTools.Download(d, merke, delegate(long got, long total)
+                    {
+                        // Én linje per 10 MB, ellers drukner utdata i tall.
+                        if (got - sist < 10L * 1024 * 1024 && got != total) return;
+                        sist = got;
+                        Status(total > 0
+                            ? L.F("{0} av {1}", Util.Bytes(got), Util.Bytes(total))
+                            : Util.Bytes(got));
+                    }, out feil);
+                });
+
+                if (fil == null) { Append(updOut, feil); Status(feil); return; }
+
+                // Brisk kjorer ikke installatoren selv. En driverinstallasjon
+                // slaar av skjermen underveis og skal startes naar brukeren er
+                // klar - vi aapner mappa i stedet.
+                Append(updOut, L.F("Lagret som {0}. Brisk starter den ikke — kjør den når du er klar.", fil));
+                Util.OpenPath(System.IO.Path.GetDirectoryName(fil));
+            };
 
             // --- utdata ---
             // Foer gikk all framdrift til statuslinja nederst i vinduet, en

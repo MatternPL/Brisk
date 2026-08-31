@@ -20,12 +20,14 @@ namespace Brisk
         {
             List<MachineLine> l = new List<MachineLine>();
 
+            // Minne og oppetid staar som egne kort paa forsida naa, og skal
+            // ikke staa to steder. Her hoerer det som ikke endrer seg hjemme:
+            // hva slags maskin dette er.
             l.Add(new MachineLine("Windows", Windows()));
             l.Add(new MachineLine("Prosessor", Trim(Wmi("Win32_Processor", "Name"))));
             l.Add(new MachineLine("Skjermkort", Trim(Wmi("Win32_VideoController", "Name"))));
-            l.Add(new MachineLine("Minne", Memory()));
             l.Add(new MachineLine("Hovedkort", Board()));
-            l.Add(new MachineLine("Oppe siden", Uptime()));
+            l.Add(new MachineLine("Minne totalt", Total()));
             return l;
         }
 
@@ -38,13 +40,11 @@ namespace Brisk
             return caption;
         }
 
-        static string Memory()
+        // Bare totalen. Hvor mye som er i bruk staar paa minnekortet paa
+        // forsida, og det tallet endrer seg mens man ser paa det.
+        static string Total()
         {
-            try
-            {
-                MemSnapshot m = MemoryTools.Snapshot();
-                return Util.Bytes(m.TotalPhys) + "  ·  " + L.F("{0} % i bruk", m.LoadPercent);
-            }
+            try { return Util.Bytes(MemoryTools.Snapshot().TotalPhys); }
             catch (Exception) { return "(ukjent)"; }
         }
 
@@ -59,7 +59,7 @@ namespace Brisk
         // Windows lagrer oppstartstidspunktet som en WMI-dato. Vi regner ut
         // hvor lenge maskinen har vaert paa, siden det ofte forklarer hvorfor
         // minnebruken har krope oppover.
-        static string Uptime()
+        public static string Uptime()
         {
             try
             {

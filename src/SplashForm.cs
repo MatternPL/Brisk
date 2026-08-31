@@ -17,6 +17,9 @@ namespace Brisk
         public int StartupTotal = -1;
         public int Wear = -1;
         public string WearDrive = "";
+        public int Temp = -1;
+        public string TempDrive = "";
+        public GpuInfo Gpu;
         public int BlueScreens = -1;     // alle siste 30 dager
         public int BlueScreensNew = -1;  // de brukeren ikke har kvittert ut
         public bool Done;
@@ -146,13 +149,23 @@ namespace Brisk
                     }
                     catch (Exception ex) { Util.Log("Oppstartsmåling, oppstart: " + ex.Message); }
 
-                    Vis(L.T("Leser diskhelse …"), 0.82);
+                    Vis(L.T("Leser diskhelse …"), 0.78);
                     try
                     {
                         foreach (DriveWear d in HealthTools.Drives())
+                        {
                             if (d.Wear > result.Wear) { result.Wear = d.Wear; result.WearDrive = d.Name; }
+                            if (d.Temperature > result.Temp)
+                            { result.Temp = d.Temperature; result.TempDrive = d.Name; }
+                        }
                     }
                     catch (Exception ex) { Util.Log("Oppstartsmåling, disk: " + ex.Message); }
+
+                    // Bare det som staar paa maskina. Oppslaget mot NVIDIA og
+                    // AMD gaar over nett og hoerer ikke hjemme i oppstarten.
+                    Vis(L.T("Leser skjermkort …"), 0.88);
+                    try { result.Gpu = GpuTools.Read(); }
+                    catch (Exception ex) { Util.Log("Oppstartsmåling, skjermkort: " + ex.Message); }
 
                     Vis(L.T("Analyserer dumpfiler …"), 0.93);
                     try

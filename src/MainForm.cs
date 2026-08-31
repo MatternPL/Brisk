@@ -48,9 +48,13 @@ namespace Brisk
 
             // Under dette begynner tekst aa bli kuttet, saa lenger ned skal det
             // ikke gaa aa dra vinduet.
+            // Forsida har ni kort i tre rader. Under dette blir «Denne maskinen»
+            // kuttet paa midten, saa lenger ned skal det ikke gaa aa dra
+            // vinduet. Er skjermen lavere enn dette, vinner skjermen - et vindu
+            // som ikke faar plass er verre enn et som er trangt.
             MinimumSize = new Size(
                 Math.Min(1120, plass.Width),
-                Math.Min(820 + TitleBar.H, plass.Height));
+                Math.Min(900 + TitleBar.H, plass.Height));
             BackColor = Theme.Bg;
             ForeColor = Theme.Text;
             Font = Theme.F;
@@ -470,7 +474,16 @@ namespace Brisk
         Color heroColor = Theme.Good;
         Label ovRam, ovRamSub, ovDisk, ovDiskSub, ovStart, ovStartSub, ovJunk, ovJunkSub;
         Label ovWear, ovWearSub, ovCrash, ovCrashSub;
+        Label ovTemp, ovTempSub, ovGpu, ovGpuSub, ovUp, ovUpSub;
         Control ovCrashCell;
+        GpuInfo gpu;
+        GpuDriver gpuLatest;
+
+        static string Kort(string s, int maks)
+        {
+            if (string.IsNullOrEmpty(s)) return "";
+            return s.Length <= maks ? s : s.Substring(0, maks - 1) + "…";
+        }
         Panel ovMachine;
         Bar ovRamBar, ovDiskBar;
         ListView lvFindings;
@@ -524,10 +537,10 @@ namespace Brisk
             Theme.Arrange(heroCard, delegate { LayoutHero(); });
             heroHost.Controls.Add(heroCard);
 
-            // --- fire tall ---
+            // --- ni tall ---
             Panel cards = new Panel();
             cards.Dock = DockStyle.Top;
-            cards.Height = 292;
+            cards.Height = 14 + 3 * 134;
             cards.BackColor = Theme.Bg;
             cards.Padding = new Padding(0, 14, 0, 0);
 
@@ -536,29 +549,35 @@ namespace Brisk
             Panel c3 = StatCard(out ovJunk, out ovJunkSub, L.T("Søppel"), null);
             Panel c4 = StatCard(out ovStart, out ovStartSub, L.T("Starter med Windows"), null);
             Panel c5 = StatCard(out ovWear, out ovWearSub, L.T("Diskslitasje"), null);
-            Panel c6 = StatCard(out ovCrash, out ovCrashSub, L.T("Blåskjermer"), null);
+            Panel c6 = StatCard(out ovTemp, out ovTempSub, L.T("Disktemperatur"), null);
+            Panel c7 = StatCard(out ovGpu, out ovGpuSub, L.T("Skjermdriver"), null);
+            Panel c8 = StatCard(out ovUp, out ovUpSub, L.T("Oppetid"), null);
+            Panel c9 = StatCard(out ovCrash, out ovCrashSub, L.T("Blåskjermer"), null);
 
-            // Tre i bredden, to rader. Seks paa rad ble saa smalt at bade
+            // Tre i bredden, tre rader. Seks paa rad ble saa smalt at bade
             // tallene og undertekstene maatte kuttes.
             TableLayoutPanel grid = new TableLayoutPanel();
             grid.Dock = DockStyle.Fill;
             grid.ColumnCount = 3;
-            grid.RowCount = 2;
+            grid.RowCount = 3;
             grid.BackColor = Theme.Bg;
             for (int i = 0; i < 3; i++)
                 grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 3f));
-            grid.RowStyles.Add(new RowStyle(SizeType.Percent, 50f));
-            grid.RowStyles.Add(new RowStyle(SizeType.Percent, 50f));
-            grid.Controls.Add(Wrap(c1), 0, 0);
-            grid.Controls.Add(Wrap(c2), 1, 0);
-            grid.Controls.Add(Wrap(c3), 2, 0);
-            grid.Controls.Add(Wrap(c4), 0, 1);
-            grid.Controls.Add(Wrap(c5), 1, 1);
+            for (int i = 0; i < 3; i++)
+                grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100f / 3f));
+            grid.Controls.Add(Wrap(c1, false), 0, 0);
+            grid.Controls.Add(Wrap(c2, false), 1, 0);
+            grid.Controls.Add(Wrap(c3, true), 2, 0);
+            grid.Controls.Add(Wrap(c4, false), 0, 1);
+            grid.Controls.Add(Wrap(c5, false), 1, 1);
+            grid.Controls.Add(Wrap(c6, true), 2, 1);
+            grid.Controls.Add(Wrap(c7, false), 0, 2);
+            grid.Controls.Add(Wrap(c8, false), 1, 2);
             // Blaaskjermkortet ligger nederst til hoyre og skjules naar det
             // ikke finnes noen kraesj aa vise. Da blir hjornet staaende tomt,
             // og det ser ut som luft - ikke som et hull midt i rutenettet.
-            ovCrashCell = Wrap(c6);
-            grid.Controls.Add(ovCrashCell, 2, 1);
+            ovCrashCell = Wrap(c9, true);
+            grid.Controls.Add(ovCrashCell, 2, 2);
             cards.Controls.Add(grid);
 
             // --- funn ---
@@ -663,12 +682,15 @@ namespace Brisk
             if (!string.IsNullOrEmpty(key)) Show(key);
         }
 
-        static Panel Wrap(Panel inner)
+        // sist = kortet staar ytterst til hoyre. Da skal det ikke ha luft paa
+        // hoyre side heller - ellers stopper rutenettet 14 piksler for tidlig
+        // og staar ikke i flukt med kortet over.
+        static Panel Wrap(Panel inner, bool sist)
         {
             Panel w = new Panel();
             w.Dock = DockStyle.Fill;
             w.BackColor = Theme.Bg;
-            w.Padding = new Padding(0, 0, 14, 12);
+            w.Padding = new Padding(0, 0, sist ? 0 : 14, 12);
             inner.Dock = DockStyle.Fill;
             w.Controls.Add(inner);
             return w;
@@ -821,6 +843,53 @@ namespace Brisk
                     ovWear.Text = "—";
                     ovWearSub.Text = L.T("ikke rapportert");
                 }
+
+                // Varmeste disk. Over 60 grader begynner en SSD aa strupe seg
+                // selv, over 70 er det verdt aa se paa lufta i kabinettet.
+                int varm = -1;
+                string varmNavn = "";
+                if (startScan != null && startScan.Temp >= 0)
+                {
+                    varm = startScan.Temp;
+                    varmNavn = startScan.TempDrive;
+                }
+                else
+                {
+                    try
+                    {
+                        foreach (DriveWear d in HealthTools.Drives())
+                            if (d.Temperature > varm) { varm = d.Temperature; varmNavn = d.Name; }
+                    }
+                    catch (Exception) { }
+                }
+                if (varm >= 0)
+                {
+                    ovTemp.Text = varm + " °C";
+                    ovTemp.ForeColor = varm >= 70 ? Theme.Bad : varm >= 60 ? Theme.Warn : Theme.Good;
+                    ovTempSub.Text = varmNavn.Length > 22 ? varmNavn.Substring(0, 22) : varmNavn;
+                }
+                else
+                {
+                    ovTemp.Text = "—";
+                    ovTempSub.Text = L.T("ikke rapportert");
+                }
+
+                // Skjermdriver. Tallet er det leverandoren selv kaller
+                // versjonen, ikke Windows sitt interne nummer - det er det som
+                // staar i utgivelsesnotatene og paa nedlastingssida.
+                if (gpu == null)
+                    gpu = startScan != null && startScan.Gpu != null ? startScan.Gpu : GpuTools.Read();
+                ovGpu.Text = gpu.Installed.Length > 0 ? gpu.Installed : "—";
+                ovGpu.ForeColor = Theme.Text;
+                ovGpuSub.Text = Kort(gpu.Name, 24);
+                if (gpuLatest != null && gpuLatest.Newer)
+                {
+                    ovGpu.ForeColor = Theme.Warn;
+                    ovGpuSub.Text = L.F("{0} er ute", gpuLatest.Version);
+                }
+
+                ovUp.Text = MachineInfo.Uptime();
+                ovUpSub.Text = L.T("siden forrige omstart");
 
                 // Blaaskjermer siste 30 dager, talt som dumpfiler og ikke som
                 // hendelser i systemloggen. Er dumpen ryddet bort, kan Helse

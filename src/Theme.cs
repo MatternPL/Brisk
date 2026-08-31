@@ -228,7 +228,9 @@ namespace Brisk
                 try
                 {
                     // Litt margin, ellers gir avrunding et vannrett rullefelt.
-                    int plass = lv.ClientSize.Width - 4;
+                    // Fire piksler var ikke nok naar lista er smal - da ble det
+                    // et rullefelt under en liste som hadde god plass.
+                    int plass = lv.ClientSize.Width - 8;
                     if (plass < 60) { inne = false; return; }
 
                     int sum = 0;
