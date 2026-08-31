@@ -227,7 +227,8 @@ namespace Brisk
                 inne = true;
                 try
                 {
-                    int plass = lv.ClientSize.Width;
+                    // Litt margin, ellers gir avrunding et vannrett rullefelt.
+                    int plass = lv.ClientSize.Width - 4;
                     if (plass < 60) { inne = false; return; }
 
                     int sum = 0;

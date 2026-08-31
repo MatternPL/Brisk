@@ -132,7 +132,7 @@ namespace Brisk
                 L.T("Huker av eller vekk alle kategoriene på én gang."));
             tClean.Enabled = false;
 
-            Panel actions = Widgets.Row(98, tScan, tClean, tAll);
+            Panel actions = Widgets.Row(110, tScan, tClean, tAll);
 
             Panel head = Widgets.Head(L.T("Kategorier"), out lblCleanTotal);
 
@@ -295,7 +295,7 @@ namespace Brisk
             ActionTile tRef = new ActionTile(L.T("Oppdater listen"),
                 L.T("Leser oppføringene og henter oppstartstidene på nytt.")).AsPrimary();
 
-            Panel actions = Widgets.Row(98, tRef, tOff, tOn, tTasks);
+            Panel actions = Widgets.Row(110, tRef, tOff, tOn, tTasks);
             Panel head = Widgets.Head(L.T("Starter med Windows"), out lblBoot);
 
             Panel listHost = new Panel();
@@ -487,7 +487,7 @@ namespace Brisk
             ActionTile tStandby = new ActionTile(L.T("Tøm standby-cache"),
                 L.T("Sletter Windows sin filcache. Kan hjelpe rett før et stort spill. Ellers gjør den maskinen tregere en stund."));
 
-            Panel actions = Widgets.Row(98, tRef, tTrim, tStandby);
+            Panel actions = Widgets.Row(110, tRef, tTrim, tStandby);
             Panel head = Widgets.Head(L.T("Hva som bruker minnet"), out mProcCount);
 
             Panel note = new Panel();
@@ -656,9 +656,9 @@ namespace Brisk
             Panel h2 = Widgets.Head(L.T("Disk og nettverk"), out c2);
             Panel h3 = Widgets.Head(L.T("Automatikk og hjelp"), out c3);
 
-            Panel r1 = Widgets.Row(98, tSfc, tDism, tRp);
-            Panel r2 = Widgets.Row(98, tComp, tOpt, tDns);
-            Panel r3 = Widgets.Row(98, tPlan, tRap, tLog);
+            Panel r1 = Widgets.Row(110, tSfc, tDism, tRp);
+            Panel r2 = Widgets.Row(110, tComp, tOpt, tDns);
+            Panel r3 = Widgets.Row(110, tPlan, tRap, tLog);
 
             Label outCount;
             Panel head = Widgets.Head(L.T("Utdata"), out outCount);

@@ -12,6 +12,7 @@ namespace Brisk
         //  OPPDATERINGER
         // ==============================================================
         ListView lvUpd, lvDev;
+        TextBox updOut;
         Label lblGpu, lblUpdSum, lblDevSum;
 
         Panel PageDrivers()
@@ -30,7 +31,7 @@ namespace Brisk
                 L.T("Åpner Windows-innstillingene for oppdatering."));
             tInst.Enabled = false;
 
-            Panel actions = Widgets.Row(98, tSearch, tInst, tDev, tWu);
+            Panel actions = Widgets.Row(110, tSearch, tInst, tDev, tWu);
 
             // --- skjermkort ---
             Panel gpuHost = new Panel();
@@ -60,6 +61,15 @@ namespace Brisk
             Theme.Arrange(gpuCard, delegate
             {
                 bGpu.Location = new Point(gpuCard.Width - bGpu.Width - 20, 20);
+                // Teksten maa stoppe for knappen, ellers legger de seg oppaa
+                // hverandre naar vinduet er smalt.
+                int plass = Math.Max(160, bGpu.Left - 40);
+                gpuNote.AutoSize = false;
+                gpuNote.Width = plass;
+                gpuNote.Height = 34;
+                lblGpu.AutoSize = false;
+                lblGpu.Width = plass;
+                lblGpu.Height = 22;
             });
             gpuHost.Controls.Add(gpuCard);
 
@@ -87,10 +97,23 @@ namespace Brisk
                 catch (Exception ex) { lblGpu.Text = ex.Message; }
             });
 
+            // --- utdata ---
+            // Foer gikk all framdrift til statuslinja nederst i vinduet, en
+            // linje av gangen. Under en nedlasting som tar minutter sto den
+            // helt stille, og feilmeldinger ble overskrevet av sluttmeldingen.
+            Panel outHost = new Panel();
+            outHost.Dock = DockStyle.Bottom;
+            outHost.Height = 132;
+            outHost.BackColor = Theme.Bg;
+            outHost.Padding = new Padding(0, 12, 0, 0);
+            updOut = Console(outHost, 0);
+            Label outNote;
+            outHost.Controls.Add(Widgets.Head(L.T("Utdata"), out outNote));
+
             // --- enheter med problem ---
             Panel devHost = new Panel();
             devHost.Dock = DockStyle.Bottom;
-            devHost.Height = 168;
+            devHost.Height = 150;
             devHost.BackColor = Theme.Bg;
             devHost.Padding = new Padding(0, 12, 0, 0);
             lvDev = ListIn(devHost, false,
@@ -107,6 +130,7 @@ namespace Brisk
 
             p.Controls.Add(updHost);
             p.Controls.Add(devHost);
+            p.Controls.Add(outHost);
             p.Controls.Add(gpuHost);
             p.Controls.Add(actions);
 
@@ -212,24 +236,43 @@ namespace Brisk
                     else if (li.Tag is WinUpdate) wins.Add((WinUpdate)li.Tag);
                 }
                 int n = drivers.Count + wins.Count;
-                if (n == 0) { Status(L.T("Ingenting er merket.")); return; }
+                if (n == 0)
+                {
+                    MessageBox.Show(this, L.T("Ingenting er merket. Huk av oppdateringene du vil installere først."),
+                        L.T("Oppdateringer"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                if (!Util.IsAdmin())
+                {
+                    MessageBox.Show(this,
+                        L.T("Installering av oppdateringer krever administrator. Start Brisk som administrator og prøv igjen."),
+                        L.T("Oppdateringer"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
                 if (MessageBox.Show(this,
                         L.F("Installerer {0} fra Microsoft. Skjermen kan blinke, og noe krever omstart.", n) +
                         "\n\n" + L.T("Fortsette?"), L.T("Oppdateringer"),
                         MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
 
+                Append(updOut, "");
+                Append(updOut, L.F("Installerer {0} …", n));
+
                 int done = 0;
                 bool reboot = false, r1 = false, r2 = false;
+                Action<string> w = delegate(string line) { Append(updOut, line); Status(line); };
                 await Job(new Control[] { tSearch, tInst, tDev, tWu }, delegate
                 {
                     if (wins.Count > 0)
-                        done += UpdateTools.Install(wins, out r1, delegate(string s) { Status(s); });
+                        done += UpdateTools.Install(wins, out r1, w);
                     if (drivers.Count > 0)
-                        done += DriverTools.InstallDrivers(drivers, out r2, delegate(string s) { Status(s); });
+                        done += DriverTools.InstallDrivers(drivers, out r2, w);
                 });
                 reboot = r1 || r2;
-                Status(L.F("Installerte {0} av {1}.", done, n) + (reboot ? "  " + L.T("Omstart kreves.") : ""));
+                string oppsum = L.F("Installerte {0} av {1}.", done, n) + (reboot ? "  " + L.T("Omstart kreves.") : "");
+                Append(updOut, oppsum);
+                Status(oppsum);
                 if (reboot)
                     MessageBox.Show(this, L.T("Noe av dette krever omstart for å bli aktivt."),
                         L.T("Omstart"), MessageBoxButtons.OK, MessageBoxIcon.Information);

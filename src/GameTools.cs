@@ -193,20 +193,81 @@ namespace Brisk
         {
             GameSetting g = new GameSetting();
             g.Key = "power";
-            g.Estimate = "0–15 %";
-            g.Name = "Strømplan";
-            g.What = "Balansert lar prosessoren senke klokken mellom bildene. På bærbare og på balansert oppsett er dette ofte det som merkes mest.";
-            g.Cost = "Mer strøm og mer varme. På bærbar: kortere batteritid.";
+            g.Estimate = "0\u201315 %";
+            g.Name = "Str\u00f8mplan";
+            g.What = "Balansert lar prosessoren senke klokken mellom bildene. P\u00e5 b\u00e6rbare og p\u00e5 balansert oppsett er dette ofte det som merkes mest.";
+            g.Cost = "Mer str\u00f8m og mer varme. P\u00e5 b\u00e6rbar: kortere batteritid.";
             g.Gain = Gain.Varierer;
             g.NeedsAdmin = true;
 
-            int code;
-            string ut = Util.RunCapture("powercfg", "/getactivescheme", out code);
-            string lav = (ut ?? "").ToLowerInvariant();
-            bool bra = lav.Contains(Ultimate) || lav.Contains(HighPerf);
-            g.Optimal = bra;
-            g.State = bra ? "Høy ytelse" : "Balansert eller strømsparing";
+            string aktiv, navn;
+            List<Plan> planer = Planer(out aktiv, out navn);
+            if (planer.Count == 0)
+            {
+                g.Available = false;
+                g.Unavailable = "Fikk ikke lest str\u00f8mplanene.";
+                return g;
+            }
+
+            g.Optimal = ErRask(navn, aktiv);
+            g.State = g.Optimal ? "H\u00f8y ytelse" : "Balansert eller str\u00f8msparing";
             return g;
+        }
+
+        class Plan
+        {
+            public string Guid = "";
+            public string Name = "";
+            public bool Active;
+        }
+
+        // Leser de faktiske planene i stedet for aa stole paa faste GUID-er.
+        // Windows lager en ny GUID hver gang en plan dupliseres, saa Ultimate
+        // Performance kan ligge under et helt annet nummer enn det kjente - og
+        // paa mange maskiner, saerlig baerbare, finnes den ikke i det hele tatt.
+        static List<Plan> Planer(out string aktivGuid, out string aktivNavn)
+        {
+            List<Plan> l = new List<Plan>();
+            aktivGuid = "";
+            aktivNavn = "";
+            try
+            {
+                int code;
+                string ut = Util.RunCapture("powercfg", "/list", out code);
+                foreach (string raw in (ut ?? "").Replace("\r", "").Split('\n'))
+                {
+                    string linje = raw.Trim();
+                    int i = linje.IndexOf("GUID:", StringComparison.OrdinalIgnoreCase);
+                    if (i < 0) continue;
+                    string rest = linje.Substring(i + 5).Trim();
+                    int sp = rest.IndexOf(' ');
+                    if (sp <= 0) continue;
+
+                    Plan pl = new Plan();
+                    pl.Guid = rest.Substring(0, sp).Trim();
+                    string etter = rest.Substring(sp).Trim();
+                    int a = etter.IndexOf('('), b = etter.LastIndexOf(')');
+                    pl.Name = a >= 0 && b > a ? etter.Substring(a + 1, b - a - 1).Trim() : etter;
+                    pl.Active = etter.EndsWith("*");
+                    l.Add(pl);
+                    if (pl.Active) { aktivGuid = pl.Guid; aktivNavn = pl.Name; }
+                }
+            }
+            catch (Exception) { }
+            return l;
+        }
+
+        // Navnet er oversatt til systemspraaket, saa vi ser bade paa navn og
+        // paa de to GUID-ene Microsoft selv bruker.
+        static bool ErRask(string navn, string guid)
+        {
+            string n = (navn ?? "").ToLowerInvariant();
+            if (n.IndexOf("ultimate") >= 0) return true;
+            if (n.IndexOf("high perf") >= 0) return true;
+            if (n.IndexOf("h\u00f8y ytelse") >= 0) return true;
+            if (n.IndexOf("h\u00f6gpresta") >= 0) return true;
+            string gg = (guid ?? "").ToLowerInvariant();
+            return gg == Ultimate || gg == HighPerf;
         }
 
         // ---------------------------------------------------------------
@@ -241,13 +302,7 @@ namespace Brisk
                         return null;
 
                     case "power":
-                        {
-                            int code;
-                            Util.RunCapture("powercfg", "/setactive " + (forGaming ? Ultimate : "381b4222-f694-41f0-9685-ff5bb260df2e"), out code);
-                            if (code != 0 && forGaming)
-                                Util.RunCapture("powercfg", "/setactive " + HighPerf, out code);
-                            return code == 0 ? null : "powercfg svarte " + code;
-                        }
+                        return SetPowerPlan(forGaming);
                 }
                 return "Ukjent innstilling.";
             }
@@ -259,6 +314,57 @@ namespace Brisk
             {
                 return ex.Message;
             }
+        }
+
+        // Velger en plan som finnes, i stedet for aa sette en fast GUID som
+        // kanskje ikke er der. Finnes ingen rask plan, lages Ultimate
+        // Performance ved aa duplisere Microsofts egen - det virker paa
+        // stasjonaere maskiner, men ikke alltid paa baerbare.
+        static string SetPowerPlan(bool forGaming)
+        {
+            int code;
+            string aktiv, navn;
+            List<Plan> planer = Planer(out aktiv, out navn);
+            if (planer.Count == 0) return "Fikk ikke lest strømplanene.";
+
+            string mål = "";
+            if (forGaming)
+            {
+                foreach (Plan pl in planer)
+                    if (pl.Name.ToLowerInvariant().IndexOf("ultimate") >= 0) { mål = pl.Guid; break; }
+                if (mål.Length == 0)
+                    foreach (Plan pl in planer)
+                        if (ErRask(pl.Name, pl.Guid)) { mål = pl.Guid; break; }
+
+                if (mål.Length == 0)
+                {
+                    // Ingen rask plan finnes. Lag Ultimate Performance.
+                    string ut = Util.RunCapture("powercfg", "-duplicatescheme " + Ultimate, out code);
+                    if (code == 0)
+                    {
+                        planer = Planer(out aktiv, out navn);
+                        foreach (Plan pl in planer)
+                            if (pl.Name.ToLowerInvariant().IndexOf("ultimate") >= 0) { mål = pl.Guid; break; }
+                    }
+                }
+                if (mål.Length == 0) mål = HighPerf;
+            }
+            else
+            {
+                mål = "381b4222-f694-41f0-9685-ff5bb260df2e";   // Balansert
+            }
+
+            Util.RunCapture("powercfg", "/setactive " + mål, out code);
+            if (code != 0) return "powercfg svarte " + code;
+
+            // Kontroller at det faktisk ble satt.
+            string a2, n2;
+            Planer(out a2, out n2);
+            if (!string.Equals(a2, mål, StringComparison.OrdinalIgnoreCase))
+                return "Planen lot seg ikke aktivere.";
+
+            Util.Log("Strømplan satt til " + n2 + " (" + a2 + ")");
+            return null;
         }
 
         // ---------------------------------------------------------------

@@ -93,12 +93,12 @@ namespace Brisk
                 tileWhere.Invalidate();
             });
 
-            rowNormal = Widgets.Row(98, tScan, tileWhere, tileStop, tileOpen);
+            rowNormal = Widgets.Row(110, tScan, tileWhere, tileStop, tileOpen);
 
             tileFree = new ActionTile(L.T("Frigjør plass"),
                 L.T("Velg en rad først. Du får se hva det koster deg før noe skjer.")).AsWarn();
             tileFree.Enabled = false;
-            rowSys = Widgets.Row(98, tileFree);
+            rowSys = Widgets.Row(110, tileFree);
             rowSys.Visible = false;
 
             // --- modus 1: største ---
@@ -433,7 +433,7 @@ namespace Brisk
                 L.T("Starter programmets egen avinstallering. Velg i den nedre lista.")).AsDanger();
             tUp.Enabled = false;
 
-            Panel actions = Widgets.Row(98, tChk, tUp, tAll, tUn);
+            Panel actions = Widgets.Row(110, tChk, tUp, tAll, tUn);
 
             Panel outHost = new Panel();
             outHost.Dock = DockStyle.Bottom;

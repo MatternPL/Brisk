@@ -112,7 +112,7 @@ namespace Brisk
         {
             Title = title;
             Info = info;
-            Height = 86;
+            Height = 96;
             Cursor = Cursors.Hand;
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);

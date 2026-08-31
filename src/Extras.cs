@@ -64,60 +64,93 @@ namespace Brisk
             return list;
         }
 
+        // Installerer én om gangen. Foer gikk alt i én bunke, og da sto
+        // statuslinja stille i mange minutter uten et eneste tegn paa liv.
+        // Naa sier den hvilken oppdatering den holder paa med, og hva som
+        // skjedde med hver enkelt.
         public static int Install(List<WinUpdate> chosen, out bool reboot, Action<string> progress)
         {
             reboot = false;
             if (chosen == null || chosen.Count == 0) return 0;
+
+            int ok = 0, nr = 0, total = chosen.Count;
+            dynamic session;
             try
             {
-                dynamic session = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.Session"));
+                session = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.Session"));
                 session.ClientApplicationID = "Brisk";
-                dynamic coll = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.UpdateColl"));
-                foreach (WinUpdate w in chosen)
-                {
-                    dynamic u = w.Update;
-                    try { if (!(bool)u.EulaAccepted) u.AcceptEula(); }
-                    catch { }
-                    coll.Add(u);
-                }
-
-                if (progress != null) progress(L.F("Laster ned {0} oppdatering(er).", coll.Count));
-                dynamic dl = session.CreateUpdateDownloader();
-                dl.Updates = coll;
-                dl.Download();
-
-                dynamic ready = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.UpdateColl"));
-                foreach (dynamic u in coll)
-                {
-                    try { if ((bool)u.IsDownloaded) ready.Add(u); }
-                    catch { }
-                }
-                if (ready.Count == 0) { if (progress != null) progress(L.T("Ingenting ble lastet ned.")); return 0; }
-
-                if (progress != null) progress(L.T("Installerer."));
-                dynamic inst = session.CreateUpdateInstaller();
-                inst.Updates = ready;
-                dynamic ires = inst.Install();
-                reboot = (bool)ires.RebootRequired;
-                int ok = 0;
-                for (int i = 0; i < ready.Count; i++)
-                {
-                    try
-                    {
-                        int rc = Convert.ToInt32(ires.GetUpdateResult(i).ResultCode);
-                        if (rc == 2 || rc == 3) ok++;
-                    }
-                    catch { }
-                }
-                Util.Log("Installerte " + ok + " Windows-oppdatering(er).");
-                return ok;
             }
             catch (Exception ex)
             {
-                if (progress != null) progress(L.T("Installasjon feilet: ") + ex.Message);
+                Say(progress, L.T("Fikk ikke kontakt med Windows Update: ") + ex.Message);
                 return 0;
             }
+
+            foreach (WinUpdate w in chosen)
+            {
+                nr++;
+                string navn = string.IsNullOrEmpty(w.Title) ? "?" : w.Title;
+                try
+                {
+                    dynamic u = w.Update;
+                    try { if (!(bool)u.EulaAccepted) u.AcceptEula(); }
+                    catch (Exception) { }
+
+                    dynamic coll = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.UpdateColl"));
+                    coll.Add(u);
+
+                    Say(progress, L.F("[{0}/{1}] Laster ned: {2}", nr, total, navn));
+                    dynamic dl = session.CreateUpdateDownloader();
+                    dl.Updates = coll;
+                    dl.Download();
+
+                    if (!(bool)u.IsDownloaded)
+                    {
+                        Say(progress, L.F("[{0}/{1}] Nedlastingen ga ingen fil. Hopper over.", nr, total));
+                        continue;
+                    }
+
+                    Say(progress, L.F("[{0}/{1}] Installerer …", nr, total));
+                    dynamic inst = session.CreateUpdateInstaller();
+                    inst.Updates = coll;
+                    dynamic res = inst.Install();
+
+                    if ((bool)res.RebootRequired) reboot = true;
+                    int rc = Convert.ToInt32(res.ResultCode);
+                    if (rc == 2 || rc == 3)
+                    {
+                        ok++;
+                        Say(progress, L.F("[{0}/{1}] Ferdig.", nr, total));
+                    }
+                    else
+                    {
+                        int hr = 0;
+                        try { hr = Convert.ToInt32(res.GetUpdateResult(0).HResult); }
+                        catch (Exception) { }
+                        Say(progress, L.F("[{0}/{1}] Windows avviste den. Kode {2}.", nr, total,
+                            hr != 0 ? "0x" + hr.ToString("X8") : rc.ToString()));
+                    }
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    Say(progress, L.T("Krever administrator. Start Brisk som administrator."));
+                    return ok;
+                }
+                catch (Exception ex)
+                {
+                    Say(progress, L.F("[{0}/{1}] Feilet: {2}", nr, total, ex.Message));
+                }
+            }
+
+            Util.Log("Installerte " + ok + " av " + total + " Windows-oppdateringer.");
+            return ok;
         }
+
+        static void Say(Action<string> progress, string s)
+        {
+            if (progress != null) progress(s);
+        }
+
     }
 
     // ==================================================================

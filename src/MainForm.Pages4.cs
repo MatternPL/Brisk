@@ -33,7 +33,7 @@ namespace Brisk
             ActionTile tRep = new ActionTile(L.T("Lag rapport"),
                 L.T("Lagrer en tekstfil på skrivebordet du kan sende til den som hjelper deg."));
 
-            Panel actions = Widgets.Row(98, tRef, tileOpenCrash, tRep);
+            Panel actions = Widgets.Row(110, tRef, tileOpenCrash, tRep);
 
             Panel driveHost = new Panel();
             driveHost.Dock = DockStyle.Top;
@@ -322,7 +322,7 @@ namespace Brisk
             ActionTile tReset = new ActionTile(L.T("Nullstill nettverket"),
                 L.T("Siste utvei når ingenting virker. Nullstiller Winsock og TCP/IP, og krever omstart.")).AsDanger();
 
-            Panel actions = Widgets.Row(98, tRun, tSet, tReset);
+            Panel actions = Widgets.Row(110, tRun, tSet, tReset);
 
             Panel outHost = new Panel();
             outHost.Dock = DockStyle.Bottom;
