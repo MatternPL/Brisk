@@ -58,7 +58,11 @@ namespace Brisk
 
             BuildShell();
             startScan = scan;
-            if (scan != null && scan.Junk >= 0) junkFound = scan.Junk;
+            if (scan != null && scan.Junk >= 0)
+            {
+                junkFound = scan.Junk;
+                junkDefault = scan.JunkDefault;
+            }
 
             Show(string.IsNullOrEmpty(startPage) ? "oversikt" : startPage);
 
@@ -427,7 +431,8 @@ namespace Brisk
         Bar ovRamBar, ovDiskBar;
         ListView lvFindings;
         FlatBtn btnScan, btnCleanNow;
-        long junkFound = -1;
+        long junkFound = -1;        // alt som finnes
+        long junkDefault = -1;      // bare det som er huket av som standard
 
         Panel PageOverview()
         {
@@ -725,8 +730,18 @@ namespace Brisk
                 ovStart.Text = active.ToString();
                 ovStartSub.Text = L.F("av {0}", total);
 
+                // Under 10 GB er ikke verdt aa bry seg om. Fargen folger det
+                // som faktisk ville blitt ryddet, ikke alt som ligger der - de
+                // kategoriene som er av som standard skal ikke gjore tallet rodt.
+                long teller = junkDefault >= 0 ? junkDefault : junkFound;
                 ovJunk.Text = junkFound >= 0 ? Util.Bytes(junkFound) : "—";
-                ovJunkSub.Text = junkFound >= 0 ? "" : L.T("ikke målt");
+                ovJunk.ForeColor = junkFound < 0 ? Theme.Text
+                                 : teller > 10L * 1024 * 1024 * 1024 ? Theme.Warn
+                                 : Theme.Good;
+                ovJunkSub.Text = junkFound < 0 ? L.T("ikke målt")
+                               : junkDefault >= 0 && junkDefault < junkFound
+                                 ? L.F("{0} er huket av", Util.Bytes(junkDefault))
+                                 : "";
 
                 // Verste disk. Tallet kommer fra disken selv naar den svarer,
                 // ellers fra Windows - se NvmeTools.
@@ -777,7 +792,11 @@ namespace Brisk
                 {
                     ovCrash.Text = bsod.ToString();
                     ovCrash.ForeColor = bsod > 0 ? Theme.Warn : Theme.Good;
-                    ovCrashSub.Text = L.T("siste 30 dager");
+                    // Tallet kommer fra Windows-loggen, ikke fra dumpfilene.
+                    // Rydder man bort dumpene, staar hendelsene der fortsatt -
+                    // og det skal det staa, det er historikk og ikke soppel.
+                    ovCrashSub.Text = bsod > 0 ? L.T("siste 30 dager · fra Windows-loggen")
+                                               : L.T("siste 30 dager");
                 }
 
                 // --- funn ---
@@ -790,8 +809,9 @@ namespace Brisk
                         L.F("Bare {0} ledig på {1}", Util.Bytes(sys.AvailableFreeSpace), sys.Name),
                         L.T("Rydd, eller se hva som tar plassen"), "diskplass");
 
-                if (junkFound > 1024L * 1024 * 1024)
-                    AddFinding(1, L.F("{0} søppelfiler", Util.Bytes(junkFound)),
+                long verdtAaRydde = junkDefault >= 0 ? junkDefault : junkFound;
+                if (verdtAaRydde > 10L * 1024 * 1024 * 1024)
+                    AddFinding(1, L.F("{0} søppelfiler", Util.Bytes(verdtAaRydde)),
                         L.T("Dobbeltklikk for å se dem"), "rydding");
 
                 if (active > 8)
@@ -881,7 +901,7 @@ namespace Brisk
 
             btnCleanNow.Visible = junkFound > 50L * 1024 * 1024;
             if (btnCleanNow.Visible)
-                btnCleanNow.Text = L.F("Se de {0}", Util.Bytes(junkFound));
+                btnCleanNow.Text = L.F("Se de {0}", Util.Bytes(junkDefault >= 0 ? junkDefault : junkFound));
             LayoutHero();
             heroCard.Invalidate();
         }
@@ -892,6 +912,7 @@ namespace Brisk
             List<CleanTarget> targets = Cleaner.BuildTargets();
             cts = new CancellationTokenSource();
             CancellationToken ct = cts.Token;
+            long standard = 0;
             await Job(new Control[] { btnScan, btnCleanNow }, delegate
             {
                 foreach (CleanTarget t in targets)
@@ -899,9 +920,11 @@ namespace Brisk
                     Status(L.T(t.Name));
                     Cleaner.Scan(t, ct, null);
                     total += t.FoundBytes;
+                    if (t.DefaultChecked) standard += t.FoundBytes;
                 }
             });
             junkFound = total;
+            junkDefault = standard;
             RefreshOverview();
             Status(L.F("{0} kan ryddes bort.", Util.Bytes(total)));
             Util.Log("Sjekk: " + Util.Bytes(total) + " søppel funnet.");

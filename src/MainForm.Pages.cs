@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
@@ -259,7 +259,22 @@ namespace Brisk
                         });
                     }
                 });
-                junkFound = 0;
+                // Maal paa nytt i stedet for aa nullstille. Rydder man bare én
+                // kategori, ligger resten der fortsatt, og et nulltall paa
+                // forsida ville vaert loegn. Det tar under et sekund.
+                long igjen = 0, igjenStandard = 0;
+                await Job(new Control[] { tScan, tClean, tAll }, delegate
+                {
+                    foreach (CleanTarget t in Cleaner.BuildTargets())
+                    {
+                        Cleaner.Scan(t, CancellationToken.None, null);
+                        igjen += t.FoundBytes;
+                        if (t.DefaultChecked) igjenStandard += t.FoundBytes;
+                    }
+                });
+                junkFound = igjen;
+                junkDefault = igjenStandard;
+
                 lblCleanTotal.Text = L.F("Frigjorde {0}", Util.Bytes(freed));
                 lblCleanTotal.ForeColor = Theme.Good;
                 Status(L.F("Frigjorde {0}. {1} filer slettet, {2} var i bruk.",

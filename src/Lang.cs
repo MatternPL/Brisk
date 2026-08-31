@@ -547,6 +547,7 @@ namespace Brisk
             "ikke lest", "not read",
             "ikke rapportert", "not reported",
             "siste 30 dager", "last 30 days",
+            "siste 30 dager · fra Windows-loggen", "last 30 days · from the Windows log",
             "Prosessor", "Processor",
             "Skjermkort", "Graphics",
             "Hovedkort", "Motherboard",
@@ -575,6 +576,7 @@ namespace Brisk
             "Klar.", "Ready.",
             "Se de {0}", "Review the {0}",
             "Dobbeltklikk for å se dem", "Double-click to see them",
+            "{0} er huket av", "{0} is ticked",
             // ---- logg ----
             "Åpne loggfil", "Open log file",
             "Tøm visning", "Clear view",

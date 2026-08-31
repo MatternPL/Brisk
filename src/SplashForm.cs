@@ -11,7 +11,8 @@ namespace Brisk
     // for aa staa med streker til brukeren trykker Sjekk PC-en.
     public class StartupScan
     {
-        public long Junk = -1;
+        public long Junk = -1;        // alt som finnes, inkludert det som er av
+        public long JunkDefault = -1; // bare det som er huket av som standard
         public int StartupActive = -1;
         public int StartupTotal = -1;
         public int Wear = -1;
@@ -110,6 +111,7 @@ namespace Brisk
                     long sum = 0;
                     try
                     {
+                        long standard = 0;
                         List<CleanTarget> mål = Cleaner.BuildTargets();
                         int i = 0;
                         foreach (CleanTarget t in mål)
@@ -118,8 +120,14 @@ namespace Brisk
                             Vis(L.T(t.Name), 0.05 + 0.55 * (i / (double)Math.Max(1, mål.Count)));
                             Cleaner.Scan(t, CancellationToken.None, null);
                             sum += t.FoundBytes;
+                            // Nettleser-cache, krasjdumper og Windows.old er av
+                            // som standard. De skal ikke telles med i tallet som
+                            // avgjor om noe er verdt aa se paa - brukeren har
+                            // allerede bestemt at de skal bli staaende.
+                            if (t.DefaultChecked) standard += t.FoundBytes;
                         }
                         result.Junk = sum;
+                        result.JunkDefault = standard;
                     }
                     catch (Exception ex) { Util.Log("Oppstartsmåling, søppel: " + ex.Message); }
 
