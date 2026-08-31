@@ -479,6 +479,24 @@ namespace Brisk
         GpuInfo gpu;
         GpuDriver gpuLatest;
 
+        // Tynn strek mot naboen. Den stopper 10 piksler for hjornene, saa
+        // rutenettet ser luftig ut i stedet for som et regneark.
+        static void Skille(Panel c, bool hoyre, bool bunn)
+        {
+            if (!hoyre && !bunn) return;
+            c.Paint += delegate(object s, PaintEventArgs e)
+            {
+                Panel me = (Panel)s;
+                using (Pen p = new Pen(Theme.Line))
+                {
+                    if (hoyre)
+                        e.Graphics.DrawLine(p, me.Width - 1, 10, me.Width - 1, me.Height - 10);
+                    if (bunn)
+                        e.Graphics.DrawLine(p, 10, me.Height - 1, me.Width - 10, me.Height - 1);
+                }
+            };
+        }
+
         static string Kort(string s, int maks)
         {
             if (string.IsNullOrEmpty(s)) return "";
@@ -540,7 +558,9 @@ namespace Brisk
             // --- ni tall ---
             Panel cards = new Panel();
             cards.Dock = DockStyle.Top;
-            cards.Height = 14 + 3 * 134;
+            // Uten mellomrom mellom feltene trengs det mindre hoyde enn da
+            // dette var ni bokser hver for seg.
+            cards.Height = 14 + 3 * 126;
             cards.BackColor = Theme.Bg;
             cards.Padding = new Padding(0, 14, 0, 0);
 
@@ -554,31 +574,43 @@ namespace Brisk
             Panel c8 = StatCard(out ovUp, out ovUpSub, L.T("Oppetid"), null);
             Panel c9 = StatCard(out ovCrash, out ovCrashSub, L.T("Blåskjermer"), null);
 
-            // Tre i bredden, tre rader. Seks paa rad ble saa smalt at bade
-            // tallene og undertekstene maatte kuttes.
+            // Ett kort, ni felt. Ni frittstaaende bokser ble et rot av rammer
+            // og mellomrom; her er det én ramme rundt det hele og tynne streker
+            // mellom feltene, saa oyet leser det som én tabell.
             TableLayoutPanel grid = new TableLayoutPanel();
             grid.Dock = DockStyle.Fill;
             grid.ColumnCount = 3;
             grid.RowCount = 3;
-            grid.BackColor = Theme.Bg;
+            grid.BackColor = Theme.Card;
             for (int i = 0; i < 3; i++)
                 grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 3f));
             for (int i = 0; i < 3; i++)
                 grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100f / 3f));
-            grid.Controls.Add(Wrap(c1, false), 0, 0);
-            grid.Controls.Add(Wrap(c2, false), 1, 0);
-            grid.Controls.Add(Wrap(c3, true), 2, 0);
-            grid.Controls.Add(Wrap(c4, false), 0, 1);
-            grid.Controls.Add(Wrap(c5, false), 1, 1);
-            grid.Controls.Add(Wrap(c6, true), 2, 1);
-            grid.Controls.Add(Wrap(c7, false), 0, 2);
-            grid.Controls.Add(Wrap(c8, false), 1, 2);
-            // Blaaskjermkortet ligger nederst til hoyre og skjules naar det
+            grid.Controls.Add(c1, 0, 0);
+            grid.Controls.Add(c2, 1, 0);
+            grid.Controls.Add(c3, 2, 0);
+            grid.Controls.Add(c4, 0, 1);
+            grid.Controls.Add(c5, 1, 1);
+            grid.Controls.Add(c6, 2, 1);
+            grid.Controls.Add(c7, 0, 2);
+            grid.Controls.Add(c8, 1, 2);
+            // Blaaskjermfeltet ligger nederst til hoyre og skjules naar det
             // ikke finnes noen kraesj aa vise. Da blir hjornet staaende tomt,
-            // og det ser ut som luft - ikke som et hull midt i rutenettet.
-            ovCrashCell = Wrap(c9, true);
-            grid.Controls.Add(ovCrashCell, 2, 2);
-            cards.Controls.Add(grid);
+            // og det ser ut som luft - ikke som et hull midt i tabellen.
+            ovCrashCell = c9;
+            grid.Controls.Add(c9, 2, 2);
+
+            // Strekene maa tegnes i feltene selv. Tegnet paa kortet under ville
+            // de blitt dekket av feltene, som ligger oppaa.
+            Skille(c1, true, true);   Skille(c2, true, true);   Skille(c3, false, true);
+            Skille(c4, true, true);   Skille(c5, true, true);   Skille(c6, false, true);
+            Skille(c7, true, false);  Skille(c8, true, false);  Skille(c9, false, false);
+
+            Panel storkort = Theme.MakeCard();
+            storkort.Dock = DockStyle.Fill;
+            storkort.Padding = new Padding(1);
+            storkort.Controls.Add(grid);
+            cards.Controls.Add(storkort);
 
             // --- funn ---
             Panel bunn = new Panel();
@@ -682,26 +714,16 @@ namespace Brisk
             if (!string.IsNullOrEmpty(key)) Show(key);
         }
 
-        // sist = kortet staar ytterst til hoyre. Da skal det ikke ha luft paa
-        // hoyre side heller - ellers stopper rutenettet 14 piksler for tidlig
-        // og staar ikke i flukt med kortet over.
-        static Panel Wrap(Panel inner, bool sist)
-        {
-            Panel w = new Panel();
-            w.Dock = DockStyle.Fill;
-            w.BackColor = Theme.Bg;
-            w.Padding = new Padding(0, 0, sist ? 0 : 14, 12);
-            inner.Dock = DockStyle.Fill;
-            w.Controls.Add(inner);
-            return w;
-        }
-
         // Kortet maa folge bredden sin. Med seks kort paa rad er hvert av dem
         // rundt 110 px, og bade stripa og tekstene rant utenfor da de hadde
         // faste bredder.
         Panel StatCard(out Label big, out Label sub, string caption, out Bar bar)
         {
-            Panel c = Theme.MakeCard();
+            // Ingen egen ramme: feltet sitter inne i det store kortet, og
+            // strekene mellom feltene tegnes der.
+            Panel c = new Panel();
+            c.BackColor = Theme.Card;
+            c.Dock = DockStyle.Fill;
 
             Label cap = Theme.Lbl(caption, Theme.FSmall, Theme.Muted);
             cap.Location = new Point(18, 14);
