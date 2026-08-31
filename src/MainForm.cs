@@ -21,7 +21,11 @@ namespace Brisk
 
         public MainForm() : this("oversikt") { }
 
-        public MainForm(string startPage)
+        StartupScan startScan;
+
+        public MainForm(string startPage) : this(startPage, null) { }
+
+        public MainForm(string startPage, StartupScan scan)
         {
             Text = "Brisk";
             StartPosition = FormStartPosition.CenterScreen;
@@ -53,6 +57,9 @@ namespace Brisk
             tips.ReshowDelay = 150;
 
             BuildShell();
+            startScan = scan;
+            if (scan != null && scan.Junk >= 0) junkFound = scan.Junk;
+
             Show(string.IsNullOrEmpty(startPage) ? "oversikt" : startPage);
 
             Util.LogWritten += OnLogWritten;
@@ -700,11 +707,20 @@ namespace Brisk
                 ovDiskBar.Fill = freePct < 0.08 ? Theme.Bad : freePct < 0.15 ? Theme.Warn : Theme.Good;
                 ovDiskBar.Invalidate();
 
-                int active = 0, total = 0;
-                foreach (StartupItem it in StartupTools.Enumerate(false))
+                int active, total;
+                if (startScan != null && startScan.StartupTotal >= 0)
                 {
-                    total++;
-                    if (it.Enabled) active++;
+                    active = startScan.StartupActive;
+                    total = startScan.StartupTotal;
+                }
+                else
+                {
+                    active = 0; total = 0;
+                    foreach (StartupItem it in StartupTools.Enumerate(false))
+                    {
+                        total++;
+                        if (it.Enabled) active++;
+                    }
                 }
                 ovStart.Text = active.ToString();
                 ovStartSub.Text = L.F("av {0}", total);
@@ -716,12 +732,20 @@ namespace Brisk
                 // ellers fra Windows - se NvmeTools.
                 int verst = -1;
                 string verstNavn = "";
-                try
+                if (startScan != null && startScan.Wear >= 0)
                 {
-                    foreach (DriveWear d in HealthTools.Drives())
-                        if (d.Wear > verst) { verst = d.Wear; verstNavn = d.Name; }
+                    verst = startScan.Wear;
+                    verstNavn = startScan.WearDrive;
                 }
-                catch (Exception) { }
+                else
+                {
+                    try
+                    {
+                        foreach (DriveWear d in HealthTools.Drives())
+                            if (d.Wear > verst) { verst = d.Wear; verstNavn = d.Name; }
+                    }
+                    catch (Exception) { }
+                }
                 if (verst >= 0)
                 {
                     ovWear.Text = verst + " %";
@@ -736,13 +760,18 @@ namespace Brisk
 
                 // Blaaskjermer siste 30 dager.
                 int bsod = 0;
-                try
+                if (startScan != null && startScan.BlueScreens >= 0)
+                    bsod = startScan.BlueScreens;
+                else
                 {
-                    DateTime grense = DateTime.Now.AddDays(-30);
-                    foreach (CrashEvent ce in HealthTools.Crashes(40))
-                        if (ce.Time >= grense) bsod++;
+                    try
+                    {
+                        DateTime grense = DateTime.Now.AddDays(-30);
+                        foreach (CrashEvent ce in HealthTools.Crashes(40))
+                            if (ce.Time >= grense) bsod++;
+                    }
+                    catch (Exception) { bsod = -1; }
                 }
-                catch (Exception) { bsod = -1; }
                 if (bsod < 0) { ovCrash.Text = "—"; ovCrashSub.Text = L.T("ikke lest"); }
                 else
                 {
@@ -763,7 +792,7 @@ namespace Brisk
 
                 if (junkFound > 1024L * 1024 * 1024)
                     AddFinding(1, L.F("{0} søppelfiler", Util.Bytes(junkFound)),
-                        L.T("Trykk «Rydd opp»"), "rydding");
+                        L.T("Dobbeltklikk for å se dem"), "rydding");
 
                 if (active > 8)
                     AddFinding(1, L.F("{0} programmer starter med Windows", active),
@@ -852,7 +881,7 @@ namespace Brisk
 
             btnCleanNow.Visible = junkFound > 50L * 1024 * 1024;
             if (btnCleanNow.Visible)
-                btnCleanNow.Text = L.F("Rydd opp {0}", Util.Bytes(junkFound));
+                btnCleanNow.Text = L.F("Se de {0}", Util.Bytes(junkFound));
             LayoutHero();
             heroCard.Invalidate();
         }

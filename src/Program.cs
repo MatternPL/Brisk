@@ -44,7 +44,21 @@ namespace Brisk
             }
 
             Util.Log("Brisk startet. Administrator: " + Util.IsAdmin());
-            Application.Run(new MainForm(startPage));
+
+            // Maal maskinen foerst, saa forsida har tall med en gang i stedet
+            // for aa staa med streker til brukeren trykker Sjekk PC-en.
+            StartupScan maalt = null;
+            try
+            {
+                using (SplashForm splash = new SplashForm())
+                {
+                    splash.ShowDialog();
+                    maalt = splash.Result;
+                }
+            }
+            catch (Exception ex) { Util.Log("Oppstartsvindu feilet: " + ex.Message); }
+
+            Application.Run(new MainForm(startPage, maalt));
         }
     }
 }
