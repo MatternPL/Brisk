@@ -1,7 +1,7 @@
 {
-  "versjon": "1.6.0",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.0/BriskInstaller.exe",
-  "sha256": "e1fe2e36632952afc803e36435d72ffbea8376ac73b6043431dfb8126b45f540",
-  "storrelse": 647168,
-  "notat": "New Games page listing only the settings that can actually be measured in frames per second, each with an estimated range and an honest note about what it costs you. Overview rebuilt with six numbers and a This machine panel. Every list can be sorted by clicking a column heading. Layout fixes across every page so buttons, text and progress bars stay inside their boxes and scale with the window."
+  "versjon": "1.6.1",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.1/BriskInstaller.exe",
+  "sha256": "68406b280b021507a175fdfc69a3ddbc002b3fc0dd55ba136e5c8fc70a695bfb",
+  "storrelse": 653312,
+  "notat": "Fixes Install selected in Updates, which looked like it did nothing. All progress went to a single status line that sat still during downloads, and errors were overwritten a moment later. Updates now install one at a time with each step reported in an output area on the page. Fixes the power plan in Games, which never actually changed. It set a hardcoded GUID for Ultimate Performance, but Windows gives that scheme a new GUID whenever it is duplicated, and on many machines it does not exist at all. Brisk now reads the real schemes, creates the plan if it is missing, and verifies afterwards that it took effect."
 }
