@@ -71,12 +71,12 @@ namespace Brisk
             gmList = new TableLayoutPanel();
             gmList.Dock = DockStyle.Fill;
             gmList.BackColor = Theme.Bg;
-            ((TableLayoutPanel)gmList).ColumnCount = 2;
-            ((TableLayoutPanel)gmList).RowCount = 3;
-            for (int i = 0; i < 2; i++)
-                ((TableLayoutPanel)gmList).ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50f));
+            ((TableLayoutPanel)gmList).ColumnCount = 3;
+            ((TableLayoutPanel)gmList).RowCount = 2;
             for (int i = 0; i < 3; i++)
-                ((TableLayoutPanel)gmList).RowStyles.Add(new RowStyle(SizeType.Percent, 100f / 3f));
+                ((TableLayoutPanel)gmList).ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 3f));
+            for (int i = 0; i < 2; i++)
+                ((TableLayoutPanel)gmList).RowStyles.Add(new RowStyle(SizeType.Percent, 50f));
 
             // --- fotnote ---
             Panel foot = new Panel();
@@ -109,7 +109,7 @@ namespace Brisk
             int n = 0;
             foreach (GameSetting g in alle)
             {
-                gmList.Controls.Add(GameCard(g), n % 2, n / 2);
+                gmList.Controls.Add(GameCard(g), n % 3, n / 3);
                 n++;
             }
 
@@ -135,6 +135,8 @@ namespace Brisk
                 gmSub.Text = L.T("Les hva hver enkelt koster deg før du slår den av. To av dem senker sikkerheten.");
             }
 
+            foreach (GameSetting g2 in alle)
+                if (g2.PendingReboot) gmNeedsReboot = true;
             ShowReboot();
 
         }
@@ -166,14 +168,23 @@ namespace Brisk
             };
 
             Label name = Theme.Lbl(L.T(g.Name), Theme.FCard, Theme.Text);
-            name.Location = new Point(20, 14);
+            name.Location = new Point(20, 12);
+            name.AutoSize = false;
+            name.Height = 22;
+            name.AutoEllipsis = true;
 
             string merke = !g.Available ? L.T("Ikke tilgjengelig")
+                         : g.PendingReboot ? L.T(g.State)
                          : g.Optimal ? L.T("Alt i orden") + "  ·  " + L.T(g.State)
                          : L.T(g.State);
             Label state = Theme.Lbl(merke, Theme.FSmall,
-                !g.Available ? Theme.Muted : g.Optimal ? Theme.Good : Theme.Warn);
-            state.Location = new Point(22, 40);
+                !g.Available ? Theme.Muted
+                : g.PendingReboot ? Theme.Accent
+                : g.Optimal ? Theme.Good : Theme.Warn);
+            state.Location = new Point(20, 36);
+            state.AutoSize = false;
+            state.Height = 18;
+            state.AutoEllipsis = true;
 
             Label what = Theme.Lbl(!g.Available ? L.T(g.Unavailable) : L.T(g.What), Theme.FSmall, Theme.Muted);
             what.AutoSize = false;
@@ -190,6 +201,7 @@ namespace Brisk
             FlatBtn act = new FlatBtn("");
             act.Width = 170; act.Height = 34;
             if (!g.Available) { act.Enabled = false; act.Visible = false; }
+            else if (g.PendingReboot) { act.Text = L.T("Sett tilbake"); }
             else if (g.Optimal) { act.Text = L.T("Sett tilbake"); }
             else { act.Text = L.T("Slå av for spill"); act.Primary(); }
 
@@ -245,24 +257,34 @@ namespace Brisk
             card.Controls.Add(gain);
             card.Controls.Add(gainSub);
 
+            // Alt stables loddrett, i stedet for at knapp og tekst kjemper om
+            // den samme plassen nederst. Ingenting overlapper da, uansett hvor
+            // hoyt kortet blir.
             Theme.Arrange(card, delegate
             {
-                int right = card.Width - 20;
+                int bredde = Math.Max(140, card.Width - 40);
 
-                gain.Location = new Point(right - gain.Width, 12);
-                gainSub.Location = new Point(right - gainSub.Width, 44);
+                name.Width = bredde;
+                state.Width = bredde;
 
-                // Knappen nederst til hoyre. Kostnadsteksten stopper for den,
-                // ellers legger de seg oppaa hverandre.
-                act.Location = new Point(right - act.Width, card.Height - act.Height - 14);
+                gain.Location = new Point(20, 58);
+                gain.Width = bredde;
+                gain.TextAlign = ContentAlignment.MiddleLeft;
 
-                what.Location = new Point(20, 66);
-                what.Width = Math.Max(160, card.Width - 40);
-                what.Height = 36;
+                gainSub.Location = new Point(20, 88);
+                gainSub.Width = bredde;
+                gainSub.TextAlign = ContentAlignment.MiddleLeft;
 
-                cost.Location = new Point(20, card.Height - 44);
-                cost.Width = Math.Max(120, act.Left - 32);
-                cost.Height = 34;
+                what.Location = new Point(20, 112);
+                what.Width = bredde;
+                what.Height = 46;
+
+                cost.Location = new Point(20, 160);
+                cost.Width = bredde;
+                cost.Height = 44;
+
+                act.Location = new Point(20, card.Height - act.Height - 14);
+                act.Width = bredde;
             });
 
             host.Controls.Add(card);

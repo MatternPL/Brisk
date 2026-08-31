@@ -566,6 +566,7 @@ namespace Brisk
             "[{0}/{1}] Windows avviste den. Kode {2}.", "[{0}/{1}] Windows refused it. Code {2}.",
             "[{0}/{1}] Feilet: {2}", "[{0}/{1}] Failed: {2}",
             "Trykk Søk for å spørre Microsoft om oppdateringer.", "Press Search to ask Microsoft for updates.",
+            "Slått av — venter på omstart", "Switched off — waiting for a restart",
             // ---- logg ----
             "Åpne loggfil", "Open log file",
             "Tøm visning", "Clear view",

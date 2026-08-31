@@ -25,8 +25,23 @@ namespace Brisk
         {
             Text = "Brisk";
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(1180, 780);
-            MinimumSize = new Size(1000, 740);
+            // Aapnes stort nok til at all tekst faar plass i alle kort paa alle
+            // sider. Spill-sida er den som krever mest hoyde, med seks kort i
+            // to rader pluss omstartsvarselet.
+            //
+            // Passer det ikke paa skjermen, krympes det til det som er ledig -
+            // ellers ville vinduet havnet delvis utenfor paa mindre skjermer.
+            Size onsket = new Size(1320, 900);
+            Rectangle plass = Screen.FromPoint(Cursor.Position).WorkingArea;
+            ClientSize = new Size(
+                Math.Min(onsket.Width, plass.Width - 60),
+                Math.Min(onsket.Height, plass.Height - 60));
+
+            // Under dette begynner tekst aa bli kuttet, saa lenger ned skal det
+            // ikke gaa aa dra vinduet.
+            MinimumSize = new Size(
+                Math.Min(1120, plass.Width),
+                Math.Min(820, plass.Height));
             BackColor = Theme.Bg;
             ForeColor = Theme.Text;
             Font = Theme.F;

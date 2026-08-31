@@ -34,6 +34,11 @@ namespace Brisk
         public string Unavailable = "";  // hvorfor ikke
         public bool Optimal;             // staar den allerede slik spill liker
         public string State = "";        // klartekst om hva den staar paa naa
+
+        // Registeret er endret, men Windows kjorer fortsatt paa det gamle til
+        // maskinen startes paa nytt. Uten dette ville kortet sagt "Kjorer" rett
+        // etter at du slo den av, og sett ut som om ingenting skjedde.
+        public bool PendingReboot;
     }
 
     public static class GameTools
@@ -94,6 +99,20 @@ namespace Brisk
             {
                 g.Available = false;
                 g.Unavailable = "Windows melder ikke om denne på denne maskinen.";
+                return g;
+            }
+
+            // Windows kjorer VBS til maskinen startes paa nytt, ogsaa etter at
+            // registeret er satt til av. Da er ikke innstillingen "paa" - den
+            // venter paa omstart, og det skal staa.
+            object reg = HklmValue(DeviceGuard, "EnableVirtualizationBasedSecurity");
+            bool slaattAv = reg != null && Convert.ToInt32(reg) == 0;
+
+            if (status == 2 && slaattAv)
+            {
+                g.PendingReboot = true;
+                g.Optimal = true;
+                g.State = "Slått av — venter på omstart";
                 return g;
             }
 
@@ -280,7 +299,12 @@ namespace Brisk
                 switch (key)
                 {
                     case "vbs":
+                        // Alle tre maa settes. Bare EnableVirtualizationBasedSecurity
+                        // er ikke nok naar Credential Guard er slaatt paa av Windows
+                        // selv, slik den er som standard paa Enterprise.
                         SetHklm(DeviceGuard, "EnableVirtualizationBasedSecurity", forGaming ? 0 : 1);
+                        SetHklm(DeviceGuard, "RequirePlatformSecurityFeatures", forGaming ? 0 : 1);
+                        SetHklm(DeviceGuard + @"\Scenarios\CredentialGuard", "Enabled", forGaming ? 0 : 1);
                         SetHklm(Lsa, "LsaCfgFlags", forGaming ? 0 : 1);
                         return null;
 
