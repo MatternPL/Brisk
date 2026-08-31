@@ -80,7 +80,11 @@ namespace Brisk
             {
                 Theme.DarkTitleBar(this);
                 Theme.RoundCorners(this);
-                if (Updater.AutoCheck && (DateTime.Now - Updater.LastCheck).TotalHours >= 20)
+                // Sjekker ved hver oppstart. Det er én liten tekstfil over nett,
+                // hentet paa en egen traad, saa det koster ingenting merkbart -
+                // og et vedlikeholdsprogram som selv gaar et doegn uten aa vite
+                // at det finnes en ny versjon, er daarlig reklame for seg selv.
+                if (Updater.AutoCheck)
                 {
                     Task.Run((Action)delegate
                     {
