@@ -762,6 +762,7 @@ namespace Brisk
             c.Controls.Add(big);
             c.Controls.Add(sub);
             c.Controls.Add(bar);
+            c.Tag = cap;        // overskrifta, for de feltene som bytter innhold
             return c;
         }
 
@@ -934,15 +935,52 @@ namespace Brisk
                     catch (Exception) { bsod = -1; }
                 }
                 crashUnseen = bsodNy;
-                // Ingen kraesj aa vise: da skal kortet vaere borte. Et grønt
-                // null er ogsaa en paastand om noe brukeren ikke spurte om.
-                if (ovCrashCell != null) ovCrashCell.Visible = bsod > 0;
+
+                // Siste feltet er stabilitet. Blaaskjermer er alvorligst og
+                // vinner naar det finnes noen aa vise; ellers staar det
+                // programkraesj der, saa feltet aldri blir staaende tomt.
+                Label kapt = ovCrashCell == null ? null : ovCrashCell.Tag as Label;
                 if (bsod > 0)
                 {
+                    if (kapt != null) kapt.Text = L.T("Blåskjermer");
                     ovCrash.Text = bsod.ToString();
                     ovCrash.ForeColor = bsodNy > 0 ? Theme.Warn : Theme.Good;
                     ovCrashSub.Text = bsodNy == 0 ? L.T("siste 30 dager · sett")
                                                   : L.T("siste 30 dager");
+                }
+                else
+                {
+                    int appK = -1;
+                    string appVerst = "";
+                    if (startScan != null && startScan.AppCrashes >= 0)
+                    {
+                        appK = startScan.AppCrashes;
+                        appVerst = startScan.AppCrashWorst;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            int antall = 0, flest = 0;
+                            foreach (AppCrash c in AppCrashTools.Recent(30, 900))
+                            {
+                                antall += c.Count;
+                                if (c.Count > flest) { flest = c.Count; appVerst = c.App; }
+                            }
+                            appK = antall;
+                        }
+                        catch (Exception) { }
+                    }
+
+                    if (kapt != null) kapt.Text = L.T("Programkræsj");
+                    ovCrash.Text = appK >= 0 ? appK.ToString() : "—";
+                    ovCrash.ForeColor = appK < 0 ? Theme.Text
+                                      : appK > 20 ? Theme.Warn
+                                      : appK > 0 ? Theme.Text : Theme.Good;
+                    ovCrashSub.Text = appK <= 0 ? L.T("siste 30 dager")
+                                    : appVerst.Length > 0
+                                      ? L.F("{0} oftest", Kort(appVerst, 20))
+                                      : L.T("siste 30 dager");
                 }
 
                 // --- funn ---

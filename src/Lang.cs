@@ -590,6 +590,7 @@ namespace Brisk
             "Hovedkort", "Motherboard",
             "Oppe siden", "Up for",
             "Minne totalt", "Memory installed",
+            "{0} oftest", "{0} most often",
             "{0} % i bruk", "{0} % in use",
             "{0} d", "{0} d",
             "{0} t", "{0} h",

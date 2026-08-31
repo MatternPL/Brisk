@@ -20,6 +20,8 @@ namespace Brisk
         public int Temp = -1;
         public string TempDrive = "";
         public GpuInfo Gpu;
+        public int AppCrashes = -1;
+        public string AppCrashWorst = "";
         public int BlueScreens = -1;     // alle siste 30 dager
         public int BlueScreensNew = -1;  // de brukeren ikke har kvittert ut
         public bool Done;
@@ -167,7 +169,21 @@ namespace Brisk
                     try { result.Gpu = GpuTools.Read(); }
                     catch (Exception ex) { Util.Log("Oppstartsmåling, skjermkort: " + ex.Message); }
 
-                    Vis(L.T("Analyserer dumpfiler …"), 0.93);
+                    // Koster 0,06 sekund - det er den billigste maalingen her.
+                    Vis(L.T("Leser programkræsj …"), 0.92);
+                    try
+                    {
+                        int antall = 0, flest = 0;
+                        foreach (AppCrash c in AppCrashTools.Recent(30, 900))
+                        {
+                            antall += c.Count;
+                            if (c.Count > flest) { flest = c.Count; result.AppCrashWorst = c.App; }
+                        }
+                        result.AppCrashes = antall;
+                    }
+                    catch (Exception ex) { Util.Log("Oppstartsmåling, programkræsj: " + ex.Message); }
+
+                    Vis(L.T("Analyserer dumpfiler …"), 0.96);
                     try
                     {
                         // Teller dumpfiler, ikke loggforte hendelser: er dumpen
