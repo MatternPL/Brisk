@@ -14,10 +14,13 @@ Så, **i denne rekkefølgen**:
 
 1. Fyll ut `docs/utgivelser/<versjon>.md`.
 2. Commit versjonsendringen og teksten — men **ikke** `oppdatering.json` ennå.
-3. Lag utgivelsen og last opp installatøren:
+3. Lag utgivelsen og last opp **begge** filene:
    ```
-   gh release create v1.6.4 BriskInstaller.exe --title "Brisk 1.6.4" --notes-file docs/utgivelser/1.6.4.md
+   gh release create v1.6.4 BriskInstaller.exe Brisk.exe --title "Brisk 1.6.4" --notes-file docs/utgivelser/1.6.4.md
    ```
+   `Brisk.exe` skal alltid være med. Den er alternativet for dem som ikke vil
+   kjøre en installatør, og den blir sjeldnere feilmeldt av antivirus enn en
+   selvutpakkende fil.
 4. Last ned fila fra utgivelses-URLen og sjekk at sha256 stemmer med manifestet.
 5. Først nå: commit og push `oppdatering.json`.
 6. Dra `BriskInstaller.exe` inn på [virustotal.com](https://www.virustotal.com/gui/home/upload)

@@ -31,7 +31,7 @@ echo [3/3] Kompilerer BriskInstaller.exe...
   -resource:brisk.ico,brisk.icon ^
   -r:System.dll -r:System.Core.dll -r:System.Drawing.dll -r:System.Windows.Forms.dll ^
   -r:Microsoft.CSharp.dll ^
-  installer\Installer.cs installer\SetupForm.cs ^
+  installer\Installer.cs installer\SetupForm.cs installer\AssemblyInfo.cs ^
   src\Theme.cs src\Logo.cs src\Icons.cs src\Util.cs src\Lang.cs || goto :feil
 
 echo.

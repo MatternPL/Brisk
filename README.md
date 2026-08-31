@@ -19,7 +19,10 @@ Download **`BriskInstaller.exe`** from
 * Installs to `%LOCALAPPDATA%\Programs\Brisk`, with no UAC prompt
 * Start menu shortcut, optional desktop shortcut
 * Shows up in Apps & features and uninstalls from there
-* Or run `Brisk.exe` on its own from a USB stick
+
+Releases also carry **`Brisk.exe`** on its own, for anyone who would rather not
+run an installer. It needs nothing installed, writes nothing outside its own
+folder and `%LOCALAPPDATA%\Brisk`, and works from a USB stick.
 
 The files are not code-signed, so SmartScreen will warn you the first time:
 *More info → Run anyway*. A certificate costs money every year; this doesn't.
@@ -156,9 +159,35 @@ see what the engines say about the exact file you got:
 > **1.6.4** — `c506629ae4b37d595994e15e85a1f98bc758d1fed326f6fedfe892359983a40e`
 > · [look it up on VirusTotal](https://www.virustotal.com/gui/file/c506629ae4b37d595994e15e85a1f98bc758d1fed326f6fedfe892359983a40e)
 
-An unsigned installer that touches system folders is exactly the shape of thing
-heuristics dislike, so do not be surprised by the odd generic detection from an
-engine you have never heard of. Judge it on the engines you have.
+### Antivirus flags it. Here is why, and what to do
+
+Some engines on VirusTotal flag the installer, Microsoft Defender among them,
+with generic machine-learning names like `Trojan:Win32/Wacatac.C!ml` or
+`Static AI - Suspicious PE`. That is worth explaining rather than waving away,
+because "it's a false positive" is also what someone shipping malware would say.
+
+The installer does four things that, taken together, look exactly like a dropper
+to a model that has never seen this file before:
+
+* It is **unsigned**, so there is no publisher to vouch for it.
+* It carries **Brisk.exe inside itself** and writes it to disk. Legitimate
+  installers do this; so do droppers.
+* It writes a **registry entry** so the program appears in Apps & features.
+* It has **no download history**, which counts against it on its own.
+
+None of that is evidence of anything either way, which is the problem with
+generic detections. What you can do instead of taking anyone's word:
+
+* **Build it yourself** — `bygg.cmd`, no SDK, ten seconds. Then no installer is
+  involved at all.
+* **Skip the installer** — releases carry `Brisk.exe` on its own. It is a plain
+  program, not a self-extracting one, so it does not look like a dropper to
+  begin with.
+* **Read the diff** — every release links to the commits that went into it.
+
+False positives are reported to the vendors as they turn up, and a code signing
+certificate is the first thing the coffee money goes to, because it removes the
+whole category of problem rather than one detection at a time.
 
 **Why SmartScreen warns.** Not because anything was detected. Windows warns
 about executables from publishers it has not seen before, and "seen before"

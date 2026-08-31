@@ -1,4 +1,4 @@
-# Lager en ny utgivelse: setter versjonsnummer, bygger, regner ut sha256
+﻿# Lager en ny utgivelse: setter versjonsnummer, bygger, regner ut sha256
 # og skriver oppdatering.json som klientene sjekker mot.
 #
 #   .\utgivelse.cmd 1.1.0 https://github.com/BRUKER/brisk/releases/download/v1.1.0/BriskInstaller.exe "Hva som er nytt"
@@ -22,6 +22,12 @@ $t = Get-Content $ai -Raw -Encoding UTF8
 $t = $t -replace 'AssemblyVersion\("[\d\.]+"\)', "AssemblyVersion(`"$Versjon.0`")"
 $t = $t -replace 'AssemblyFileVersion\("[\d\.]+"\)', "AssemblyFileVersion(`"$Versjon.0`")"
 [IO.File]::WriteAllText($ai, $t, (New-Object Text.UTF8Encoding $true))
+
+$iai = Join-Path $rot "installer\AssemblyInfo.cs"
+$t = Get-Content $iai -Raw -Encoding UTF8
+$t = $t -replace 'AssemblyVersion\("[\d\.]+"\)', "AssemblyVersion(`"$Versjon.0`")"
+$t = $t -replace 'AssemblyFileVersion\("[\d\.]+"\)', "AssemblyFileVersion(`"$Versjon.0`")"
+[IO.File]::WriteAllText($iai, $t, (New-Object Text.UTF8Encoding $true))
 
 $inst = Join-Path $rot "installer\Installer.cs"
 $t = Get-Content $inst -Raw -Encoding UTF8
