@@ -134,11 +134,9 @@ namespace Brisk
 
         Panel ScreenCard(ScreenMode m)
         {
-            // Kort uten VRR-linje er lavere. En tom linje der ser ut som noe
-            // ikke ble lest ferdig.
             Panel host = new Panel();
             host.Dock = DockStyle.Top;
-            host.Height = m.HasVrr ? 190 : 168;
+            host.Height = 190;
             host.BackColor = Theme.Bg;
             host.Padding = new Padding(0, 0, 0, 12);
 
@@ -182,18 +180,22 @@ namespace Brisk
             setHz.Width = 150; setHz.Height = 34;
             setHz.Visible = !m.AtMax && m.MaxHz > 0;
 
-            // Skjermen sier selv fra om den takler variabel frekvens. Sier den
-            // ingenting, staar det ingenting - vi vet ikke om den kan det.
+            // Skjermen sier selv fra om den takler variabel frekvens.
+            //
+            // Den negative linja sier «oppgir ikke», ikke «kan ikke». En skjerm
+            // som bare melder VRR gjennom HDMI Forum-blokka blir ikke funnet
+            // her, og da ville «kan ikke» vaert feil. «Oppgir ikke» er sant
+            // uansett - det er nettopp det vi har maalt.
             Label vrr = Theme.Lbl(
-                m.HasVrr ? L.F("G-SYNC / FreeSync: {0}–{1} Hz", m.VrrMin, m.VrrMax) : "",
+                m.HasVrr ? L.F("G-SYNC / FreeSync: {0}–{1} Hz", m.VrrMin, m.VrrMax)
+                         : L.T("Ingen G-SYNC / FreeSync oppgitt"),
                 Theme.FSmall, Theme.Muted);
             vrr.Location = new Point(20, 82);
             vrr.AutoSize = false; vrr.Height = 18; vrr.AutoEllipsis = true;
-            vrr.Visible = m.HasVrr;
 
             // --- farge for nettopp denne skjermen ---
             Label farge = Theme.Lbl("", Theme.FSmall, Theme.Muted);
-            farge.Location = new Point(20, m.HasVrr ? 104 : 82);
+            farge.Location = new Point(20, 104);
             farge.AutoSize = false; farge.Height = 18; farge.AutoEllipsis = true;
 
             FlatBtn bRec = new FlatBtn(L.T("Bruk anbefalt"));
