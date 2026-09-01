@@ -104,6 +104,12 @@ namespace Brisk
                         g.DrawLine(p, x + s / 2, y + s * 0.24f, x + s / 2, y + s * 0.46f);
                         break;
 
+                    case "skjerm":              // skjerm med fot
+                        g.DrawRectangle(p, x + s * 0.04f, y + s * 0.12f, s * 0.92f, s * 0.60f);
+                        g.DrawLine(p, x + s * 0.50f, y + s * 0.72f, x + s * 0.50f, y + s * 0.88f);
+                        g.DrawLine(p, x + s * 0.26f, y + s * 0.92f, x + s * 0.74f, y + s * 0.92f);
+                        break;
+
                     case "vedlikehold":         // skjold med hake
                         {
                             GraphicsPath sk = new GraphicsPath();

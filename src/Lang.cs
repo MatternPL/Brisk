@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.Win32;
 
@@ -137,6 +137,41 @@ namespace Brisk
             "Ytelse", "Speed",
             "Diagnose", "Diagnostics",
             "Fiks", "Fix",
+            // ---- skjerm ----
+            "Skjerm", "Screen",
+            "Skjermer", "Screens",
+            "Oppdateringsfrekvens og farge.", "Refresh rate and colour.",
+            "Hovedskjerm", "Main screen",
+            "Fant ingen skjermer", "Found no screens",
+            "Skjermene kjører så fort de kan", "Your screens run as fast as they can",
+            "Én skjerm kjører saktere enn den kan", "One screen runs slower than it can",
+            "{0} skjermer kjører saktere enn de kan", "{0} screens run slower than they can",
+            "{0} skjermer kontrollert.", "{0} screens checked.",
+            "Du betalte for bildene. Sett dem opp til det panelet klarer.",
+                "You paid for the frames. Set them to what the panel can do.",
+            "{0} Hz av {1} Hz", "{0} Hz of {1} Hz",
+            "{0} Hz — så fort panelet går", "{0} Hz — as fast as the panel goes",
+            "Sett til {0} Hz", "Set to {0} Hz",
+            "Satt til {0} Hz.", "Set to {0} Hz.",
+            "Farge", "Colour",
+            "Bruk anbefalt", "Use recommended",
+            "Tilbakestill", "Reset",
+            "Fargeprofilen er satt.", "The colour profile is set.",
+            "Fargen er satt tilbake.", "The colour is back to what it was.",
+            "Står som Windows satte den.", "As Windows left it.",
+            "Endret av Brisk.", "Changed by Brisk.",
+            "metning {0}", "saturation {0}",
+            "Dypere svart og litt mer metning, i retning av det en OLED gir. Brisk leser kurven du har nå før den endrer noe, så «Tilbakestill» setter tilbake nøyaktig det du hadde — ikke en antakelse om hva som er normalt.",
+                "Deeper blacks and a little more saturation, in the direction of an OLED. Brisk reads the curve you have now before changing anything, so Reset puts back exactly what you had rather than a guess at what is normal.",
+            "Ingen skjerm valgt.", "No screen selected.",
+            "Fikk ikke lest gjeldende oppsett.", "Could not read the current setup.",
+            "Skjermen støtter ikke denne innstillingen.", "The screen does not support this setting.",
+            "Endringen krever omstart.", "The change needs a restart.",
+            "Windows avviste endringen.", "Windows rejected the change.",
+            "Dette krever administrator.", "This needs administrator.",
+            "Windows svarte med kode {0}.", "Windows answered with code {0}.",
+            "Windows tok ikke imot fargekurven. Noen skjermkort tillater den ikke.",
+                "Windows did not accept the colour curve. Some graphics cards do not allow it.",
             // ---- spill: status og handling ----
             "Optimalisert", "Optimised",
             "Ikke optimalisert", "Not optimised",

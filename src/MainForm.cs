@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -246,6 +246,7 @@ namespace Brisk
             AddNav(navHost, "helse", L.T("Helse"));
             AddNavHead(navHost, L.T("Diagnose"));
 
+            AddNav(navHost, "skjerm", L.T("Skjerm"));
             AddNav(navHost, "spill", L.T("Spill"));
             AddNav(navHost, "minne", L.T("Minne"));
             AddNav(navHost, "oppstart", L.T("Oppstart"));
@@ -334,6 +335,7 @@ namespace Brisk
                 case "minne": return L.T("Minne");
                 case "helse": return L.T("Helse");
                 case "spill": return L.T("Spill");
+                case "skjerm": return L.T("Skjerm");
                 case "nettverk": return L.T("Nettverk");
                 case "drivere": return L.T("Oppdateringer");
                 case "programmer": return L.T("Programvare");
@@ -354,6 +356,7 @@ namespace Brisk
                 case "minne": return L.T("Hva RAM-en brukes til.");
                 case "helse": return L.T("Disker, kræsj og batteri.");
                 case "spill": return L.T("Det som står i veien for bilder per sekund.");
+                case "skjerm": return L.T("Oppdateringsfrekvens og farge.");
                 case "nettverk": return L.T("Er tilkoblingen som den skal?");
                 case "drivere": return L.T("Fra Windows Update.");
                 case "programmer": return L.T("Oppdater eller fjern programmer.");
@@ -374,6 +377,7 @@ namespace Brisk
                 case "minne": return PageMemory();
                 case "helse": return PageHealth();
                 case "spill": return PageGame();
+                case "skjerm": return PageScreen();
                 case "nettverk": return PageNetwork();
                 case "drivere": return PageDrivers();
                 case "programmer": return PageApps();
