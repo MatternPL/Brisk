@@ -20,7 +20,12 @@ namespace Brisk
         public double Inches;            // diagonal, regnet fra fysisk storrelse
         public int Year;
 
+        // Variabel oppdateringsfrekvens, hentet fra skjermens EDID.
+        // Null naar skjermen ikke sier fra at den kan det.
+        public int VrrMin, VrrMax;
+
         public bool AtMax { get { return MaxHz > 0 && Hz >= MaxHz; } }
+        public bool HasVrr { get { return VrrMax > 0 && VrrMax > VrrMin; } }
     }
 
     // ------------------------------------------------------------------
@@ -128,6 +133,7 @@ namespace Brisk
                     treff.Model = FraTegn(mo["UserFriendlyName"]);
                     try { treff.Year = Convert.ToInt32(mo["YearOfManufacture"]); }
                     catch (Exception) { }
+                    LesVrr(treff, inst);
                 }
             }
             catch (Exception ex) { Util.Log("Kunne ikke lese skjermnavn: " + ex.Message); }
@@ -154,6 +160,100 @@ namespace Brisk
                 }
             }
             catch (Exception ex) { Util.Log("Kunne ikke lese skjermstørrelse: " + ex.Message); }
+        }
+
+        // ---------------------------------------------------------------
+        //  Variabel oppdateringsfrekvens
+        // ---------------------------------------------------------------
+        //  Spor skjermen, ikke skjermkortet. Det staar i EDID-en, saa svaret
+        //  er det samme enten maskinen har NVIDIA eller AMD - NVIDIA kaller
+        //  det G-SYNC Compatible, AMD kaller det FreeSync, men det er samme
+        //  opplysning fra samme panel.
+        //
+        //  WMI gir InstanceName paa formen
+        //      DISPLAY\SAM7454\5&e9ed81b&1&UID4353_0
+        //  og uten hale-tallet er det stien under Enum der EDID-en ligger.
+        //  Den veien er viktig: under DISPLAY\SAM7454 laa det to oppforinger
+        //  paa denne maskinen, en gammel paa 128 byte uten utvidelser og den
+        //  virkelige paa 384. Leter man bare etter maskinvare-id-en, er det
+        //  tilfeldig hvilken man faar.
+        static void LesVrr(ScreenMode m, string instanceName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(instanceName)) return;
+                string sti = instanceName;
+                int strek = sti.LastIndexOf('_');
+                if (strek > 0) sti = sti.Substring(0, strek);
+
+                byte[] e;
+                using (Microsoft.Win32.RegistryKey k = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                    @"SYSTEM\CurrentControlSet\Enum\" + sti + @"\Device Parameters"))
+                {
+                    if (k == null) return;
+                    e = k.GetValue("EDID") as byte[];
+                }
+                if (e == null || e.Length < 256) return;      // ingen utvidelsesblokker
+
+                int antall = e[126];
+                for (int b = 1; b <= antall; b++)
+                {
+                    int start = 128 * b;
+                    if (start + 128 > e.Length) break;
+                    if (e[start] != 0x02) continue;           // bare CTA-861 her
+                    int slutt = start + e[start + 2];
+                    if (slutt > start + 128) slutt = start + 128;
+
+                    for (int i = start + 4; i < slutt; )
+                    {
+                        int len = e[i] & 0x1F;
+                        if (len == 0) break;
+                        int tag = e[i] >> 5;
+
+                        // Leverandorblokk med AMD sin id: min og maks staar
+                        // rett ut som hele Hz. Maalt paa en Odyssey G93SC:
+                        // +6 = 0x30 (48), +7 = 0xF0 (240), som stemmer med
+                        // omraadedeskriptoren i grunnblokka.
+                        if (tag == 3 && len >= 7 && i + 7 < e.Length &&
+                            e[i + 1] == 0x1A && e[i + 2] == 0x00 && e[i + 3] == 0x00)
+                        {
+                            m.VrrMin = e[i + 6];
+                            m.VrrMax = e[i + 7];
+                            return;
+                        }
+
+                        // VESA Adaptive-Sync sier bare at skjermen kan det.
+                        // Da hentes omraadet fra grunnblokka i stedet.
+                        if (tag == 7 && len >= 1 && e[i + 1] == 0x2B)
+                        {
+                            Omraade(e, m);
+                            if (m.HasVrr) return;
+                        }
+
+                        i += len + 1;
+                    }
+                }
+                // Skjermer som bare melder VRR gjennom HDMI Forum-blokka blir
+                // ikke funnet her. Da staar det ingenting - bedre enn aa vise
+                // et tall vi ikke har kontrollert mot en ekte skjerm.
+            }
+            catch (Exception ex) { Util.Log("Kunne ikke lese VRR: " + ex.Message); }
+        }
+
+        // Deskriptor 0xFD i grunnblokka: laveste og hoyeste vertikale frekvens.
+        static void Omraade(byte[] e, ScreenMode m)
+        {
+            int[] plass = { 54, 72, 90, 108 };
+            foreach (int o in plass)
+            {
+                if (o + 8 >= e.Length) continue;
+                if (e[o] == 0 && e[o + 1] == 0 && e[o + 3] == 0xFD)
+                {
+                    m.VrrMin = e[o + 5];
+                    m.VrrMax = e[o + 6];
+                    return;
+                }
+            }
         }
 
         // WMI gir navnene som tegnkoder med nuller paa slutten.

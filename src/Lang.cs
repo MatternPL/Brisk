@@ -161,6 +161,7 @@ namespace Brisk
             "Fargen er satt tilbake.", "The colour is back to what it was.",
             "Står som Windows satte den.", "As Windows left it.",
             "står som Windows satte den", "as Windows left it",
+            "G-SYNC / FreeSync: {0}–{1} Hz", "G-SYNC / FreeSync: {0}–{1} Hz",
             "endret av Brisk", "changed by Brisk",
             "Fargen settes per skjerm. Brisk leser kurven du har nå før den endrer noe, så «Tilbakestill» gir tilbake nøyaktig det den skjermen hadde.",
                 "Colour is set per screen. Brisk reads the curve you have now before changing anything, so Reset gives back exactly what that screen had.",
