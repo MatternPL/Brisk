@@ -49,7 +49,6 @@ namespace Brisk
         const string GfxDrivers = @"SYSTEM\CurrentControlSet\Control\GraphicsDrivers";
         const string GameConfig = @"System\GameConfigStore";
         const string GameDvr = @"Software\Microsoft\Windows\CurrentVersion\GameDVR";
-        const string GameBar = @"Software\Microsoft\GameBar";
 
         // Ultimate Performance finnes ikke overalt; High performance gjor.
         const string HighPerf = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
@@ -58,10 +57,22 @@ namespace Brisk
         public static List<GameSetting> Read()
         {
             List<GameSetting> l = new List<GameSetting>();
+            // Game Bar sto her for. Den ble tatt ut fordi Brisk ikke klarte det
+            // kortet lovet: den eneste bryteren som finnes i registeret,
+            // UseNexusForGameBarEnabled, styrer om en kontroller kan aapne
+            // Game Bar - ikke Windows+G. Maalt paa en maskin der verdien sto
+            // paa 0 aapnet overlegget seg fortsatt med tastatursnarveien.
+            //
+            // Windows 11 har ingen stotta bryter for aa slaa av selve
+            // overlegget; det maa appen Microsoft.XboxGamingOverlay
+            // avinstalleres for. Det er for inngripende for et
+            // vedlikeholdsprogram aa gjore paa en knapp som heter
+            // «Optimaliser», og gevinsten var uansett den minste av alle
+            // - 0-2 %. Bakgrunnsopptak, som er den ekte kostnaden, staar
+            // fortsatt som eget kort og virker.
             l.Add(ReadVbs());
             l.Add(ReadHvci());
             l.Add(ReadGameDvr());
-            l.Add(ReadGameBar());
             l.Add(ReadHags());
             l.Add(ReadPowerPlan());
             return l;
@@ -160,24 +171,6 @@ namespace Brisk
             object a = HkcuValue(GameConfig, "GameDVR_Enabled");
             object b = HkcuValue(GameDvr, "AppCaptureEnabled");
             bool paa = (a == null || Convert.ToInt32(a) != 0) || (b == null || Convert.ToInt32(b) != 0);
-            g.Optimal = !paa;
-            g.State = paa ? "På" : "Av";
-            return g;
-        }
-
-        static GameSetting ReadGameBar()
-        {
-            GameSetting g = new GameSetting();
-            g.Key = "gamebar";
-            g.Estimate = "0–2 %";
-            g.Name = "Game Bar";
-            g.What = "Overlegget som åpnes med Windows+G. Ligger alltid i minnet.";
-            g.Cost = "Snarveier for opptak og skjermbilde slutter å virke.";
-            g.Gain = Gain.Liten;
-            g.NeedsAdmin = false;
-
-            object v = HkcuValue(GameBar, "UseNexusForGameBarEnabled");
-            bool paa = v == null || Convert.ToInt32(v) != 0;
             g.Optimal = !paa;
             g.State = paa ? "På" : "Av";
             return g;
@@ -315,10 +308,6 @@ namespace Brisk
                     case "gamedvr":
                         SetHkcu(GameConfig, "GameDVR_Enabled", forGaming ? 0 : 1);
                         SetHkcu(GameDvr, "AppCaptureEnabled", forGaming ? 0 : 1);
-                        return null;
-
-                    case "gamebar":
-                        SetHkcu(GameBar, "UseNexusForGameBarEnabled", forGaming ? 0 : 1);
                         return null;
 
                     case "hags":
