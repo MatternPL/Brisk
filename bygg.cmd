@@ -10,13 +10,13 @@ set CSC=%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\csc.exe
 if not exist "%CSC%" set CSC=%SystemRoot%\Microsoft.NET\Framework\v4.0.30319\csc.exe
 if not exist "%CSC%" (echo Fant ikke C#-kompilatoren. & exit /b 1)
 
-echo [1/3] Lager ikon og logo...
+echo [1/4] Lager ikon og logo...
 "%CSC%" -nologo -target:exe -out:tools\MakeIcon.exe ^
   -r:System.dll -r:System.Drawing.dll ^
   tools\MakeIcon.cs src\Logo.cs || goto :feil
 tools\MakeIcon.exe brisk.ico || goto :feil
 
-echo [2/3] Kompilerer Brisk.exe...
+echo [2/4] Kompilerer Brisk.exe...
 "%CSC%" -nologo -target:winexe -out:Brisk.exe -optimize+ ^
   -win32icon:brisk.ico -win32manifest:src\app.manifest ^
   -resource:brisk.ico,brisk.icon ^
@@ -24,7 +24,7 @@ echo [2/3] Kompilerer Brisk.exe...
   -r:System.Management.dll -r:Microsoft.CSharp.dll -r:System.Xml.dll ^
   src\*.cs || goto :feil
 
-echo [3/3] Kompilerer BriskInstaller.exe...
+echo [3/4] Kompilerer BriskInstaller.exe...
 "%CSC%" -nologo -target:winexe -out:BriskInstaller.exe -optimize+ ^
   -win32icon:brisk.ico -win32manifest:installer\installer.manifest ^
   -resource:Brisk.exe,Brisk.payload ^
@@ -33,6 +33,10 @@ echo [3/3] Kompilerer BriskInstaller.exe...
   -r:Microsoft.CSharp.dll ^
   installer\Installer.cs installer\SetupForm.cs installer\AssemblyInfo.cs ^
   src\Theme.cs src\Logo.cs src\Icons.cs src\Util.cs src\Lang.cs || goto :feil
+
+echo [4/4] Signerer...
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\signer.ps1 -Filer Brisk.exe,BriskInstaller.exe
+if errorlevel 1 goto :feil
 
 echo.
 echo Ferdig:
