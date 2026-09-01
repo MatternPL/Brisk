@@ -10,7 +10,7 @@ param(
     [string]$Ut = "prosjektbevis.pdf",
     [string]$Prosjekt = "Brisk",
     [string]$Url = "https://github.com/MatternPL/Brisk",
-    [string]$Epost = "mathiaspilotarne@gmail.com"
+    [string]$Epost = "mathiasarne@icloud.com"
 )
 
 $ErrorActionPreference = "Stop"
