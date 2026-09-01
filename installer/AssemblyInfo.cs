@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("Installs Brisk, a free Windows maintenance tool.")]
 [assembly: AssemblyProduct("Brisk")]
 [assembly: AssemblyCompany("Mathias Arne Andresen")]
-[assembly: AssemblyCopyright("Free software, MIT licence. No paywall, no telemetry.")]
+[assembly: AssemblyCopyright("© 2026 Mathias Arne Andresen")]
 [assembly: AssemblyVersion("1.6.6.0")]
 [assembly: AssemblyFileVersion("1.6.6.0")]
 [assembly: ComVisible(false)]
