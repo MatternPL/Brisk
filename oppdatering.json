@@ -1,7 +1,7 @@
 {
-  "versjon": "1.6.5",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.5/BriskInstaller.exe",
-  "sha256": "baa36be17271d5237cfbf301b34494186ab2d8935fd21e36731756a2b3c71caf",
-  "storrelse": 699392,
-  "notat": "Games now says whether each setting is optimised or not, with one button that either optimises it or undoes it, and half the text it had. The update check asks for a fresh copy of the version file, so a new release is not reported as 'you have the latest'. The installer carries version and publisher information it was missing entirely, which is one of the things antivirus heuristics look at. Releases now also include Brisk.exe on its own, for anyone who would rather not run an installer."
+  "versjon": "1.6.6",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.6/BriskInstaller.exe",
+  "sha256": "7de23c8ffaf00145e1d40e3caa43248187e23d67ad2bbba119a0a01ab6021fe7",
+  "storrelse": 744448,
+  "notat": "A new Screen page: every screen with its own name, size and year, what it runs at and the fastest it can, set with one button. Colour gives deeper blacks and more saturation, and Reset puts back exactly the curve you had. Games gains three NVIDIA settings - driver power management, shader cache and low latency - read and written through the driver's own settings, and hidden entirely on AMD. Virtualisation-based security no longer promises a restart that has already happened; where Windows starts it anyway, it can now be forced off. The front page fills before the window is drawn instead of after."
 }
