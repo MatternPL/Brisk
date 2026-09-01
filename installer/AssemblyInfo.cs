@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Brisk Installer")]
 [assembly: AssemblyDescription("Installs Brisk, a free Windows maintenance tool.")]
 [assembly: AssemblyProduct("Brisk")]
-[assembly: AssemblyCompany("Brisk")]
+[assembly: AssemblyCompany("Mathias Arne Andresen")]
 [assembly: AssemblyCopyright("Free software, MIT licence. No paywall, no telemetry.")]
 [assembly: AssemblyVersion("1.6.6.0")]
 [assembly: AssemblyFileVersion("1.6.6.0")]

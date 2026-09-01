@@ -256,7 +256,7 @@ namespace BriskSetup
                     catch { }
                     k.SetValue("DisplayName", AppName);
                     k.SetValue("DisplayVersion", Version);
-                    k.SetValue("Publisher", "Brisk");
+                    k.SetValue("Publisher", "Mathias Arne Andresen");
                     k.SetValue("DisplayIcon", ExePath + ",0");
                     k.SetValue("InstallLocation", InstallDir);
                     k.SetValue("UninstallString", "\"" + UninstPath + "\" /uninstall");
