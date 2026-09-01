@@ -82,8 +82,12 @@ namespace Brisk
             scColourState.AutoSize = false;
             scColourState.Height = 18;
 
+            // Sto «i retning av det en OLED gir». Det er en paastand om et
+            // resultat vi ikke kan love, og den slags inviterer til kritikk
+            // fra folk med kalibrerte skjermer. Si hva den gjor, og be folk
+            // prove selv.
             Label cWhat = Theme.Lbl(
-                L.T("Dypere svart og litt mer metning, i retning av det en OLED gir. Brisk leser kurven du har nå før den endrer noe, så «Tilbakestill» setter tilbake nøyaktig det du hadde — ikke en antakelse om hva som er normalt."),
+                L.T("Dypere svart og litt mer metning. Om det ser bedre ut er en smakssak, så prøv det — Brisk leser kurven du har nå før den endrer noe, så «Tilbakestill» setter tilbake nøyaktig det du hadde."),
                 Theme.FSmall, Theme.Muted);
             cWhat.AutoSize = false;
             cWhat.Location = new Point(20, 62);

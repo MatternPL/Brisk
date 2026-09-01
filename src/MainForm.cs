@@ -75,6 +75,15 @@ namespace Brisk
 
             Show(string.IsNullOrEmpty(startPage) ? "oversikt" : startPage);
 
+            // Tallene settes her, for vinduet males forste gang. Foer laa dette
+            // i en utsatt jobb som forst kjorer naar meldingslokka har startet,
+            // og da rakk vinduet aa vises tomt: streker i alle kortene og ingen
+            // dom oeverst. Paa en maskin som er opptatt akkurat da - antivirus
+            // som skanner den nystartede fila, en treg disk - kunne det vindu
+            // staa i flere sekunder. Maalingen er allerede gjort av
+            // oppstartsskjermen, saa dette koster rundt 150 ms.
+            if (ovRam != null) RefreshOverview();
+
             Util.LogWritten += OnLogWritten;
             Load += delegate
             {
@@ -671,7 +680,9 @@ namespace Brisk
             // hva det var eller velge bort noe.
             btnCleanNow.Click += delegate { Show("rydding"); };
 
-            Defer(delegate { LayoutHero(); RefreshOverview(); RefreshMachine(); });
+            // Bare det som trenger ekte bredder eller gaar i bakgrunnen.
+            // Selve tallene settes for vinduet vises, se konstruktoren.
+            Defer(delegate { LayoutHero(); RefreshMachine(); });
             return p;
         }
 
@@ -1067,7 +1078,14 @@ namespace Brisk
 
                 SetVerdict();
             }
-            catch (Exception ex) { Status(L.T("Kunne ikke lese systemtall: ") + ex.Message); }
+            // Feiler dette, sto det bare en linje i statuslinja nederst, som
+            // er lett aa gaa glipp av - og ingenting i loggen. Da saa forsida
+            // ut som om den aldri ble fylt ut, uten spor av hvorfor.
+            catch (Exception ex)
+            {
+                Status(L.T("Kunne ikke lese systemtall: ") + ex.Message);
+                Util.Log("RefreshOverview feilet: " + ex);
+            }
         }
 
         void SetVerdict()
