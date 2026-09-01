@@ -262,31 +262,43 @@ namespace Brisk
             string actual = Sha256Of(path);
             if (!string.Equals(actual, u.Sha256, StringComparison.OrdinalIgnoreCase))
             {
-                long lengde = -1;
-                bool erProgram = false;
-                try
-                {
-                    lengde = new FileInfo(path).Length;
-                    using (FileStream fs = File.OpenRead(path))
-                        erProgram = fs.ReadByte() == 'M' && fs.ReadByte() == 'Z';
-                }
-                catch (Exception) { }
-
-                error = !erProgram
-                    ? L.T("Det som ble lastet ned var ikke et program. Noe mellom deg og GitHub byttet ut fila — ofte en antivirus eller et nettverksfilter.")
-                    : u.Size > 0 && lengde != u.Size
-                      ? L.T("Nedlastingen ble avbrutt underveis. Filen ble slettet — ingenting er kjørt.")
-                      : L.T("Sjekksummen stemte ikke. Filen ble slettet — ingenting er kjørt.");
-                error += " " + L.T("Last den ned selv fra utgivelsessida.");
-
+                error = Forklar(path, u.Size) + " " + L.T("Last den ned selv fra utgivelsessida.");
                 Util.Log("Oppdatering avvist. Forventet " + u.Sha256 + " (" + u.Size +
-                         " bytes), fikk " + actual + " (" + lengde + " bytes), program=" + erProgram);
+                         " bytes), fikk " + actual + ". " + Forklar(path, u.Size));
                 Try(delegate { File.Delete(path); });
                 return null;
             }
 
             Util.Log("Oppdatering " + u.Version + " lastet ned og verifisert.");
             return path;
+        }
+
+        // Hvorfor stemte ikke sjekksummen. Fila paa utgivelsen er verifisert
+        // for den ble publisert, saa avviket har alltid oppstaatt paa veien.
+        // Egen metode fordi de fire tilfellene maa kunne testes hver for seg.
+        public static string Forklar(string path, long forventet)
+        {
+            if (!File.Exists(path))
+                return L.T("Filen forsvant rett etter nedlastingen. Det er nesten alltid et antivirus som har tatt den.");
+
+            long lengde = -1;
+            bool erProgram = false;
+            try
+            {
+                lengde = new FileInfo(path).Length;
+                using (FileStream fs = File.OpenRead(path))
+                    erProgram = fs.ReadByte() == 'M' && fs.ReadByte() == 'Z';
+            }
+            catch (Exception)
+            {
+                return L.T("Filen kunne ikke leses etter nedlastingen. Et antivirus har trolig låst den.");
+            }
+
+            if (!erProgram)
+                return L.T("Det som ble lastet ned var ikke et program. Noe mellom deg og GitHub byttet ut fila — ofte en antivirus eller et nettverksfilter.");
+            if (forventet > 0 && lengde != forventet)
+                return L.T("Nedlastingen ble avbrutt underveis. Filen ble slettet — ingenting er kjørt.");
+            return L.T("Sjekksummen stemte ikke. Filen ble slettet — ingenting er kjørt.");
         }
 
         public static string Sha256Of(string path)
