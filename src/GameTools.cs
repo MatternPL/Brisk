@@ -39,6 +39,10 @@ namespace Brisk
         // maskinen startes paa nytt. Uten dette ville kortet sagt "Kjorer" rett
         // etter at du slo den av, og sett ut som om ingenting skjedde.
         public bool PendingReboot;
+
+        // Endringen fjerner noe i stedet for aa vippe en bryter. Slike skal
+        // alltid bekreftes forst, uansett hvor liten gevinsten er.
+        public bool Destructive;
     }
 
     public static class GameTools
@@ -73,6 +77,7 @@ namespace Brisk
             l.Add(ReadVbs());
             l.Add(ReadHvci());
             l.Add(ReadGameDvr());
+            l.Add(ReadGameBar());
             l.Add(ReadHags());
             l.Add(ReadPowerPlan());
             return l;
@@ -174,6 +179,51 @@ namespace Brisk
             g.Optimal = !paa;
             g.State = paa ? "På" : "Av";
             return g;
+        }
+
+        // Windows 11 har ingen bryter for selve overlegget. Registerverdien
+        // som ser ut som den - UseNexusForGameBarEnabled - styrer bare om en
+        // kontroller kan aapne det; maalt paa en maskin der den sto paa 0
+        // aapnet Windows+G overlegget likevel. Det eneste som virker er aa
+        // avinstallere appen, og da skal kortet si nettopp det.
+        const string AppxPakker = @"Software\Classes\Local Settings\Software\Microsoft" +
+                                  @"\Windows\CurrentVersion\AppModel\Repository\Packages";
+        const string GameBarPakke = "Microsoft.XboxGamingOverlay";
+
+        static GameSetting ReadGameBar()
+        {
+            GameSetting g = new GameSetting();
+            g.Key = "gamebar";
+            g.Estimate = "0–2 %";
+            g.Name = "Xbox Game Bar";
+            g.What = "Overlegget som åpnes med Windows+G. Kjører i bakgrunnen med flere prosesser.";
+            g.Cost = "Appen avinstalleres. Enkelte Store-spill spør etter den. Kan hentes fra Microsoft Store.";
+            g.Gain = Gain.Liten;
+            g.NeedsAdmin = false;
+            g.Destructive = true;
+
+            bool finnes = GameBarInstalled();
+            g.Optimal = !finnes;
+            g.State = finnes ? "Installert" : "Avinstallert";
+            return g;
+        }
+
+        // Leses rett fra registeret. Aa starte PowerShell bare for aa vite om
+        // en app finnes ville kostet et halvt sekund hver gang sida aapnes.
+        public static bool GameBarInstalled()
+        {
+            try
+            {
+                using (RegistryKey k = Registry.CurrentUser.OpenSubKey(AppxPakker))
+                {
+                    if (k == null) return false;
+                    foreach (string navn in k.GetSubKeyNames())
+                        if (navn.StartsWith(GameBarPakke, StringComparison.OrdinalIgnoreCase))
+                            return true;
+                }
+            }
+            catch (Exception ex) { Util.Log("Kunne ikke lese apppakker: " + ex.Message); }
+            return false;
         }
 
         static GameSetting ReadHags()
@@ -308,6 +358,21 @@ namespace Brisk
                     case "gamedvr":
                         SetHkcu(GameConfig, "GameDVR_Enabled", forGaming ? 0 : 1);
                         SetHkcu(GameDvr, "AppCaptureEnabled", forGaming ? 0 : 1);
+                        return null;
+
+                    case "gamebar":
+                        if (forGaming)
+                        {
+                            // Per bruker, saa dette krever ikke administrator.
+                            Util.Run("powershell.exe",
+                                "-NoProfile -ExecutionPolicy Bypass -Command " +
+                                "\"Get-AppxPackage " + GameBarPakke + " | Remove-AppxPackage\"", null);
+                            return GameBarInstalled()
+                                ? L.T("Windows fjernet den ikke. Prøv å lukke Game Bar først.")
+                                : null;
+                        }
+                        // Aa hente en app tilbake er Store sin jobb, ikke vaar.
+                        Util.OpenPath("ms-windows-store://pdp/?ProductId=9NZKPSTSNW4P");
                         return null;
 
                     case "hags":

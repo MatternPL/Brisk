@@ -202,10 +202,16 @@ namespace Brisk
             FlatBtn act = new FlatBtn("");
             act.Width = 170; act.Height = 34;
             if (!g.Available) { act.Enabled = false; act.Visible = false; }
-            else if (g.Optimal || g.PendingReboot) { act.Text = L.T("Angre"); }
+            else if (g.Optimal || g.PendingReboot)
+            {
+                // Er appen fjernet, er «Angre» aa hente den igjen. Knappen skal
+                // si hvor den sender deg, ikke bare «Angre».
+                act.Text = g.Destructive ? L.T("Hent tilbake") : L.T("Angre");
+            }
             else { act.Text = L.T("Optimaliser"); act.Primary(); }
             Tip(act, g.Optimal || g.PendingReboot
-                ? "Setter innstillingen tilbake slik Windows hadde den."
+                ? (g.Destructive ? "Åpner Microsoft Store, der du kan installere den igjen."
+                                 : "Setter innstillingen tilbake slik Windows hadde den.")
                 : "Endrer innstillingen slik spill liker den.");
 
             Label gain = Theme.Lbl(
@@ -224,7 +230,7 @@ namespace Brisk
             act.Click += async delegate
             {
                 bool forGaming = !g.Optimal;
-                if (forGaming && g.Gain == Gain.Stor && g.Cost.Length > 0)
+                if (forGaming && (g.Gain == Gain.Stor || g.Destructive) && g.Cost.Length > 0)
                 {
                     if (MessageBox.Show(this,
                             L.T(g.Name) + "\r\n\r\n" + L.T(g.Cost) + "\r\n\r\n" + L.T("Fortsette?"),
