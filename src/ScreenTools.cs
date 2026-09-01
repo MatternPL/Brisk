@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Management;
 using System.Runtime.InteropServices;
 
 namespace Brisk
@@ -12,6 +13,12 @@ namespace Brisk
         public int Hz;                   // det som staar naa
         public int MaxHz;                // hoyeste ved samme opplosning
         public bool Primary;
+
+        // Fra skjermens egen EDID, ikke fra driveren.
+        public string Model = "";        // "Odyssey G93SC"
+        public string HardwareId = "";   // "SAM7412", kobler skjerm mot WMI
+        public double Inches;            // diagonal, regnet fra fysisk storrelse
+        public int Year;
 
         public bool AtMax { get { return MaxHz > 0 && Hz >= MaxHz; } }
     }
@@ -75,11 +82,87 @@ namespace Brisk
                             (int)d.dmDisplayFrequency > m.MaxHz)
                             m.MaxHz = (int)d.dmDisplayFrequency;
                     }
+                    // Skjermens eget navn ligger i EDID, ikke hos driveren.
+                    // Den andre EnumDisplayDevices-runden gir maskinvare-id-en
+                    // (f.eks. SAM7412), som ogsaa staar i WMI sin InstanceName.
+                    // Uten den koblingen kan ikke to skjermer skilles fra
+                    // hverandre - rekkefolgen er ikke garantert lik.
+                    DISPLAY_DEVICE mon = new DISPLAY_DEVICE();
+                    mon.cb = Marshal.SizeOf(typeof(DISPLAY_DEVICE));
+                    if (EnumDisplayDevices(dd.DeviceName, 0, ref mon, 0))
+                        m.HardwareId = HardwareId(mon.DeviceID);
+
                     l.Add(m);
                 }
+                Beskriv(l);
             }
             catch (Exception ex) { Util.Log("Kunne ikke lese skjermer: " + ex.Message); }
             return l;
+        }
+
+        // "MONITOR\SAM7412\{...}\0001" -> "SAM7412"
+        static string HardwareId(string deviceId)
+        {
+            if (string.IsNullOrEmpty(deviceId)) return "";
+            string[] d = deviceId.Split('\\');
+            return d.Length > 1 ? d[1] : "";
+        }
+
+        static void Beskriv(List<ScreenMode> skjermer)
+        {
+            try
+            {
+                using (ManagementObjectSearcher s = new ManagementObjectSearcher(
+                    new ManagementScope(@"\\.\root\wmi"), new ObjectQuery("SELECT * FROM WmiMonitorID")))
+                foreach (ManagementObject mo in s.Get())
+                {
+                    string inst = Convert.ToString(mo["InstanceName"]);
+                    ScreenMode treff = null;
+                    foreach (ScreenMode m in skjermer)
+                        if (m.HardwareId.Length > 0 && inst != null &&
+                            inst.IndexOf(m.HardwareId, StringComparison.OrdinalIgnoreCase) >= 0)
+                        { treff = m; break; }
+                    if (treff == null) continue;
+
+                    treff.Model = FraTegn(mo["UserFriendlyName"]);
+                    try { treff.Year = Convert.ToInt32(mo["YearOfManufacture"]); }
+                    catch (Exception) { }
+                }
+            }
+            catch (Exception ex) { Util.Log("Kunne ikke lese skjermnavn: " + ex.Message); }
+
+            try
+            {
+                using (ManagementObjectSearcher s = new ManagementObjectSearcher(
+                    new ManagementScope(@"\\.\root\wmi"),
+                    new ObjectQuery("SELECT * FROM WmiMonitorBasicDisplayParams")))
+                foreach (ManagementObject mo in s.Get())
+                {
+                    string inst = Convert.ToString(mo["InstanceName"]);
+                    foreach (ScreenMode m in skjermer)
+                    {
+                        if (m.HardwareId.Length == 0 || inst == null ||
+                            inst.IndexOf(m.HardwareId, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                        double bredde = Convert.ToDouble(mo["MaxHorizontalImageSize"]);
+                        double hoyde = Convert.ToDouble(mo["MaxVerticalImageSize"]);
+                        // Oppgitt i hele centimeter, saa dette er en avrunding,
+                        // ikke en presis maalt diagonal.
+                        m.Inches = Math.Sqrt(bredde * bredde + hoyde * hoyde) / 2.54;
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex) { Util.Log("Kunne ikke lese skjermstørrelse: " + ex.Message); }
+        }
+
+        // WMI gir navnene som tegnkoder med nuller paa slutten.
+        static string FraTegn(object o)
+        {
+            ushort[] a = o as ushort[];
+            if (a == null) return "";
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            foreach (ushort u in a) if (u != 0) sb.Append((char)u);
+            return sb.ToString().Trim();
         }
 
         // Returnerer null naar det gikk bra, ellers en forklaring.

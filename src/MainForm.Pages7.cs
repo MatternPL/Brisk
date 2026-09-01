@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
@@ -193,7 +193,7 @@ namespace Brisk
         {
             Panel host = new Panel();
             host.Dock = DockStyle.Top;
-            host.Height = 92;
+            host.Height = 112;
             host.BackColor = Theme.Bg;
             host.Padding = new Padding(0, 0, 0, 12);
 
@@ -206,20 +206,34 @@ namespace Brisk
                     e.Graphics.FillRectangle(b, 0, 0, 3, card.Height);
             };
 
-            Label navn = Theme.Lbl(
-                (m.Primary ? L.T("Hovedskjerm") : m.Device.Replace(@"\\.\", "")) +
-                "   ·   " + m.Width + " × " + m.Height,
-                Theme.FCard, Theme.Text);
+            // Skjermens eget navn foerst naar vi har det. «DISPLAY2» sier
+            // ingenting; «Odyssey G93SC» sier hvilken skjerm det er snakk om.
+            string tittel = m.Model.Length > 0 ? m.Model
+                          : m.Primary ? L.T("Hovedskjerm")
+                          : m.Device.Replace(@"\\.\", "");
+            if (m.Primary && m.Model.Length > 0) tittel += "   ·   " + L.T("hovedskjerm");
+            Label navn = Theme.Lbl(tittel, Theme.FCard, Theme.Text);
             navn.Location = new Point(20, 14);
             navn.AutoSize = false;
             navn.Height = 22;
             navn.AutoEllipsis = true;
 
+            // Andre linje: det tekniske. Tommene er regnet fra fysisk
+            // storrelse i hele centimeter, saa de er omtrentlige.
+            string detalj = m.Width + " × " + m.Height;
+            if (m.Inches >= 5) detalj += "   ·   " + m.Inches.ToString("0.0") + "″";
+            if (m.Year > 1990) detalj += "   ·   " + m.Year;
+            Label info = Theme.Lbl(detalj, Theme.FSmall, Theme.Muted);
+            info.Location = new Point(20, 38);
+            info.AutoSize = false;
+            info.Height = 18;
+            info.AutoEllipsis = true;
+
             Label hz = Theme.Lbl(
                 m.AtMax ? L.F("{0} Hz — så fort panelet går", m.Hz)
                         : L.F("{0} Hz av {1} Hz", m.Hz, m.MaxHz),
                 Theme.FSmall, m.AtMax ? Theme.Good : Theme.Warn);
-            hz.Location = new Point(20, 40);
+            hz.Location = new Point(20, 60);
             hz.AutoSize = false;
             hz.Height = 18;
 
@@ -238,13 +252,15 @@ namespace Brisk
 
             Theme.Arrange(card, delegate
             {
-                act.Location = new Point(card.Width - act.Width - 20, 16);
+                act.Location = new Point(card.Width - act.Width - 20, 26);
                 int plass = Math.Max(160, act.Left - 40);
                 navn.Width = plass;
+                info.Width = plass;
                 hz.Width = plass;
             });
 
             card.Controls.Add(navn);
+            card.Controls.Add(info);
             card.Controls.Add(hz);
             card.Controls.Add(act);
             host.Controls.Add(card);

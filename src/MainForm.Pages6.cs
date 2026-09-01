@@ -177,11 +177,13 @@ namespace Brisk
             // det en tilstandstekst her - «Fine as it is · Off» - som ikke
             // svarte paa spoersmaalet i det hele tatt.
             string merke = !g.Available ? L.T("Ikke tilgjengelig")
+                         : g.StuckOn ? L.T("Windows starter den likevel")
                          : g.PendingReboot ? L.T("Optimalisert — krever omstart")
                          : g.Optimal ? L.T("Optimalisert")
                          : L.T("Ikke optimalisert");
             Label state = Theme.Lbl(merke, Theme.FSmall,
                 !g.Available ? Theme.Muted
+                : g.StuckOn ? Theme.Bad
                 : g.PendingReboot ? Theme.Accent
                 : g.Optimal ? Theme.Good : Theme.Warn);
             state.Location = new Point(20, 36);
@@ -189,7 +191,12 @@ namespace Brisk
             state.Height = 18;
             state.AutoEllipsis = true;
 
-            Label what = Theme.Lbl(!g.Available ? L.T(g.Unavailable) : L.T(g.What), Theme.FSmall, Theme.Muted);
+            // Sitter den fast paa, er det viktigere aa forklare hvorfor enn aa
+            // gjenta hva innstillingen er.
+            Label what = Theme.Lbl(
+                !g.Available ? L.T(g.Unavailable)
+                : g.StuckOn ? L.T("Registeret er satt og maskinen er startet på nytt, men hypervisoren starter likevel.")
+                : L.T(g.What), Theme.FSmall, Theme.Muted);
             what.AutoSize = false;
             what.Location = new Point(20, 62);
             what.Height = 34;

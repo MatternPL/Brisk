@@ -142,6 +142,7 @@ namespace Brisk
             "Skjermer", "Screens",
             "Oppdateringsfrekvens og farge.", "Refresh rate and colour.",
             "Hovedskjerm", "Main screen",
+            "hovedskjerm", "main screen",
             "Fant ingen skjermer", "Found no screens",
             "Skjermene kjører så fort de kan", "Your screens run as fast as they can",
             "Én skjerm kjører saktere enn den kan", "One screen runs slower than it can",
@@ -179,6 +180,10 @@ namespace Brisk
             "Optimaliser", "Optimise",
             "Angre", "Undo",
             "Hent tilbake", "Get it back",
+            "Kjører fortsatt", "Still running",
+            "Windows starter den likevel", "Windows starts it anyway",
+            "Registeret er satt og maskinen er startet på nytt, men hypervisoren starter likevel.",
+                "The registry is set and the machine has restarted, but the hypervisor starts anyway.",
             // ---- NVIDIA-innstillinger ----
             "Strømstyring i driveren", "Driver power management",
             "Shader-buffer", "Shader cache",

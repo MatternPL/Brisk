@@ -43,6 +43,11 @@ namespace Brisk
         // Endringen fjerner noe i stedet for aa vippe en bryter. Slike skal
         // alltid bekreftes forst, uansett hvor liten gevinsten er.
         public bool Destructive;
+
+        // Registeret er satt slik vi vil ha det, maskinen er startet paa nytt,
+        // og Windows kjorer det likevel. Da er det noe annet som slaar det paa,
+        // og brukeren skal faa vite det i stedet for aa vente forgjeves.
+        public bool StuckOn;
     }
 
     public static class GameTools
@@ -147,6 +152,20 @@ namespace Brisk
 
             if (status == 2 && slaattAv)
             {
+                // «Venter paa omstart» sto her for alltid, ogsaa lenge etter at
+                // maskinen var startet paa nytt. Naa sammenlignes tidspunktet
+                // for endringen med naar maskinen sist startet: har den vaert
+                // gjennom en omstart og VBS fortsatt kjorer, da tok ikke
+                // registerendringen - og det skal staa, ikke en evig lovnad om
+                // at det ordner seg neste gang.
+                if (OmstartHarVaert())
+                {
+                    g.Optimal = false;
+                    g.State = "Kjører fortsatt";
+                    g.Unavailable = "";
+                    g.StuckOn = true;
+                    return g;
+                }
                 g.PendingReboot = true;
                 g.Optimal = true;
                 g.State = "Slått av — venter på omstart";
@@ -156,6 +175,33 @@ namespace Brisk
             g.Optimal = status != 2;
             g.State = status == 2 ? "Kjører" : status == 1 ? "På, men kjører ikke" : "Av";
             return g;
+        }
+
+        // Naar Brisk slaar av VBS skrives tidspunktet ned. Har maskinen startet
+        // etter det, har endringen faatt sjansen sin.
+        const string VbsEndret = "VbsEndret";
+
+        static void MerkVbsEndret()
+        {
+            Util.SetSetting(VbsEndret, DateTime.Now.Ticks.ToString());
+        }
+
+        // Sant naar endringen har faatt sin omstart - eller naar vi ikke har
+        // noe tidsstempel i det hele tatt. Mangler stempelet, er endringen
+        // enten gjort av en eldre utgave eller for lenge siden, og da er «vent
+        // paa omstart» uansett feil svar. «Venter» skal bare staa i det korte
+        // vinduet mellom at Brisk endret noe og maskinen ble startet.
+        static bool OmstartHarVaert()
+        {
+            string s = Util.Setting(VbsEndret);
+            long t;
+            if (s == null || !long.TryParse(s, out t) || t <= 0) return true;
+            try
+            {
+                DateTime boot = MachineInfo.LastBoot();
+                return boot > DateTime.MinValue && boot > new DateTime(t);
+            }
+            catch (Exception) { return true; }
         }
 
         static GameSetting ReadHvci()
@@ -400,6 +446,7 @@ namespace Brisk
                         SetHklm(DeviceGuard, "RequirePlatformSecurityFeatures", forGaming ? 0 : 1);
                         SetHklm(DeviceGuard + @"\Scenarios\CredentialGuard", "Enabled", forGaming ? 0 : 1);
                         SetHklm(Lsa, "LsaCfgFlags", forGaming ? 0 : 1);
+                        MerkVbsEndret();
                         return null;
 
                     case "hvci":

@@ -59,6 +59,19 @@ namespace Brisk
         // Windows lagrer oppstartstidspunktet som en WMI-dato. Vi regner ut
         // hvor lenge maskinen har vaert paa, siden det ofte forklarer hvorfor
         // minnebruken har krope oppover.
+        // Naar maskinen sist ble startet. Brukes til aa avgjore om en endring
+        // som krever omstart faktisk har faatt sin omstart.
+        public static DateTime LastBoot()
+        {
+            try
+            {
+                string raw = Wmi("Win32_OperatingSystem", "LastBootUpTime");
+                if (raw.Length >= 14) return ManagementDateTimeConverter.ToDateTime(raw);
+            }
+            catch (Exception) { }
+            return DateTime.MinValue;
+        }
+
         public static string Uptime()
         {
             try
