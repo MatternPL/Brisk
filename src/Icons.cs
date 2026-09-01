@@ -104,6 +104,16 @@ namespace Brisk
                         g.DrawLine(p, x + s / 2, y + s * 0.24f, x + s / 2, y + s * 0.46f);
                         break;
 
+                    case "oppfrisk":            // sirkelpil med spiss
+                        {
+                            g.DrawArc(p, x + w / 2, y + w / 2, s - w, s - w, 60, 285);
+                            // Spissen sitter der buen slutter, i toppen til hoyre.
+                            float sx = x + s * 0.84f, sy = y + s * 0.30f;
+                            g.DrawLine(p, sx, sy, sx - s * 0.02f, sy - s * 0.26f);
+                            g.DrawLine(p, sx, sy, sx - s * 0.28f, sy - s * 0.10f);
+                        }
+                        break;
+
                     case "skjerm":              // skjerm med fot
                         g.DrawRectangle(p, x + s * 0.04f, y + s * 0.12f, s * 0.92f, s * 0.60f);
                         g.DrawLine(p, x + s * 0.50f, y + s * 0.72f, x + s * 0.50f, y + s * 0.88f);

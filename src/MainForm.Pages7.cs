@@ -50,8 +50,8 @@ namespace Brisk
             scSub.AutoSize = false;
             scSub.Height = 22;
 
-            FlatBtn refresh = new FlatBtn(L.T("Les på nytt"));
-            refresh.Width = 130; refresh.Height = 38;
+            FlatBtn refresh = new FlatBtn(L.T("Les på nytt")).AsIcon("oppfrisk");
+            Tip(refresh, "Les på nytt");
             refresh.Click += delegate { LoadScreen(); };
             Theme.Arrange(card, delegate
             {

@@ -429,12 +429,32 @@ namespace Brisk
             return this;
         }
 
+        // Bare et symbol, ingen tekst. Teksten blir liggende som hjelpetekst,
+        // saa knappen fortsatt kan forklare seg selv naar man holder over.
+        public string Icon = "";
+
+        public FlatBtn AsIcon(string ikon)
+        {
+            Icon = ikon;
+            Width = 42;
+            Height = 38;
+            return this;
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             Color c = !Enabled ? Color.FromArgb(0x22, 0x25, 0x2C)
                     : down ? ControlPaint.Dark(Hover, 0.08f)
                     : over ? Hover : Base;
             e.Graphics.Clear(c);
+            if (Icon.Length > 0)
+            {
+                float s = Math.Min(Width, Height) * 0.46f;
+                Icons.Draw(e.Graphics, Icon,
+                    new RectangleF((Width - s) / 2f, (Height - s) / 2f, s, s),
+                    Enabled ? ForeColor : Theme.Muted);
+                return;
+            }
             TextRenderer.DrawText(e.Graphics, Text, Font, ClientRectangle,
                 Enabled ? ForeColor : Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter |
