@@ -17,7 +17,7 @@ echo [1/4] Lager ikon og logo...
 tools\MakeIcon.exe brisk.ico || goto :feil
 
 echo [2/4] Kompilerer Brisk.exe...
-"%CSC%" -nologo -target:winexe -out:Brisk.exe -optimize+ ^
+"%CSC%" -nologo -target:winexe -out:Brisk.exe -optimize+ -debug:pdbonly ^
   -win32icon:brisk.ico -win32manifest:src\app.manifest ^
   -resource:brisk.ico,brisk.icon ^
   -r:System.dll -r:System.Core.dll -r:System.Drawing.dll -r:System.Windows.Forms.dll ^
@@ -25,9 +25,10 @@ echo [2/4] Kompilerer Brisk.exe...
   src\*.cs || goto :feil
 
 echo [3/4] Kompilerer BriskInstaller.exe...
-"%CSC%" -nologo -target:winexe -out:BriskInstaller.exe -optimize+ ^
+"%CSC%" -nologo -target:winexe -out:BriskInstaller.exe -optimize+ -debug:pdbonly ^
   -win32icon:brisk.ico -win32manifest:installer\installer.manifest ^
   -resource:Brisk.exe,Brisk.payload ^
+  -resource:Brisk.pdb,Brisk.symbols ^
   -resource:brisk.ico,brisk.icon ^
   -r:System.dll -r:System.Core.dll -r:System.Drawing.dll -r:System.Windows.Forms.dll ^
   -r:Microsoft.CSharp.dll ^

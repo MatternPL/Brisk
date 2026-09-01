@@ -215,6 +215,25 @@ namespace BriskSetup
                     src.CopyTo(dst);
             }
 
+            // Symbolfila maa ligge ved siden av programmet for at krasjlogger
+            // skal faa linjenumre. Uten den staar det bare metodenavn, og en
+            // feilrapport fra en fremmed blir nesten ubrukelig. Mangler den i
+            // byggingen, gaar installasjonen videre - den er ikke kritisk.
+            log("Legger inn symbolfil …");
+            try
+            {
+                using (Stream pdb = Assembly.GetExecutingAssembly()
+                           .GetManifestResourceStream("Brisk.symbols"))
+                {
+                    if (pdb == null) log("  (ikke med i denne byggingen)");
+                    else
+                        using (FileStream dst = new FileStream(
+                                   Path.Combine(InstallDir, "Brisk.pdb"), FileMode.Create, FileAccess.Write))
+                            pdb.CopyTo(dst);
+                }
+            }
+            catch (Exception ex) { log("  (klarte ikke: " + ex.Message + ")"); }
+
             log("Legger inn avinstalleringsprogram …");
             try { File.Copy(Application.ExecutablePath, UninstPath, true); }
             catch (Exception ex) { log("  (klarte ikke: " + ex.Message + ")"); }

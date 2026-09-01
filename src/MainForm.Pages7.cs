@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
@@ -11,9 +11,13 @@ namespace Brisk
         //  SKJERM
         // ==============================================================
         // To ting som begge merkes med en gang: at skjermen faktisk kjorer
-        // saa fort den kan, og hvordan fargene ser ut. Alt som endres her
-        // kan settes tilbake, og det som sto der for lagres foerst.
-        Label scVerdict, scSub, scColourState;
+        // saa fort den kan, og hvordan fargene ser ut.
+        //
+        // Alt staar per skjerm. Fargekortet laa foer nederst paa sida og
+        // gjaldt alle, men en kurve som kler en 49-tommers OLED er ikke
+        // noedvendigvis riktig for en liten LCD ved siden av - og metningen
+        // ble uansett bare satt paa den forste skjermen.
+        Label scVerdict, scSub;
         Panel scList;
         List<ScreenMode> scModes = new List<ScreenMode>();
 
@@ -64,71 +68,17 @@ namespace Brisk
             card.Controls.Add(refresh);
             head.Controls.Add(card);
 
-            // --- farge ---
-            Panel colourHost = new Panel();
-            colourHost.Dock = DockStyle.Bottom;
-            colourHost.Height = 168;
-            colourHost.BackColor = Theme.Bg;
-            colourHost.Padding = new Padding(0, 16, 0, 0);
-
-            Panel cc = Theme.MakeCard();
-            cc.Dock = DockStyle.Fill;
-
-            Label cTitle = Theme.Lbl(L.T("Farge"), Theme.FCard, Theme.Text);
-            cTitle.Location = new Point(20, 14);
-
-            scColourState = Theme.Lbl("", Theme.FSmall, Theme.Muted);
-            scColourState.Location = new Point(20, 38);
-            scColourState.AutoSize = false;
-            scColourState.Height = 18;
-
-            // Sto «i retning av det en OLED gir». Det er en paastand om et
-            // resultat vi ikke kan love, og den slags inviterer til kritikk
-            // fra folk med kalibrerte skjermer. Si hva den gjor, og be folk
-            // prove selv.
-            Label cWhat = Theme.Lbl(
-                L.T("Dypere svart og litt mer metning. Om det ser bedre ut er en smakssak, så prøv det — Brisk leser kurven du har nå før den endrer noe, så «Tilbakestill» setter tilbake nøyaktig det du hadde."),
+            // --- fotnote ---
+            Panel foot = new Panel();
+            foot.Dock = DockStyle.Bottom;
+            foot.Height = 44;
+            foot.BackColor = Theme.Bg;
+            Label fl = Theme.Lbl(
+                L.T("Fargen settes per skjerm. Brisk leser kurven du har nå før den endrer noe, så «Tilbakestill» gir tilbake nøyaktig det den skjermen hadde."),
                 Theme.FSmall, Theme.Muted);
-            cWhat.AutoSize = false;
-            cWhat.Location = new Point(20, 62);
-            cWhat.Height = 40;
-
-            FlatBtn bRec = new FlatBtn(L.T("Bruk anbefalt"));
-            bRec.Primary();
-            bRec.Width = 170; bRec.Height = 36;
-            FlatBtn bReset = new FlatBtn(L.T("Tilbakestill"));
-            bReset.Width = 150; bReset.Height = 36;
-
-            Theme.Arrange(cc, delegate
-            {
-                int bredde = Math.Max(200, cc.Width - 40);
-                cTitle.Width = bredde;
-                scColourState.Width = bredde;
-                cWhat.Width = bredde;
-                bRec.Location = new Point(20, cc.Height - bRec.Height - 16);
-                bReset.Location = new Point(20 + bRec.Width + 10, cc.Height - bReset.Height - 16);
-            });
-
-            cc.Controls.Add(cTitle);
-            cc.Controls.Add(scColourState);
-            cc.Controls.Add(cWhat);
-            cc.Controls.Add(bRec);
-            cc.Controls.Add(bReset);
-            colourHost.Controls.Add(cc);
-
-            bRec.Click += delegate
-            {
-                string feil = ScreenTools.ApplyColour(AnbefaltGamma, AnbefaltKontrast,
-                    ScreenTools.HasVibrance ? AnbefaltMetning : -1);
-                Status(feil ?? L.T("Fargeprofilen er satt."));
-                LoadScreen();
-            };
-            bReset.Click += delegate
-            {
-                string feil = ScreenTools.ResetColour();
-                Status(feil ?? L.T("Fargen er satt tilbake."));
-                LoadScreen();
-            };
+            fl.AutoSize = false;
+            fl.Dock = DockStyle.Fill;
+            foot.Controls.Add(fl);
 
             // --- skjermene ---
             scList = new Panel();
@@ -136,12 +86,12 @@ namespace Brisk
             scList.BackColor = Theme.Bg;
             scList.AutoScroll = true;
 
-            Label foot;
-            Panel headRow = Widgets.Head(L.T("Skjermer"), out foot);
+            Label teller;
+            Panel headRow = Widgets.Head(L.T("Skjermer"), out teller);
 
             p.Controls.Add(scList);
             p.Controls.Add(headRow);
-            p.Controls.Add(colourHost);
+            p.Controls.Add(foot);
             p.Controls.Add(head);
 
             Defer(delegate { LoadScreen(); });
@@ -180,29 +130,13 @@ namespace Brisk
             // Nederst foerst: Dock.Top stabler ovenfra, saa lista bygges baklengs.
             for (int i = scModes.Count - 1; i >= 0; i--)
                 scList.Controls.Add(ScreenCard(scModes[i]));
-
-            // Alt som er endret skal staa, ikke bare metningen. Foer sto det
-            // «metning 20» alene, som fikk det til aa se ut som om gammakurven
-            // var urort - og den er den storste delen av forskjellen.
-            int niva = ScreenTools.Vibrance();
-            double gam, kon;
-            string endret = L.T("Endret av Brisk.");
-            if (ScreenTools.AppliedCurve(out gam, out kon))
-                endret += "   ·   " + L.F("gamma {0}", gam.ToString("0.00")) +
-                          "   ·   " + L.F("kontrast {0}", kon.ToString("0.00"));
-            if (niva > 0) endret += "   ·   " + L.F("metning {0}", niva);
-
-            scColourState.Text = !ScreenTools.ColourChanged
-                ? L.T("Står som Windows satte den.")
-                : endret;
-            scColourState.ForeColor = ScreenTools.ColourChanged ? Theme.Accent : Theme.Muted;
         }
 
         Panel ScreenCard(ScreenMode m)
         {
             Panel host = new Panel();
             host.Dock = DockStyle.Top;
-            host.Height = 112;
+            host.Height = 168;
             host.BackColor = Theme.Bg;
             host.Padding = new Padding(0, 0, 0, 12);
 
@@ -223,55 +157,103 @@ namespace Brisk
             if (m.Primary && m.Model.Length > 0) tittel += "   ·   " + L.T("hovedskjerm");
             Label navn = Theme.Lbl(tittel, Theme.FCard, Theme.Text);
             navn.Location = new Point(20, 14);
-            navn.AutoSize = false;
-            navn.Height = 22;
-            navn.AutoEllipsis = true;
+            navn.AutoSize = false; navn.Height = 22; navn.AutoEllipsis = true;
 
-            // Andre linje: det tekniske. Tommene er regnet fra fysisk
-            // storrelse i hele centimeter, saa de er omtrentlige.
+            // Tommene er regnet fra fysisk storrelse i hele centimeter, saa
+            // de er omtrentlige.
             string detalj = m.Width + " × " + m.Height;
             if (m.Inches >= 5) detalj += "   ·   " + m.Inches.ToString("0.0") + "″";
             if (m.Year > 1990) detalj += "   ·   " + m.Year;
             Label info = Theme.Lbl(detalj, Theme.FSmall, Theme.Muted);
             info.Location = new Point(20, 38);
-            info.AutoSize = false;
-            info.Height = 18;
-            info.AutoEllipsis = true;
+            info.AutoSize = false; info.Height = 18; info.AutoEllipsis = true;
 
             Label hz = Theme.Lbl(
                 m.AtMax ? L.F("{0} Hz — så fort panelet går", m.Hz)
                         : L.F("{0} Hz av {1} Hz", m.Hz, m.MaxHz),
                 Theme.FSmall, m.AtMax ? Theme.Good : Theme.Warn);
             hz.Location = new Point(20, 60);
-            hz.AutoSize = false;
-            hz.Height = 18;
+            hz.AutoSize = false; hz.Height = 18;
 
-            FlatBtn act = new FlatBtn(L.F("Sett til {0} Hz", m.MaxHz));
-            act.Primary();
-            act.Width = 170; act.Height = 36;
-            act.Visible = !m.AtMax && m.MaxHz > 0;
+            FlatBtn setHz = new FlatBtn(L.F("Sett til {0} Hz", m.MaxHz));
+            setHz.Primary();
+            setHz.Width = 150; setHz.Height = 34;
+            setHz.Visible = !m.AtMax && m.MaxHz > 0;
+
+            // --- farge for nettopp denne skjermen ---
+            Label farge = Theme.Lbl("", Theme.FSmall, Theme.Muted);
+            farge.Location = new Point(20, 92);
+            farge.AutoSize = false; farge.Height = 18; farge.AutoEllipsis = true;
+
+            FlatBtn bRec = new FlatBtn(L.T("Bruk anbefalt"));
+            bRec.Width = 150; bRec.Height = 32;
+            bRec.Font = Theme.FSmall;
+            FlatBtn bReset = new FlatBtn(L.T("Tilbakestill"));
+            bReset.Width = 120; bReset.Height = 32;
+            bReset.Font = Theme.FSmall;
 
             ScreenMode meg = m;
-            act.Click += delegate
+            Action vis = delegate
+            {
+                bool endret = ScreenTools.ColourChanged(meg.Device);
+                double g, k;
+                string t = L.T("Farge") + ": ";
+                if (!endret) t += L.T("står som Windows satte den");
+                else
+                {
+                    t += L.T("endret av Brisk");
+                    if (ScreenTools.AppliedCurve(meg.Device, out g, out k))
+                        t += "   ·   " + L.F("gamma {0}", g.ToString("0.00")) +
+                             "   ·   " + L.F("kontrast {0}", k.ToString("0.00"));
+                    int niva = ScreenTools.Vibrance(meg.Device);
+                    if (niva > 0) t += "   ·   " + L.F("metning {0}", niva);
+                }
+                farge.Text = t;
+                farge.ForeColor = endret ? Theme.Accent : Theme.Muted;
+                bRec.Enabled = !endret;
+                bReset.Enabled = endret;
+            };
+            vis();
+
+            setHz.Click += delegate
             {
                 string feil = ScreenTools.SetHz(meg, meg.MaxHz);
                 Status(feil ?? L.F("Satt til {0} Hz.", meg.MaxHz));
                 LoadScreen();
             };
+            bRec.Click += delegate
+            {
+                string feil = ScreenTools.ApplyColour(meg.Device, AnbefaltGamma, AnbefaltKontrast,
+                    ScreenTools.HasVibrance ? AnbefaltMetning : -1);
+                Status(feil ?? L.T("Fargeprofilen er satt."));
+                vis();
+            };
+            bReset.Click += delegate
+            {
+                string feil = ScreenTools.ResetColour(meg.Device);
+                Status(feil ?? L.T("Fargen er satt tilbake."));
+                vis();
+            };
 
             Theme.Arrange(card, delegate
             {
-                act.Location = new Point(card.Width - act.Width - 20, 26);
-                int plass = Math.Max(160, act.Left - 40);
+                setHz.Location = new Point(card.Width - setHz.Width - 20, 26);
+                int plass = Math.Max(160, (setHz.Visible ? setHz.Left : card.Width) - 40);
                 navn.Width = plass;
                 info.Width = plass;
                 hz.Width = plass;
+                farge.Width = Math.Max(160, card.Width - 40);
+                bRec.Location = new Point(20, card.Height - bRec.Height - 16);
+                bReset.Location = new Point(20 + bRec.Width + 10, card.Height - bReset.Height - 16);
             });
 
             card.Controls.Add(navn);
             card.Controls.Add(info);
             card.Controls.Add(hz);
-            card.Controls.Add(act);
+            card.Controls.Add(setHz);
+            card.Controls.Add(farge);
+            card.Controls.Add(bRec);
+            card.Controls.Add(bReset);
             host.Controls.Add(card);
             return host;
         }

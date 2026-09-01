@@ -95,6 +95,7 @@ namespace Brisk
                     l.Add(m);
                 }
                 Beskriv(l);
+                RyddGammelProfil(l);
             }
             catch (Exception ex) { Util.Log("Kunne ikke lese skjermer: " + ex.Message); }
             return l;
@@ -207,63 +208,122 @@ namespace Brisk
         }
 
         // ---------------------------------------------------------------
-        //  Farge: gammakurve. Virker paa alle skjermkort.
+        //  Farge, per skjerm
         // ---------------------------------------------------------------
-        // Maalt: GetDC(null) gir ikke lesetilgang til gammakurven paa denne
-        // maskinen, men CreateDC mot den enkelte skjermen gjor det. Derfor
-        // gaar alt per skjerm - som ogsaa er riktigere, siden to skjermer kan
-        // trenge hver sin kurve.
-        const string GammaKey = "SkjermGamma";     // originalkurvene, base64
-        const string VibKey = "SkjermMetning";     // opprinnelig metningsnivaa
-        const string BruktKey = "SkjermBrukt";     // hva vi faktisk satte: gamma;kontrast
+        //  To lag. Gammakurven finnes paa alle skjermkort og styrer kontrast
+        //  og svartnivaa. Metningen ligger i NVIDIA sitt eget bibliotek.
+        //
+        //  Alt gaar per skjerm. Foerste utgave la gammakurven paa alle
+        //  skjermer, men metningen bare paa den forste - maalt paa en maskin
+        //  med to skjermer sto den ene paa 20 og den andre paa 0. En kurve som
+        //  kler en OLED er dessuten ikke noedvendigvis riktig for en liten
+        //  LCD ved siden av.
+        //
+        //  Det som sto der foer endringen lagres per skjerm, saa
+        //  «Tilbakestill» gir tilbake nettopp den skjermens kurve.
 
-        // Hva profilen som staar naa faktisk endret. Statuslinja sa lenge bare
-        // «metning 20», som fikk det til aa hoeres ut som om metningen var det
-        // eneste - gammakurven ble endret samtidig.
-        public static bool AppliedCurve(out double gamma, out double kontrast)
+        // Fram til 1.6.6 laa fargen som en global profil: en lagret kurve for
+        // alle skjermer, og metningen bare paa den forste. De noklene sier
+        // ingenting om hvilken skjerm som hadde hva, saa de kan ikke oversettes
+        // til per-skjerm-noklene.
+        //
+        // Ligger de der, staar den gamle kurven fortsatt fysisk paa skjermene.
+        // Blir de bare slettet, leser den nye koden den gamle Brisk-kurven som
+        // «slik skjermen var fra for» - og da gir «Tilbakestill» aldri tilbake
+        // det Windows hadde. Derfor legges den gamle kurven tilbake foerst, og
+        // noklene ryddes etterpaa.
+        static bool ryddet;
+
+        static void RyddGammelProfil(List<ScreenMode> skjermer)
+        {
+            if (ryddet) return;
+            ryddet = true;
+            try
+            {
+                string lagret = Util.Setting("SkjermGamma");
+                if (lagret == null || lagret.Length == 0) return;
+
+                ushort[] ramp = Rett();
+                try
+                {
+                    byte[] b = Convert.FromBase64String(lagret);
+                    ushort[] r = new ushort[b.Length / 2];
+                    Buffer.BlockCopy(b, 0, r, 0, b.Length);
+                    if (r.Length == 256 * 3) ramp = r;
+                }
+                catch (Exception) { }
+
+                foreach (ScreenMode m in skjermer) SkrivRamp(m.Device, ramp);
+
+                string v = Util.Setting("SkjermMetning");
+                int niva;
+                if (HasVibrance && skjermer.Count > 0)
+                    SetVibrance(skjermer[0].Device,
+                        v != null && int.TryParse(v, out niva) ? niva : 0);
+
+                Util.SetSetting("SkjermGamma", "");
+                Util.SetSetting("SkjermMetning", "");
+                Util.SetSetting("SkjermBrukt", "");
+                Util.Log("Den gamle felles fargeprofilen er lagt tilbake og ryddet bort.");
+            }
+            catch (Exception ex) { Util.Log("Kunne ikke rydde gammel fargeprofil: " + ex.Message); }
+        }
+
+        // Den rette linja - det Windows selv bruker naar ingenting har rort kurven.
+        static ushort[] Rett()
+        {
+            ushort[] r = new ushort[256 * 3];
+            for (int i = 0; i < 256; i++)
+            {
+                ushort u = (ushort)(i * 257);
+                r[i] = u; r[256 + i] = u; r[512 + i] = u;
+            }
+            return r;
+        }
+
+        static string Nokkel(string prefiks, string device)
+        {
+            // \\.\DISPLAY1 -> Skjerm_DISPLAY1_gamma
+            string rent = "";
+            foreach (char c in device) if (char.IsLetterOrDigit(c)) rent += c;
+            return "Skjerm_" + rent + "_" + prefiks;
+        }
+
+        public static bool ColourChanged(string device)
+        {
+            string s = Util.Setting(Nokkel("gamma", device));
+            return s != null && s.Length > 0;
+        }
+
+        // Hva profilen som staar naa faktisk endret paa denne skjermen.
+        public static bool AppliedCurve(string device, out double gamma, out double kontrast)
         {
             gamma = 0; kontrast = 0;
-            string s = Util.Setting(BruktKey);
+            string s = Util.Setting(Nokkel("brukt", device));
             if (s == null) return false;
             string[] d = s.Split(';');
+            System.Globalization.CultureInfo inv = System.Globalization.CultureInfo.InvariantCulture;
             return d.Length == 2
-                && double.TryParse(d[0], System.Globalization.NumberStyles.Float,
-                                   System.Globalization.CultureInfo.InvariantCulture, out gamma)
-                && double.TryParse(d[1], System.Globalization.NumberStyles.Float,
-                                   System.Globalization.CultureInfo.InvariantCulture, out kontrast);
+                && double.TryParse(d[0], System.Globalization.NumberStyles.Float, inv, out gamma)
+                && double.TryParse(d[1], System.Globalization.NumberStyles.Float, inv, out kontrast);
         }
 
-        public static bool ColourChanged
+        static void LagreOriginal(string device)
         {
-            get
+            if (ColourChanged(device)) return;          // alt lagret fra for
+            ushort[] r = LesRamp(device);
+            if (r != null)
             {
-                string s = Util.Setting(GammaKey);
-                return s != null && s.Length > 0;
-            }
-        }
-
-        // Leser og lagrer kurvene slik de er naa - én gang. Uten dette ville
-        // «Tilbakestill» vaert en gjetning om hva som var normalt, og en
-        // kalibrert skjerm ville mistet kalibreringen sin.
-        static void LagreOriginal()
-        {
-            if (ColourChanged) return;                 // alt lagret fra for
-            List<string> deler = new List<string>();
-            foreach (ScreenMode m in Displays())
-            {
-                ushort[] r = LesRamp(m.Device);
-                if (r == null) continue;
                 byte[] b = new byte[r.Length * 2];
                 Buffer.BlockCopy(r, 0, b, 0, b.Length);
-                deler.Add(m.Device + "=" + Convert.ToBase64String(b));
+                Util.SetSetting(Nokkel("gamma", device), Convert.ToBase64String(b));
             }
-            if (deler.Count > 0)
-                Util.SetSetting(GammaKey, string.Join("|", deler.ToArray()));
-
-            int v = Vibrance();
-            if (v >= 0) Util.SetSetting(VibKey, v.ToString());
+            int v = Vibrance(device);
+            if (v >= 0) Util.SetSetting(Nokkel("metning", device), v.ToString());
         }
 
+        // Maalt: GetDC(null) gir ikke lesetilgang til gammakurven paa denne
+        // maskinen, men CreateDC mot den enkelte skjermen gjor det.
         static ushort[] LesRamp(string device)
         {
             IntPtr dc = CreateDC(device, device, null, IntPtr.Zero);
@@ -287,9 +347,10 @@ namespace Brisk
         }
 
         // gamma < 1 gir dypere svart, kontrast > 1 gir mer sprang.
-        public static string ApplyColour(double gamma, double kontrast, int metning)
+        // metning under 0 betyr «la den vaere».
+        public static string ApplyColour(string device, double gamma, double kontrast, int metning)
         {
-            LagreOriginal();
+            LagreOriginal(device);
 
             ushort[] ramp = new ushort[256 * 3];
             for (int i = 0; i < 256; i++)
@@ -302,93 +363,76 @@ namespace Brisk
                 ramp[i] = u; ramp[256 + i] = u; ramp[512 + i] = u;
             }
 
-            int ok = 0, alle = 0;
-            foreach (ScreenMode m in Displays())
-            {
-                alle++;
-                if (SkrivRamp(m.Device, ramp)) ok++;
-            }
-            if (metning >= 0) SetVibrance(metning);
-
-            if (ok == 0)
+            bool ok = SkrivRamp(device, ramp);
+            if (metning >= 0) SetVibrance(device, metning);
+            if (!ok)
                 return L.T("Windows tok ikke imot fargekurven. Noen skjermkort tillater den ikke.");
 
-            Util.SetSetting(BruktKey,
-                gamma.ToString(System.Globalization.CultureInfo.InvariantCulture) + ";" +
-                kontrast.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            Util.Log("Fargeprofil satt paa " + ok + " av " + alle + " skjermer: gamma " +
-                     gamma + ", kontrast " + kontrast + ", metning " + metning);
+            System.Globalization.CultureInfo inv = System.Globalization.CultureInfo.InvariantCulture;
+            Util.SetSetting(Nokkel("brukt", device),
+                gamma.ToString(inv) + ";" + kontrast.ToString(inv));
+            Util.Log("Farge satt paa " + device + ": gamma " + gamma +
+                     ", kontrast " + kontrast + ", metning " + metning);
             return null;
         }
 
-        public static string ResetColour()
+        public static string ResetColour(string device)
         {
-            string lagret = Util.Setting(GammaKey);
-            int ok = 0, alle = 0;
+            // Den rette linja brukes bare hvis vi ikke har originalen.
+            ushort[] ramp = Rett();
 
-            // Den rette linja er det Windows selv bruker naar ingenting har
-            // rort kurven. Den brukes bare hvis vi ikke har originalen.
-            ushort[] rett = new ushort[256 * 3];
-            for (int i = 0; i < 256; i++)
+            string lagret = Util.Setting(Nokkel("gamma", device));
+            if (lagret != null && lagret.Length > 0)
             {
-                ushort u = (ushort)(i * 257);
-                rett[i] = u; rett[256 + i] = u; rett[512 + i] = u;
-            }
-
-            foreach (ScreenMode m in Displays())
-            {
-                alle++;
-                ushort[] ramp = rett;
-                if (lagret != null)
+                try
                 {
-                    foreach (string del in lagret.Split('|'))
-                    {
-                        int lik = del.IndexOf('=');
-                        if (lik <= 0 || del.Substring(0, lik) != m.Device) continue;
-                        try
-                        {
-                            byte[] b = Convert.FromBase64String(del.Substring(lik + 1));
-                            ushort[] r = new ushort[b.Length / 2];
-                            Buffer.BlockCopy(b, 0, r, 0, b.Length);
-                            if (r.Length == 256 * 3) ramp = r;
-                        }
-                        catch (Exception) { }
-                        break;
-                    }
+                    byte[] b = Convert.FromBase64String(lagret);
+                    ushort[] r = new ushort[b.Length / 2];
+                    Buffer.BlockCopy(b, 0, r, 0, b.Length);
+                    if (r.Length == 256 * 3) ramp = r;
                 }
-                if (SkrivRamp(m.Device, ramp)) ok++;
+                catch (Exception) { }
             }
 
-            string v = Util.Setting(VibKey);
+            bool ok = SkrivRamp(device, ramp);
+
+            string v = Util.Setting(Nokkel("metning", device));
             int niva;
-            SetVibrance(v != null && int.TryParse(v, out niva) ? niva : 0);
+            if (HasVibrance) SetVibrance(device,
+                v != null && int.TryParse(v, out niva) ? niva : 0);
 
-            Util.SetSetting(GammaKey, "");
-            Util.SetSetting(VibKey, "");
-            Util.SetSetting(BruktKey, "");
+            Util.SetSetting(Nokkel("gamma", device), "");
+            Util.SetSetting(Nokkel("metning", device), "");
+            Util.SetSetting(Nokkel("brukt", device), "");
 
-            if (ok == 0)
+            if (!ok)
                 return L.T("Windows tok ikke imot fargekurven. Noen skjermkort tillater den ikke.");
-            Util.Log("Farge tilbakestilt paa " + ok + " av " + alle + " skjermer.");
+            Util.Log("Farge tilbakestilt paa " + device + ".");
             return null;
         }
 
         // ---------------------------------------------------------------
-        //  Farge: metning gjennom NVIDIA sitt eget bibliotek
+        //  Metning gjennom NVIDIA sitt eget bibliotek
         // ---------------------------------------------------------------
         //  NVAPI har ingen vanlige eksporter. Alt gaar gjennom
         //  nvapi_QueryInterface, som gir en funksjonspeker for en fast id.
         //  Er kortet fra AMD eller Intel finnes ikke dll-en, og da hoppes
         //  hele denne delen over - gammakurven virker uansett.
+        //
+        //  NvAPI_GetAssociatedNvidiaDisplayName gir Windows-navnet for hvert
+        //  handtak, saa metningen kan settes paa riktig skjerm i stedet for
+        //  alltid paa den forste.
         public static bool HasVibrance { get { return NvInit(); } }
 
         static bool nvProvd, nvOk;
-        static IntPtr nvDisplay;
+        static readonly System.Collections.Generic.Dictionary<string, IntPtr> nvSkjermer =
+            new System.Collections.Generic.Dictionary<string, IntPtr>(StringComparer.OrdinalIgnoreCase);
         static SetDvcDel nvSet;
         static GetDvcDel nvGet;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate int InitDel();
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate int EnumDel(int i, ref IntPtr h);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate int NameDel(IntPtr h, System.Text.StringBuilder s);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate int SetDvcDel(IntPtr h, IntPtr o, int lvl);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate int GetDvcDel(IntPtr h, IntPtr o, ref DvcInfo i);
 
@@ -401,46 +445,60 @@ namespace Brisk
             nvProvd = true;
             try
             {
-                IntPtr q = nvapi_QueryInterface(0x0150E828);            // NvAPI_Initialize
+                IntPtr q = nvapi_QueryInterface(0x0150E828);            // Initialize
                 if (q == IntPtr.Zero) return false;
-                InitDel init = (InitDel)Marshal.GetDelegateForFunctionPointer(q, typeof(InitDel));
-                if (init() != 0) return false;
+                if (((InitDel)Marshal.GetDelegateForFunctionPointer(q, typeof(InitDel)))() != 0) return false;
 
                 IntPtr e = nvapi_QueryInterface(0x9ABDD40D);            // EnumNvidiaDisplayHandle
+                IntPtr n = nvapi_QueryInterface(0x22A78B05);            // GetAssociatedNvidiaDisplayName
                 IntPtr s = nvapi_QueryInterface(0x172409B4);            // SetDVCLevel
                 IntPtr g = nvapi_QueryInterface(0x4085DE45);            // GetDVCInfo
-                if (e == IntPtr.Zero || s == IntPtr.Zero || g == IntPtr.Zero) return false;
+                if (e == IntPtr.Zero || n == IntPtr.Zero || s == IntPtr.Zero || g == IntPtr.Zero) return false;
 
                 EnumDel enu = (EnumDel)Marshal.GetDelegateForFunctionPointer(e, typeof(EnumDel));
-                IntPtr h = IntPtr.Zero;
-                if (enu(0, ref h) != 0 || h == IntPtr.Zero) return false;
-
-                nvDisplay = h;
+                NameDel navn = (NameDel)Marshal.GetDelegateForFunctionPointer(n, typeof(NameDel));
                 nvSet = (SetDvcDel)Marshal.GetDelegateForFunctionPointer(s, typeof(SetDvcDel));
                 nvGet = (GetDvcDel)Marshal.GetDelegateForFunctionPointer(g, typeof(GetDvcDel));
-                nvOk = true;
+
+                for (int i = 0; i < 16; i++)
+                {
+                    IntPtr h = IntPtr.Zero;
+                    if (enu(i, ref h) != 0 || h == IntPtr.Zero) break;
+                    System.Text.StringBuilder sb = new System.Text.StringBuilder(128);
+                    if (navn(h, sb) == 0 && sb.Length > 0) nvSkjermer[sb.ToString()] = h;
+                }
+                nvOk = nvSkjermer.Count > 0;
             }
             catch (Exception ex) { Util.Log("NVAPI ikke tilgjengelig: " + ex.Message); }
             return nvOk;
         }
 
-        // Standard er 50. Over det gir mer metning.
-        public static int Vibrance()
+        static IntPtr NvHandle(string device)
         {
-            if (!NvInit()) return -1;
+            if (!NvInit()) return IntPtr.Zero;
+            IntPtr h;
+            return nvSkjermer.TryGetValue(device, out h) ? h : IntPtr.Zero;
+        }
+
+        // Standard er 0. Over det gir mer metning. Spennet er 0-63.
+        public static int Vibrance(string device)
+        {
+            IntPtr h = NvHandle(device);
+            if (h == IntPtr.Zero) return -1;
             try
             {
                 DvcInfo i = new DvcInfo();
-                i.version = (uint)((Marshal.SizeOf(typeof(DvcInfo))) | (1 << 16));
-                return nvGet(nvDisplay, IntPtr.Zero, ref i) == 0 ? (int)i.currentLevel : -1;
+                i.version = (uint)(Marshal.SizeOf(typeof(DvcInfo)) | (1 << 16));
+                return nvGet(h, IntPtr.Zero, ref i) == 0 ? (int)i.currentLevel : -1;
             }
             catch (Exception) { return -1; }
         }
 
-        public static bool SetVibrance(int level)
+        public static bool SetVibrance(string device, int level)
         {
-            if (!NvInit()) return false;
-            try { return nvSet(nvDisplay, IntPtr.Zero, level) == 0; }
+            IntPtr h = NvHandle(device);
+            if (h == IntPtr.Zero) return false;
+            try { return nvSet(h, IntPtr.Zero, level) == 0; }
             catch (Exception) { return false; }
         }
 
