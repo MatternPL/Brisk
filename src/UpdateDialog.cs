@@ -14,6 +14,7 @@ namespace Brisk
         Bar bar;
         TextBox notes;
         bool busy;
+        bool nedlastingssideModus;   // gikk nedlastingen galt, sender knappen til GitHub
 
         public UpdateDialog(UpdateInfo u)
         {
@@ -112,7 +113,15 @@ namespace Brisk
             AcceptButton = bYes;
             CancelButton = bNo;
 
-            bYes.Click += async delegate { await Run(); };
+            bYes.Click += async delegate
+            {
+                if (nedlastingssideModus)
+                {
+                    Util.OpenPath("https://github.com/MatternPL/Brisk/releases/latest");
+                    return;
+                }
+                await Run();
+            };
             Load += delegate { Theme.DarkTitleBar(this); };
         }
 
@@ -140,6 +149,13 @@ namespace Brisk
                 lblState.Text = error ?? L.T("Nedlastingen feilet.");
                 bNo.Text = L.T("Lukk");
                 bNo.Enabled = true;
+
+                // En feilmelding uten vei videre er en blindvei. Knappen som
+                // sto for «Oppdater nå» sender deg til utgivelsessida, der
+                // fila kan hentes for haand.
+                bYes.Text = L.T("Åpne nedlastingssida");
+                bYes.Enabled = true;
+                nedlastingssideModus = true;
                 busy = false;
                 return;
             }

@@ -255,11 +255,32 @@ namespace Brisk
                 return null;
             }
 
+            // Naar sjekksummen ikke stemmer er det aldri fila hos oss som er
+            // gal - den er verifisert for utgivelse. Noe mellom GitHub og
+            // maskinen har endret den underveis. Gjett paa hva, i stedet for
+            // aa la brukeren staa igjen med «stemte ikke» og ingen vei videre.
             string actual = Sha256Of(path);
             if (!string.Equals(actual, u.Sha256, StringComparison.OrdinalIgnoreCase))
             {
-                error = L.T("Sjekksummen stemte ikke. Filen ble slettet — ingenting er kjørt.");
-                Util.Log("Oppdatering avvist. Forventet " + u.Sha256 + ", fikk " + actual);
+                long lengde = -1;
+                bool erProgram = false;
+                try
+                {
+                    lengde = new FileInfo(path).Length;
+                    using (FileStream fs = File.OpenRead(path))
+                        erProgram = fs.ReadByte() == 'M' && fs.ReadByte() == 'Z';
+                }
+                catch (Exception) { }
+
+                error = !erProgram
+                    ? L.T("Det som ble lastet ned var ikke et program. Noe mellom deg og GitHub byttet ut fila — ofte en antivirus eller et nettverksfilter.")
+                    : u.Size > 0 && lengde != u.Size
+                      ? L.T("Nedlastingen ble avbrutt underveis. Filen ble slettet — ingenting er kjørt.")
+                      : L.T("Sjekksummen stemte ikke. Filen ble slettet — ingenting er kjørt.");
+                error += " " + L.T("Last den ned selv fra utgivelsessida.");
+
+                Util.Log("Oppdatering avvist. Forventet " + u.Sha256 + " (" + u.Size +
+                         " bytes), fikk " + actual + " (" + lengde + " bytes), program=" + erProgram);
                 Try(delegate { File.Delete(path); });
                 return null;
             }
