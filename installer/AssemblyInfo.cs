@@ -12,6 +12,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("Brisk")]
 [assembly: AssemblyCompany("Brisk")]
 [assembly: AssemblyCopyright("Free software, MIT licence. No paywall, no telemetry.")]
-[assembly: AssemblyVersion("1.6.5.0")]
-[assembly: AssemblyFileVersion("1.6.5.0")]
+[assembly: AssemblyVersion("1.6.6.0")]
+[assembly: AssemblyFileVersion("1.6.6.0")]
 [assembly: ComVisible(false)]
