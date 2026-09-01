@@ -80,6 +80,27 @@ namespace Brisk
             l.Add(ReadGameBar());
             l.Add(ReadHags());
             l.Add(ReadPowerPlan());
+
+            // NVIDIA sine egne innstillinger. AMD har ingen tilsvarende
+            // offentlig tjeneste, saa paa et AMD-kort finnes ikke disse
+            // kortene i det hele tatt - de staar ikke graa, de er borte.
+            if (NvControl.Available)
+            {
+                l.Add(ReadNv("nvpower", "Strømstyring i driveren", "0–3 %",
+                    "Hindrer at skjermkortet klokker ned mellom bildene. Merkes mest på jevnheten.",
+                    "Litt høyere strømbruk og temperatur når du ikke spiller.",
+                    NvControl.PowerMode, NvControl.PowerMaxPerformance, Gain.Varierer));
+
+                l.Add(ReadNv("nvcache", "Shader-buffer", "0–2 %",
+                    "Fjerner hakkingen som kommer når shaders må kompileres om igjen.",
+                    "Bruker mer diskplass.",
+                    NvControl.ShaderCache, NvControl.ShaderCacheUnlimited, Gain.Liten));
+
+                l.Add(ReadNv("nvlatency", "Lav ventetid", "−2 – 0 %",
+                    "Lar driveren ligge mindre på forskudd. Kutter responstiden med omtrent ett bilde.",
+                    "Kan koste et par prosent bilder i bytte mot raskere respons.",
+                    NvControl.PreRendered, NvControl.PreRenderedLowLatency, Gain.Varierer));
+            }
             return l;
         }
 
@@ -224,6 +245,36 @@ namespace Brisk
             }
             catch (Exception ex) { Util.Log("Kunne ikke lese apppakker: " + ex.Message); }
             return false;
+        }
+
+        // Angre sletter innstillingen i stedet for aa skrive en antatt
+        // standardverdi. Da er det NVIDIA sin egen standard som gjelder igjen.
+        static string NvSett(bool forGaming, uint id, uint verdi)
+        {
+            bool ok = forGaming ? NvControl.Write(id, verdi) : NvControl.Clear(id);
+            return ok ? null : L.T("NVIDIA-driveren tok ikke imot endringen.");
+        }
+
+        // Alle tre NVIDIA-kortene har samme form: en verdi i driverens
+        // innstillingslager som enten staar paa vaar anbefaling eller ikke.
+        // «Ikke satt» betyr at NVIDIA sin egen standard gjelder, og det er
+        // ogsaa der «Angre» setter den tilbake.
+        static GameSetting ReadNv(string key, string navn, string estimat,
+                                  string hva, string koster, uint id, uint verdi, Gain gain)
+        {
+            GameSetting g = new GameSetting();
+            g.Key = key;
+            g.Name = navn;
+            g.Estimate = estimat;
+            g.What = hva;
+            g.Cost = koster;
+            g.Gain = gain;
+            g.NeedsAdmin = false;
+
+            long naa = NvControl.Read(id);
+            g.Optimal = naa == verdi;
+            g.State = naa < 0 ? "NVIDIA-standard" : naa.ToString();
+            return g;
         }
 
         static GameSetting ReadHags()
@@ -381,6 +432,13 @@ namespace Brisk
 
                     case "power":
                         return SetPowerPlan(forGaming);
+
+                    case "nvpower":
+                        return NvSett(forGaming, NvControl.PowerMode, NvControl.PowerMaxPerformance);
+                    case "nvcache":
+                        return NvSett(forGaming, NvControl.ShaderCache, NvControl.ShaderCacheUnlimited);
+                    case "nvlatency":
+                        return NvSett(forGaming, NvControl.PreRendered, NvControl.PreRenderedLowLatency);
                 }
                 return "Ukjent innstilling.";
             }

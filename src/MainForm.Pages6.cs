@@ -68,15 +68,14 @@ namespace Brisk
             // To spalter, tre rader. Seks kort under hverandre krevde rulling,
             // og en side som viser hva som staar i veien for ytelse boer vises
             // i sin helhet uten at man maa lete.
+            // Radene settes i LoadGame, siden antallet kort avhenger av om
+            // maskinen har et NVIDIA-kort eller ikke.
             gmList = new TableLayoutPanel();
             gmList.Dock = DockStyle.Fill;
             gmList.BackColor = Theme.Bg;
-            ((TableLayoutPanel)gmList).ColumnCount = 3;
-            ((TableLayoutPanel)gmList).RowCount = 2;
+            gmList.ColumnCount = 3;
             for (int i = 0; i < 3; i++)
-                ((TableLayoutPanel)gmList).ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 3f));
-            for (int i = 0; i < 2; i++)
-                ((TableLayoutPanel)gmList).RowStyles.Add(new RowStyle(SizeType.Percent, 50f));
+                gmList.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 3f));
 
             // --- fotnote ---
             Panel foot = new Panel();
@@ -105,6 +104,12 @@ namespace Brisk
 
             gmList.Controls.Clear();
             int koster = 0, tilgjengelig = 0;
+
+            int rader = (alle.Count + 2) / 3;
+            gmList.RowStyles.Clear();
+            gmList.RowCount = Math.Max(1, rader);
+            for (int i = 0; i < gmList.RowCount; i++)
+                gmList.RowStyles.Add(new RowStyle(SizeType.Percent, 100f / gmList.RowCount));
 
             int n = 0;
             foreach (GameSetting g in alle)
@@ -200,7 +205,8 @@ namespace Brisk
             // angrer. «Slå av for spill» og «Sett tilbake» sa ingenting om
             // hvilken vei man var paa vei.
             FlatBtn act = new FlatBtn("");
-            act.Width = 170; act.Height = 34;
+            act.Width = 128; act.Height = 32;
+            act.Font = Theme.FSmall;
             if (!g.Available) { act.Enabled = false; act.Visible = false; }
             else if (g.Optimal || g.PendingReboot)
             {
@@ -264,7 +270,9 @@ namespace Brisk
             card.Controls.Add(cost);
             card.Controls.Add(act);
             card.Controls.Add(gain);
-            card.Controls.Add(gainSub);
+            // gainSub sto her: «Noticeable effect», «Small, but measurable».
+            // Prosenttallet rett over sier det samme, og de 28 pikslene
+            // trengs til teksten som faktisk forklarer noe.
 
             // Alt stables loddrett, i stedet for at knapp og tekst kjemper om
             // den samme plassen nederst. Ingenting overlapper da, uansett hvor
@@ -276,24 +284,29 @@ namespace Brisk
                 name.Width = bredde;
                 state.Width = bredde;
 
-                gain.Location = new Point(20, 58);
-                gain.Width = bredde;
+                // Knappen staar paa samme linje som prosenttallet. Stablet
+                // under teksten trengte kortet 250 piksler, og med ni kort i
+                // tre rader er det bare 180 aa gaa paa - da havnet knappen
+                // under kanten.
+                act.Width = 128;
+                act.Height = 32;
+                act.Location = new Point(Math.Max(150, card.Width - act.Width - 20), 56);
+
+                gain.Location = new Point(20, 54);
+                gain.Width = Math.Max(80, act.Left - 30);
                 gain.TextAlign = ContentAlignment.MiddleLeft;
 
-                gainSub.Location = new Point(20, 88);
-                gainSub.Width = bredde;
-                gainSub.TextAlign = ContentAlignment.MiddleLeft;
+                int topp = 92;
+                int ledig = Math.Max(44, card.Height - topp - 14);
+                int hWhat = (int)(ledig * 0.52);
 
-                what.Location = new Point(20, 112);
+                what.Location = new Point(20, topp);
                 what.Width = bredde;
-                what.Height = 46;
+                what.Height = hWhat;
 
-                cost.Location = new Point(20, 160);
+                cost.Location = new Point(20, topp + hWhat + 4);
                 cost.Width = bredde;
-                cost.Height = 44;
-
-                act.Location = new Point(20, card.Height - act.Height - 14);
-                act.Width = bredde;
+                cost.Height = Math.Max(16, ledig - hWhat - 4);
             });
 
             return Widgets.Cell(card, sisteSpalte);

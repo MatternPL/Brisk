@@ -104,13 +104,26 @@ namespace Brisk
                         g.DrawLine(p, x + s / 2, y + s * 0.24f, x + s / 2, y + s * 0.46f);
                         break;
 
-                    case "oppfrisk":            // sirkelpil med spiss
+                    case "oppfrisk":            // sirkelpil
                         {
-                            g.DrawArc(p, x + w / 2, y + w / 2, s - w, s - w, 60, 285);
-                            // Spissen sitter der buen slutter, i toppen til hoyre.
-                            float sx = x + s * 0.84f, sy = y + s * 0.30f;
-                            g.DrawLine(p, sx, sy, sx - s * 0.02f, sy - s * 0.26f);
-                            g.DrawLine(p, sx, sy, sx - s * 0.28f, sy - s * 0.10f);
+                            // Spissen maa staa paa buens tangent der buen
+                            // slutter. Tegnet paa slump ser den paaklistret ut,
+                            // og paa 17 piksler blir den til en krusedull.
+                            const float start = -135f, sveip = 250f;
+                            g.DrawArc(p, x + w / 2, y + w / 2, s - w, s - w, start, sveip);
+
+                            float cx = x + s / 2f, cy = y + s / 2f, rad = (s - w) / 2f;
+                            double a = (start + sveip) * Math.PI / 180.0;
+                            float px = cx + (float)Math.Cos(a) * rad;
+                            float py = cy + (float)Math.Sin(a) * rad;
+                            float tx = -(float)Math.Sin(a), ty = (float)Math.Cos(a);
+                            float nx = (float)Math.Cos(a), ny = (float)Math.Sin(a);
+                            float lang = w * 2.76f, bred = w * 1.81f;
+                            g.FillPolygon(b, new PointF[] {
+                                new PointF(px + tx * lang, py + ty * lang),
+                                new PointF(px + nx * bred, py + ny * bred),
+                                new PointF(px - nx * bred, py - ny * bred)
+                            });
                         }
                         break;
 
