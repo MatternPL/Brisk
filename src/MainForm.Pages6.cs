@@ -215,6 +215,7 @@ namespace Brisk
             act.Width = 128; act.Height = 32;
             act.Font = Theme.FSmall;
             if (!g.Available) { act.Enabled = false; act.Visible = false; }
+            else if (g.StuckOn) { act.Text = L.T("Tving av"); act.Warn(); }
             else if (g.Optimal || g.PendingReboot)
             {
                 // Er appen fjernet, er «Angre» aa hente den igjen. Knappen skal
@@ -243,6 +244,31 @@ namespace Brisk
             act.Click += async delegate
             {
                 bool forGaming = !g.Optimal;
+
+                // Sitter den fast paa, hjelper det ikke aa skrive de samme
+                // registerverdiene om igjen. Da er oppstartslasteren siste
+                // utvei, og det er en stoerre avgjorelse enn resten av sida.
+                if (g.StuckOn)
+                {
+                    string t = L.T("Dette slår av hypervisoren i oppstartskonfigurasjonen.") +
+                        "\r\n\r\n" +
+                        L.T("Da slutter Hyper-V, WSL2, Docker Desktop, Windows Sandbox og Credential Guard å virke. Bruker du ingen av dem, merker du ingenting utover at spill går fortere.") +
+                        "\r\n\r\n" + L.T("Endringen gjelder etter omstart, og kan angres her.") +
+                        "\r\n\r\n" + L.T("Fortsette?");
+                    if (MessageBox.Show(this, t, L.T("Spillmodus"),
+                            MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+
+                    act.Enabled = false;
+                    string f = null;
+                    await System.Threading.Tasks.Task.Run(delegate { f = GameTools.ForceHypervisor(true); });
+                    act.Enabled = true;
+
+                    if (f != null) { Status(L.T("Klarte ikke endre: ") + f); return; }
+                    gmNeedsReboot = true;
+                    Status(L.T("Slått av. Gjelder etter omstart."));
+                    LoadGame();
+                    return;
+                }
                 if (forGaming && (g.Gain == Gain.Stor || g.Destructive) && g.Cost.Length > 0)
                 {
                     if (MessageBox.Show(this,

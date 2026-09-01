@@ -181,11 +181,20 @@ namespace Brisk
             for (int i = scModes.Count - 1; i >= 0; i--)
                 scList.Controls.Add(ScreenCard(scModes[i]));
 
+            // Alt som er endret skal staa, ikke bare metningen. Foer sto det
+            // «metning 20» alene, som fikk det til aa se ut som om gammakurven
+            // var urort - og den er den storste delen av forskjellen.
             int niva = ScreenTools.Vibrance();
+            double gam, kon;
+            string endret = L.T("Endret av Brisk.");
+            if (ScreenTools.AppliedCurve(out gam, out kon))
+                endret += "   ·   " + L.F("gamma {0}", gam.ToString("0.00")) +
+                          "   ·   " + L.F("kontrast {0}", kon.ToString("0.00"));
+            if (niva > 0) endret += "   ·   " + L.F("metning {0}", niva);
+
             scColourState.Text = !ScreenTools.ColourChanged
                 ? L.T("Står som Windows satte den.")
-                : L.T("Endret av Brisk.") +
-                  (niva > 0 ? "   ·   " + L.F("metning {0}", niva) : "");
+                : endret;
             scColourState.ForeColor = ScreenTools.ColourChanged ? Theme.Accent : Theme.Muted;
         }
 

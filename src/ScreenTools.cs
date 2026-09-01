@@ -215,6 +215,23 @@ namespace Brisk
         // trenge hver sin kurve.
         const string GammaKey = "SkjermGamma";     // originalkurvene, base64
         const string VibKey = "SkjermMetning";     // opprinnelig metningsnivaa
+        const string BruktKey = "SkjermBrukt";     // hva vi faktisk satte: gamma;kontrast
+
+        // Hva profilen som staar naa faktisk endret. Statuslinja sa lenge bare
+        // «metning 20», som fikk det til aa hoeres ut som om metningen var det
+        // eneste - gammakurven ble endret samtidig.
+        public static bool AppliedCurve(out double gamma, out double kontrast)
+        {
+            gamma = 0; kontrast = 0;
+            string s = Util.Setting(BruktKey);
+            if (s == null) return false;
+            string[] d = s.Split(';');
+            return d.Length == 2
+                && double.TryParse(d[0], System.Globalization.NumberStyles.Float,
+                                   System.Globalization.CultureInfo.InvariantCulture, out gamma)
+                && double.TryParse(d[1], System.Globalization.NumberStyles.Float,
+                                   System.Globalization.CultureInfo.InvariantCulture, out kontrast);
+        }
 
         public static bool ColourChanged
         {
@@ -295,7 +312,12 @@ namespace Brisk
 
             if (ok == 0)
                 return L.T("Windows tok ikke imot fargekurven. Noen skjermkort tillater den ikke.");
-            Util.Log("Fargeprofil satt paa " + ok + " av " + alle + " skjermer.");
+
+            Util.SetSetting(BruktKey,
+                gamma.ToString(System.Globalization.CultureInfo.InvariantCulture) + ";" +
+                kontrast.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            Util.Log("Fargeprofil satt paa " + ok + " av " + alle + " skjermer: gamma " +
+                     gamma + ", kontrast " + kontrast + ", metning " + metning);
             return null;
         }
 
@@ -343,6 +365,7 @@ namespace Brisk
 
             Util.SetSetting(GammaKey, "");
             Util.SetSetting(VibKey, "");
+            Util.SetSetting(BruktKey, "");
 
             if (ok == 0)
                 return L.T("Windows tok ikke imot fargekurven. Noen skjermkort tillater den ikke.");

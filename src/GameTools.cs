@@ -204,6 +204,35 @@ namespace Brisk
             catch (Exception) { return true; }
         }
 
+        // Siste utvei naar registeret ikke naar fram: si til oppstartslasteren
+        // at hypervisoren aldri skal starte. Det er den eneste maaten aa faa
+        // VBS av paa en maskin der Windows drar den opp uansett.
+        //
+        // Angre sletter verdien i stedet for aa sette «auto», slik at Windows
+        // staar igjen med sin egen standard - ikke vaar tolkning av den.
+        public static string ForceHypervisor(bool av)
+        {
+            if (!Util.IsAdmin())
+                return L.T("Dette krever administrator. Start Brisk som administrator.");
+            try
+            {
+                string args = av
+                    ? "/set {current} hypervisorlaunchtype off"
+                    : "/deletevalue {current} hypervisorlaunchtype";
+                int kode = Util.Run("bcdedit.exe", args, null);
+
+                // Sletting av en verdi som ikke finnes gir feilkode. Det er
+                // ikke en feil for brukeren - da staar den alt paa standard.
+                if (kode != 0 && av)
+                    return L.F("bcdedit svarte med kode {0}.", kode);
+
+                MerkVbsEndret();
+                Util.Log("hypervisorlaunchtype " + (av ? "off" : "slettet") + ", kode " + kode);
+                return null;
+            }
+            catch (Exception ex) { return ex.Message; }
+        }
+
         static GameSetting ReadHvci()
         {
             GameSetting g = new GameSetting();
