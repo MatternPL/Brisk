@@ -44,6 +44,33 @@ try {
 
 $exe = Join-Path $rot "BriskInstaller.exe"
 
+# ---------------------------------------------------------------------------
+# En utgivelse skal vaere signert. Punktum.
+#
+# signer.ps1 hopper med vilje over signeringen naar det ikke finnes noe
+# sertifikat - ellers kunne ingen andre klone repoet og bygge. Men da gaar
+# bygget gjennom med "Ferdig", og uten denne sperren ville skriptet regnet ut
+# sjekksummen av en USIGNERT fil, skrevet manifestet og sagt at alt gikk bra.
+# SimplySign-okta lukker seg etter en stund, saa det er ikke et teoretisk
+# tilfelle: det holder aa glemme aa logge inn for man bygger.
+#
+# Strengheten hoerer hjemme her og ikke i bygg.cmd. Bygget skal fortsatt virke
+# for alle; det er utgivelsen som ikke skal kunne bli usignert ved et uhell.
+# ---------------------------------------------------------------------------
+Write-Host "== Kontrollerer signaturen ==" -ForegroundColor Cyan
+foreach ($f in @((Join-Path $rot "Brisk.exe"), $exe)) {
+    $sig = Get-AuthenticodeSignature $f
+    $navn = Split-Path $f -Leaf
+    if ($sig.Status -ne "Valid") {
+        throw "$navn er ikke signert (status: $($sig.Status)). Logg inn i SimplySign Desktop og bygg paa nytt. Ingen utgivelse er laget."
+    }
+    if (-not $sig.TimeStamperCertificate) {
+        throw "$navn er signert, men uten tidsstempel. Da blir signaturen ugyldig den dagen sertifikatet gaar ut. Ingen utgivelse er laget."
+    }
+    $eier = $sig.SignerCertificate.GetNameInfo("SimpleName", $false)
+    Write-Host ("  {0,-22} {1}" -f $navn, $eier)
+}
+
 # Regner ut summen med .NET i stedet for Get-FileHash. Den cmdleten mangler
 # hvis skriptet startes fra en PowerShell 7-okt med endret PSModulePath.
 $sha256 = [Security.Cryptography.SHA256]::Create()

@@ -269,6 +269,23 @@ namespace Brisk
                 return null;
             }
 
+            // Sjekksummen sier bare at fila stemmer med manifestet - og
+            // sjekksummen kom fra manifestet. Signaturen er den uavhengige
+            // kontrollen: den binder fila til sertifikatet vaart, og det kan
+            // ikke byttes ut ved aa servere en annen JSON-fil.
+            //
+            // Alt fra og med 1.7.0 er signert, saa dette skal aldri slaa inn
+            // paa en ekte utgivelse. Gjor det likevel det, er det riktig aa
+            // stoppe - da er det noe annet enn oss som ligger der.
+            string signaturfeil = Signatur.Sjekk(path);
+            if (signaturfeil != null)
+            {
+                error = signaturfeil + " " + L.T("Last den ned selv fra utgivelsessida.");
+                Util.Log("Oppdatering avvist paa signatur: " + signaturfeil);
+                Try(delegate { File.Delete(path); });
+                return null;
+            }
+
             Util.Log("Oppdatering " + u.Version + " lastet ned og verifisert.");
             return path;
         }
