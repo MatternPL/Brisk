@@ -1,7 +1,7 @@
 {
-  "versjon": "1.7.0",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.7.0/BriskInstaller.exe",
-  "sha256": "2569d6a845f1b4cd707d0d58493b9f027bfbbdfcc55a9395286ed902b314f646",
-  "storrelse": 1346616,
-  "notat": "Signert programvare, farge per skjerm, G-SYNC-visning, symbolfil for bedre feilrapporter"
+  "versjon": "1.7.1",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.7.1/BriskInstaller.exe",
+  "sha256": "c3e8ea663bd2ded36d0e78e50f3c6a21bd0bd0d0f626a97b4a82be381f9a36d7",
+  "storrelse": 1373240,
+  "notat": "Nedtelling for skjermfrekvens, signaturkontroll, raskere oppstart"
 }
