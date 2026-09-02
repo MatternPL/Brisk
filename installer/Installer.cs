@@ -13,7 +13,7 @@ namespace BriskSetup
     static class Setup
     {
         public const string AppName = "Brisk";
-        public const string Version = "1.7.2";
+        public const string Version = "1.7.3";
         public const string RegKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Brisk";
 
         public static string InstallDir
