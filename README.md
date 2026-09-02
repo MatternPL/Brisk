@@ -24,9 +24,10 @@ Releases also carry **`Brisk.exe`** on its own, for anyone who would rather not
 run an installer. It needs nothing installed, writes nothing outside its own
 folder and `%LOCALAPPDATA%\Brisk`, and works from a USB stick.
 
-The files are not code-signed, so SmartScreen will warn you the first time:
-*More info → Run anyway*. A certificate costs money every year; this doesn't.
-See [Is it safe?](#is-it-safe) for what that warning does and does not mean.
+From 1.7.0 the files are code-signed, so Windows names the publisher instead of
+saying *Unknown publisher*. SmartScreen can still warn on the first downloads —
+reputation is earned per certificate over time, not granted on the day it is
+issued. See [Is it safe?](#is-it-safe) for how to check the signature yourself.
 
 ---
 
@@ -135,9 +136,19 @@ cannot explain.
 
 ## Is it safe?
 
-A cleanup tool asks for a lot of trust: it wants administrator, it deletes
-files, and it is not signed. "Trust me" is not an answer, so here is what you
-can check for yourself.
+A cleanup tool asks for a lot of trust: it wants administrator and it deletes
+files. "Trust me" is not an answer, so here is what you can check for yourself.
+
+**Check the signature.** Right-click the file → Properties → **Digital
+Signatures**. It should say:
+
+> **Open Source Developer Mathias Arne Andresen**, issued by Certum Code
+> Signing 2021 CA, SHA-256, countersigned by Certum Timestamping.
+
+If that tab is missing, or the name is anything else, you did not get the file
+from here. The signature covers every byte, so it also proves nothing was
+changed on the way to you — which a checksum published on the same page as the
+download cannot do on its own.
 
 **Read it.** Every line that ships is in this repository, MIT licensed. There
 is no build server and no minified anything — what you see is what runs.
@@ -156,49 +167,45 @@ will.
 it runs anything it downloads. You can paste the same hash into VirusTotal to
 see what the engines say about the exact file you got:
 
-> **1.6.6 · BriskInstaller.exe**
-> `7de23c8ffaf00145e1d40e3caa43248187e23d67ad2bbba119a0a01ab6021fe7`
-> · [look it up](https://www.virustotal.com/gui/file/7de23c8ffaf00145e1d40e3caa43248187e23d67ad2bbba119a0a01ab6021fe7)
->
-> **1.6.6 · Brisk.exe**
-> `a5b7a7bab0dd714d39e50f61ea1ecef9039b93f20b9bb902bed962c96f0f1dd4`
-> · [look it up](https://www.virustotal.com/gui/file/a5b7a7bab0dd714d39e50f61ea1ecef9039b93f20b9bb902bed962c96f0f1dd4)
+> **1.7.0 · BriskInstaller.exe**
+> `2569d6a845f1b4cd707d0d58493b9f027bfbbdfcc55a9395286ed902b314f646`
+> · [look it up](https://www.virustotal.com/gui/file/2569d6a845f1b4cd707d0d58493b9f027bfbbdfcc55a9395286ed902b314f646)
 
-### Antivirus flags it. Here is why, and what to do
+### If an antivirus flags it
 
-Some engines on VirusTotal flag the installer, Microsoft Defender among them,
-with generic machine-learning names like `Trojan:Win32/Wacatac.C!ml` or
-`Static AI - Suspicious PE`. That is worth explaining rather than waving away,
+A generic engine or two may still flag the installer with a machine-learning
+name — something like `Trojan.MSIL.InfoStealer.gen.B` or
+`MachineLearning/Anomalous`. That deserves an explanation rather than a shrug,
 because "it's a false positive" is also what someone shipping malware would say.
 
-The installer does four things that, taken together, look exactly like a dropper
-to a model that has never seen this file before:
+Look at what the label actually claims. A name ending in `.gen` or `!ml`, or a
+family label like `anomalous`, means the engine matched a statistical pattern —
+not that it recognised code. When an engine identifies real malware, it names
+the family. The pattern being matched here is a small, self-extracting
+installer with few downloads that writes a program to disk and adds a registry
+entry so it appears in Apps & features. Real installers do exactly that; so do
+droppers, and a model that has never seen this file cannot tell them apart.
 
-* It is **unsigned**, so there is no publisher to vouch for it.
-* It carries **Brisk.exe inside itself** and writes it to disk. Legitimate
-  installers do this; so do droppers.
-* It writes a **registry entry** so the program appears in Apps & features.
-* It has **no download history**, which counts against it on its own.
+The link above shows the current picture for the exact file you downloaded,
+which is more use than any number written here would be — it changes as engines
+update their models and as more people download the same file.
 
-None of that is evidence of anything either way, which is the problem with
-generic detections. What you can do instead of taking anyone's word:
+What you can do instead of taking anyone's word:
 
+* **Check the signature** — see above. It is the one check that identifies who
+  built the file rather than guessing at what it resembles.
 * **Build it yourself** — `bygg.cmd`, no SDK, ten seconds. Then no installer is
   involved at all.
-* **Skip the installer** — releases carry `Brisk.exe` on its own. It is a plain
-  program, not a self-extracting one, so it does not look like a dropper to
-  begin with.
 * **Read the diff** — every release links to the commits that went into it.
 
-False positives are reported to the vendors as they turn up, and a code signing
-certificate is the first thing the coffee money goes to, because it removes the
-whole category of problem rather than one detection at a time.
+False positives are reported to the vendors as they turn up.
 
-**Why SmartScreen warns.** Not because anything was detected. Windows warns
-about executables from publishers it has not seen before, and "seen before"
-means a code signing certificate, which costs money every year. That is the
-whole story. Money from the coffee link goes to a certificate first, and the
-warning disappears the day there is one.
+**Why SmartScreen may still warn.** Not because anything was detected. Windows
+warns about programs it has not seen enough of yet, and that reputation is
+earned per certificate over downloads and time — signing starts the clock, it
+does not skip it. What changed with 1.7.0 is that the reputation now
+accumulates at all: an unsigned file is judged by its hash, and every release
+has a new one, so each release used to start from nothing.
 
 ### What it sends, and where
 
@@ -318,9 +325,9 @@ Releasing is documented in [docs/utgivelser.md](docs/utgivelser.md).
 Brisk is free and stays free. If it saved you some time, you can
 [buy me a beer](https://www.buymeacoffee.com/mattern).
 
-Money goes to a code signing certificate first. Windows warns about unknown
-publishers on every download, and a certificate is the only thing that removes
-that warning.
+The first thing it paid for is done: Brisk has been signed since 1.7.0, so
+Windows names the publisher instead of warning about an unknown one. The
+certificate renews every year, and that is what the beer money covers now.
 
 ---
 

@@ -179,6 +179,19 @@ namespace Brisk
             return list;
         }
 
+        // Resultatkodene fra Windows Update, skrevet ut som ord i loggen.
+        static string Forklaring(int rc)
+        {
+            switch (rc)
+            {
+                case 2: return "OK";
+                case 3: return "OK med feil";
+                case 4: return "FEILET";
+                case 5: return "AVBRUTT";
+                default: return "kode " + rc;
+            }
+        }
+
         // Returnerer antall installerte og setter rebootRequired.
         public static int InstallDrivers(List<DriverUpdate> chosen, out bool rebootRequired,
             Action<string> progress)
@@ -231,14 +244,24 @@ namespace Brisk
                 int ok = 0;
                 for (int i = 0; i < ready.Count; i++)
                 {
-                    try
-                    {
-                        int rc = Convert.ToInt32(ires.GetUpdateResult(i).ResultCode);
-                        if (rc == 2 || rc == 3) ok++;      // 2 = vellykket, 3 = vellykket med feil
-                    }
-                    catch { }
+                    // Navnet paa hver enkelt driver maa i loggen. Slutter noe
+                    // aa virke etterpaa - et kamera, en mikrofon, en skjerm -
+                    // er dette eneste sporet av hva som faktisk ble byttet.
+                    // Foer sto det bare et antall, og da var det ingen vei
+                    // tilbake til hvilken driver som var den skyldige.
+                    string navn = "(ukjent)";
+                    try { navn = Util.Str(ready.Item(i).Title); }
+                    catch (Exception) { }
+
+                    int rc = -1;
+                    try { rc = Convert.ToInt32(ires.GetUpdateResult(i).ResultCode); }
+                    catch (Exception) { }
+
+                    if (rc == 2 || rc == 3) ok++;          // 2 = vellykket, 3 = vellykket med feil
+                    Util.Log("  driver " + Forklaring(rc) + ": " + navn);
                 }
-                Util.Log("Installerte " + ok + " driver(e). Omstart nødvendig: " + rebootRequired);
+                Util.Log("Installerte " + ok + " av " + ready.Count +
+                         " driver(e). Omstart nødvendig: " + rebootRequired);
                 return ok;
             }
             catch (Exception ex)
