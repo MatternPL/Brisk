@@ -163,6 +163,7 @@ namespace Brisk
             "står som Windows satte den", "as Windows left it",
             "G-SYNC / FreeSync: {0}–{1} Hz", "G-SYNC / FreeSync: {0}–{1} Hz",
             "Ingen G-SYNC / FreeSync oppgitt", "No G-SYNC / FreeSync reported",
+            "Åpner Brisk …", "Opening Brisk …",
             "Filen finnes ikke.", "The file is not there.",
             "Filen er ikke signert.", "The file is not signed.",
             "Filen er signert av noen Windows ikke stoler på.",

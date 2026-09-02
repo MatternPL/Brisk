@@ -47,18 +47,31 @@ namespace Brisk
 
             // Maal maskinen foerst, saa forsida har tall med en gang i stedet
             // for aa staa med streker til brukeren trykker Sjekk PC-en.
+            // Hovedvinduet bygges inne i lastevinduet, ikke etter det. Foerste
+            // gang koden kjorer maa den JIT-kompileres, og det tar sekunder -
+            // laa byggingen etter Close(), sto brukeren igjen med tomt
+            // skrivebord i mellomtiden.
             StartupScan maalt = null;
+            MainForm hoved = null;
             try
             {
                 using (SplashForm splash = new SplashForm())
                 {
+                    splash.Forbered = delegate(StartupScan s)
+                    {
+                        hoved = new MainForm(startPage, s);
+                    };
                     splash.ShowDialog();
                     maalt = splash.Result;
                 }
             }
             catch (Exception ex) { Util.Log("Oppstartsvindu feilet: " + ex.Message); }
 
-            Application.Run(new MainForm(startPage, maalt));
+            // Feilet lastevinduet, eller ble det lukket for maalingen var ferdig,
+            // skal programmet fortsatt starte.
+            if (hoved == null) hoved = new MainForm(startPage, maalt);
+
+            Application.Run(hoved);
         }
     }
 }
