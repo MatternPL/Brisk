@@ -1,7 +1,7 @@
 {
-  "versjon": "1.7.3",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.7.3/BriskInstaller.exe",
-  "sha256": "b3a95503caaab047a5d71a8d4788e7d6d9478edfb67a84c06266f6f67ac99e75",
-  "storrelse": 1378360,
-  "notat": "The window now opens on the screen it was measured for. Its size was worked out from the display the mouse pointer happened to be on, while it was centred on the main display. With a wide monitor next to a small laptop panel that meant the window could be measured for one screen and placed on the other, with its right-hand side off the edge."
+  "versjon": "1.7.4",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.7.4/BriskInstaller.exe",
+  "sha256": "224100b72472b08ec7699d329637fbed0845fed8400f16902ae5c6a0adc2274f",
+  "storrelse": 1381944,
+  "notat": "Drivers for AMD graphics cards could not be run after Brisk downloaded them. AMD sends the direct download link on to a web page when the request does not come from their own download page, so what landed on disk was that page saved with .exe on the end. Brisk now asks the way AMD expects, and checks that what came down really is a program before it says anything was downloaded."
 }
