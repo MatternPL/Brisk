@@ -99,6 +99,38 @@ foreach ($f in @((Join-Path $rot "Brisk.exe"), $exe)) {
     Write-Host ("  {0,-22} {1}" -f $navn, $eier)
 }
 
+# ---------------------------------------------------------------------------
+# Og kopien INNE i installasjonsfila.
+#
+# Det er den som faktisk havner paa maskinen til brukeren. At den frittstaaende
+# Brisk.exe er signert sier ingenting om den, for den pakkes inn som en ressurs
+# under byggingen. Sto signeringen sist i bygg.cmd, ble den usignerte kopien
+# bakt inn - og det gikk gjennom fem utgivelser (1.7.0 til 1.7.4) uten at noe
+# sa fra, fordi begge filene paa utgivelsen var signert.
+#
+# Rekkefolgen i bygg.cmd er rettet, men rekkefolge er lett aa rote til igjen.
+# Denne sjekker resultatet i stedet for aa stole paa den.
+# ---------------------------------------------------------------------------
+Write-Host "== Kontrollerer kopien inne i installasjonsfila ==" -ForegroundColor Cyan
+$midl = Join-Path ([IO.Path]::GetTempPath()) ("brisk-payload-" + [Guid]::NewGuid().ToString("N") + ".exe")
+try {
+    $asm = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes($exe))
+    $str = $asm.GetManifestResourceStream("Brisk.payload")
+    if ($null -eq $str) { throw "Installasjonsfila inneholder ingen Brisk.payload. Ingen utgivelse er laget." }
+    $ut = [IO.File]::Create($midl)
+    try { $str.CopyTo($ut) } finally { $ut.Close(); $str.Close() }
+
+    $ps = Get-AuthenticodeSignature $midl
+    if ($ps.Status -ne "Valid") {
+        throw "Brisk.exe inne i installasjonsfila er ikke signert (status: $($ps.Status)). Det er den kopien brukeren faar. Ingen utgivelse er laget."
+    }
+    if (-not $ps.TimeStamperCertificate) {
+        throw "Brisk.exe inne i installasjonsfila mangler tidsstempel. Ingen utgivelse er laget."
+    }
+    Write-Host ("  {0,-22} {1}" -f "Brisk.payload", $ps.SignerCertificate.GetNameInfo("SimpleName", $false))
+}
+finally { if (Test-Path $midl) { Remove-Item $midl -Force -ErrorAction SilentlyContinue } }
+
 # Regner ut summen med .NET i stedet for Get-FileHash. Den cmdleten mangler
 # hvis skriptet startes fra en PowerShell 7-okt med endret PSModulePath.
 $sha256 = [Security.Cryptography.SHA256]::Create()
