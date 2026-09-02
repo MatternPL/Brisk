@@ -267,31 +267,88 @@ namespace Brisk
         }
 
         // Returnerer null naar det gikk bra, ellers en forklaring.
-        public static string SetHz(ScreenMode m, int hz)
+        // Frekvensen settes i to trinn, slik Windows selv gjor det.
+        //
+        // CDS_TEST sporr driveren om modusen finnes - ikke om skjermen faktisk
+        // klarer aa vise den over den kabelen som er i. En skjerm koblet med
+        // DisplayPort kan svare ja paa 240 Hz og likevel bli helt svart. Da
+        // hjelper det ikke at Windows sa ja: brukeren ser ingenting, og kan
+        // ikke trykke seg tilbake.
+        //
+        // Verre var at den gamle koden skrev rett til registeret. Da overlevde
+        // det svarte bildet omstart, og eneste vei ut var aa bytte kabel.
+        //
+        // Naa settes modusen forst midlertidig (CDS_FULLSCREEN skriver ikke til
+        // registeret). Blir bildet borte, henter Angre() tilbake det som staar
+        // i registeret - og det skjer av seg selv hvis ingen bekrefter.
+        const uint CdsUpdateRegistry = 0x01;
+        const uint CdsTest = 0x02;
+        const uint CdsFullscreen = 0x04;   // midlertidig, ikke lagret
+
+        // Setter frekvensen midlertidig. Overlever ikke omstart, og angres
+        // med Angre().
+        public static string ProvHz(ScreenMode m, int hz)
         {
             if (m == null) return L.T("Ingen skjerm valgt.");
             try
             {
-                DEVMODE d = new DEVMODE();
-                d.dmSize = (ushort)Marshal.SizeOf(typeof(DEVMODE));
-                if (!EnumDisplaySettings(m.Device, -1, ref d))
-                    return L.T("Fikk ikke lest gjeldende oppsett.");
+                DEVMODE d;
+                string feil = Modus(m, hz, out d);
+                if (feil != null) return feil;
 
-                d.dmDisplayFrequency = (uint)hz;
-                d.dmFields = 0x400000;      // DM_DISPLAYFREQUENCY
-
-                // Prov forst uten aa lagre, saa vi ikke skriver et oppsett
-                // skjermen ikke klarer.
-                int test = ChangeDisplaySettingsEx(m.Device, ref d, IntPtr.Zero, 0x02 /* CDS_TEST */, IntPtr.Zero);
+                int test = ChangeDisplaySettingsEx(m.Device, ref d, IntPtr.Zero, CdsTest, IntPtr.Zero);
                 if (test != 0) return Svar(test);
 
-                int r = ChangeDisplaySettingsEx(m.Device, ref d, IntPtr.Zero, 0x01 /* CDS_UPDATEREGISTRY */, IntPtr.Zero);
+                int r = ChangeDisplaySettingsEx(m.Device, ref d, IntPtr.Zero, CdsFullscreen, IntPtr.Zero);
+                if (r != 0) return Svar(r);
+
+                Util.Log("Skjerm " + m.Device + " prover " + hz + " Hz (midlertidig).");
+                return null;
+            }
+            catch (Exception ex) { return ex.Message; }
+        }
+
+        // Beholder frekvensen for godt. Kalles bare naar brukeren har bekreftet
+        // at han faktisk ser bildet.
+        public static string BeholdHz(ScreenMode m, int hz)
+        {
+            if (m == null) return L.T("Ingen skjerm valgt.");
+            try
+            {
+                DEVMODE d;
+                string feil = Modus(m, hz, out d);
+                if (feil != null) return feil;
+
+                int r = ChangeDisplaySettingsEx(m.Device, ref d, IntPtr.Zero, CdsUpdateRegistry, IntPtr.Zero);
                 if (r != 0) return Svar(r);
 
                 Util.Log("Skjerm " + m.Device + " satt til " + hz + " Hz.");
                 return null;
             }
             catch (Exception ex) { return ex.Message; }
+        }
+
+        // Henter tilbake det som staar i registeret, paa alle skjermer. Dette
+        // er den dokumenterte maaten aa angre en midlertidig endring paa.
+        public static void Angre()
+        {
+            try
+            {
+                ChangeDisplaySettingsEx(null, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
+                Util.Log("Skjermendringen ble angret.");
+            }
+            catch (Exception ex) { Util.Log("Kunne ikke angre skjermendringen: " + ex.Message); }
+        }
+
+        static string Modus(ScreenMode m, int hz, out DEVMODE d)
+        {
+            d = new DEVMODE();
+            d.dmSize = (ushort)Marshal.SizeOf(typeof(DEVMODE));
+            if (!EnumDisplaySettings(m.Device, -1, ref d))
+                return L.T("Fikk ikke lest gjeldende oppsett.");
+            d.dmDisplayFrequency = (uint)hz;
+            d.dmFields = 0x400000;      // DM_DISPLAYFREQUENCY
+            return null;
         }
 
         static string Svar(int kode)
@@ -618,6 +675,11 @@ namespace Brisk
         static extern bool EnumDisplaySettings(string dev, int mode, ref DEVMODE dm);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         static extern int ChangeDisplaySettingsEx(string dev, ref DEVMODE dm, IntPtr wnd, uint flags, IntPtr param);
+
+        // Samme funksjon, men med null baade for enhet og modus. Det er den
+        // kombinasjonen som henter tilbake oppsettet fra registeret.
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        static extern int ChangeDisplaySettingsEx(string dev, IntPtr dm, IntPtr wnd, uint flags, IntPtr param);
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         struct DISPLAY_DEVICE

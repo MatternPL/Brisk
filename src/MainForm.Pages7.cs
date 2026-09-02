@@ -230,8 +230,31 @@ namespace Brisk
 
             setHz.Click += delegate
             {
-                string feil = ScreenTools.SetHz(meg, meg.MaxHz);
-                Status(feil ?? L.F("Satt til {0} Hz.", meg.MaxHz));
+                // Settes forst midlertidig. Blir skjermen svart, ser brukeren
+                // aldri dette vinduet - og da er nedtellingen det eneste som
+                // henter bildet tilbake.
+                string feil = ScreenTools.ProvHz(meg, meg.MaxHz);
+                if (feil != null) { Status(feil); return; }
+
+                bool behold;
+                using (KeepDialog k = new KeepDialog(
+                    L.F("{0} kjører nå på {1} Hz. Ser du dette, virker det.",
+                        meg.Model.Length > 0 ? meg.Model : meg.Device.Replace(@"\\.\", ""),
+                        meg.MaxHz), 15))
+                {
+                    behold = k.ShowDialog(this) == DialogResult.OK;
+                }
+
+                if (behold)
+                {
+                    string f2 = ScreenTools.BeholdHz(meg, meg.MaxHz);
+                    Status(f2 ?? L.F("Satt til {0} Hz.", meg.MaxHz));
+                }
+                else
+                {
+                    ScreenTools.Angre();
+                    Status(L.T("Frekvensen ble satt tilbake."));
+                }
                 LoadScreen();
             };
             bRec.Click += delegate

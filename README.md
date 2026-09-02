@@ -170,12 +170,12 @@ on its own, but a signature can. You can paste the same hash into VirusTotal to
 see what the engines say about the exact file you got:
 
 > **1.7.1 · BriskInstaller.exe**
-> `37668a0aa51cf077e140741865c614757783732fc1e169b92991f02cd13a6e06`
-> · [look it up](https://www.virustotal.com/gui/file/37668a0aa51cf077e140741865c614757783732fc1e169b92991f02cd13a6e06)
+> `c3e8ea663bd2ded36d0e78e50f3c6a21bd0bd0d0f626a97b4a82be381f9a36d7`
+> · [look it up](https://www.virustotal.com/gui/file/c3e8ea663bd2ded36d0e78e50f3c6a21bd0bd0d0f626a97b4a82be381f9a36d7)
 >
 > **1.7.1 · Brisk.exe**
-> `4639b287ce7725129ef445b517fd21e398ad3348566ec717e3779410d8598d48`
-> · [look it up](https://www.virustotal.com/gui/file/4639b287ce7725129ef445b517fd21e398ad3348566ec717e3779410d8598d48)
+> `6b3b41d3c8c1eca9b15225f0bfdb46f899dbc67f2268c9be85a781069edd2721`
+> · [look it up](https://www.virustotal.com/gui/file/6b3b41d3c8c1eca9b15225f0bfdb46f899dbc67f2268c9be85a781069edd2721)
 
 ### If an antivirus flags it
 
