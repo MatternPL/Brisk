@@ -158,11 +158,17 @@ namespace Brisk
                 // gjennom en omstart og VBS fortsatt kjorer, da tok ikke
                 // registerendringen - og det skal staa, ikke en evig lovnad om
                 // at det ordner seg neste gang.
-                if (OmstartHarVaert())
+                // Vet vi allerede at noe annet krever VBS, er «venter paa
+                // omstart» en lovnad vi ikke kan holde. Da skal grunnen staa
+                // med en gang, ikke etter at brukeren har startet maskinen
+                // paa nytt til ingen nytte.
+                string blokkerer = KjentBlokkering();
+                if (blokkerer != null || OmstartHarVaert())
                 {
                     g.Optimal = false;
                     g.State = "Kjører fortsatt";
-                    g.Unavailable = "";
+                    g.Unavailable = blokkerer ??
+                        L.T("Noe utenfor Windows sine egne brytere starter den, som regel en innstilling i maskinens oppsett.");
                     g.StuckOn = true;
                     return g;
                 }
@@ -175,6 +181,62 @@ namespace Brisk
             g.Optimal = status != 2;
             g.State = status == 2 ? "Kjører" : status == 1 ? "På, men kjører ikke" : "Av";
             return g;
+        }
+
+        // Kjorer VBS selv om alt Brisk styrer staar av, er det noe annet som
+        // drar opp hypervisoren. Da skal det staa HVA - «kjorer fortsatt» uten
+        // grunn er en blindvei for brukeren.
+        //
+        // Maalt paa en maskin der VBS kjorte med
+        // EnableVirtualizationBasedSecurity=0, HVCI=0, hypervisorlaunchtype Off
+        // og ingen Hyper-V-funksjoner installert: SecurityServicesRunning var
+        // 0, altsa hverken Credential Guard eller Memory Integrity. Det som sto
+        // igjen var scenariet WindowsHello.
+        // Returnerer null naar vi ikke finner noen kjent grunn. Da vet vi
+        // ingenting, og skal ikke paastaa noe - bare at den fortsatt kjorer.
+        static string KjentBlokkering()
+        {
+            try
+            {
+                // Enhanced sign-in security kjorer den biometriske delen inne i
+                // VBS, og bryr seg ikke om noen av bryterne over.
+                object hello = HklmValue(DeviceGuard + @"\Scenarios\WindowsHello", "Enabled");
+                if (hello != null && Convert.ToInt32(hello) == 1)
+                    return L.T("Windows Hello krever den. Den slås av under Innstillinger → Kontoer → Påloggingsalternativer.");
+
+                string f = Virtualiseringsfunksjoner();
+                if (f.Length > 0)
+                    return L.F("{0} krever den. Fjernes under «Slå Windows-funksjoner på eller av».", f);
+            }
+            catch (Exception ex) { Util.Log("Kunne ikke finne årsaken til VBS: " + ex.Message); }
+            return null;
+        }
+
+        // Funksjoner som drar opp hypervisoren uansett hva DeviceGuard staar paa.
+        static string Virtualiseringsfunksjoner()
+        {
+            string[] navn = { "Microsoft-Hyper-V-All", "VirtualMachinePlatform",
+                              "HypervisorPlatform", "Containers-DisposableClientVM",
+                              "Microsoft-Windows-Subsystem-Linux" };
+            string[] pentNavn = { "Hyper-V", "Plattform for virtuelle maskiner",
+                                  "Windows Hypervisor Platform", "Windows Sandbox",
+                                  "Windows-undersystem for Linux" };
+            List<string> funnet = new List<string>();
+            try
+            {
+                using (ManagementObjectSearcher s = new ManagementObjectSearcher(
+                    new ObjectQuery("SELECT Name, InstallState FROM Win32_OptionalFeature WHERE InstallState = 1")))
+                foreach (ManagementObject mo in s.Get())
+                {
+                    string n = Convert.ToString(mo["Name"]);
+                    for (int i = 0; i < navn.Length; i++)
+                        if (string.Equals(n, navn[i], StringComparison.OrdinalIgnoreCase) &&
+                            !funnet.Contains(pentNavn[i]))
+                            funnet.Add(pentNavn[i]);
+                }
+            }
+            catch (Exception) { }
+            return string.Join(", ", funnet.ToArray());
         }
 
         // Naar Brisk slaar av VBS skrives tidspunktet ned. Har maskinen startet

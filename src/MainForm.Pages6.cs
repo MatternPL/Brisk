@@ -195,7 +195,12 @@ namespace Brisk
             // gjenta hva innstillingen er.
             Label what = Theme.Lbl(
                 !g.Available ? L.T(g.Unavailable)
-                : g.StuckOn ? L.T("Registeret er satt og maskinen er startet på nytt, men hypervisoren starter likevel.")
+                // Vet vi hvorfor den kjorer likevel, staar grunnen der. Uten
+                // den er «starter likevel» en blindvei: brukeren har ingen
+                // steder aa gaa videre.
+                : g.StuckOn ? (g.Unavailable != null && g.Unavailable.Length > 0
+                                  ? L.T(g.Unavailable)
+                                  : L.T("Registeret er satt og maskinen er startet på nytt, men hypervisoren starter likevel."))
                 : L.T(g.What), Theme.FSmall, Theme.Muted);
             what.AutoSize = false;
             what.Location = new Point(20, 62);

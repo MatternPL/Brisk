@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.Win32;
 
@@ -165,6 +165,12 @@ namespace Brisk
             "Ingen G-SYNC / FreeSync oppgitt", "No G-SYNC / FreeSync reported",
             "Åpner Brisk …", "Opening Brisk …",
             "Beholde denne innstillingen?", "Keep this setting?",
+            "Windows Hello krever den. Den slås av under Innstillinger → Kontoer → Påloggingsalternativer.",
+                "Windows Hello needs it. Turn that off under Settings → Accounts → Sign-in options.",
+            "{0} krever den. Fjernes under «Slå Windows-funksjoner på eller av».",
+                "{0} needs it. Remove it under Turn Windows features on or off.",
+            "Noe utenfor Windows sine egne brytere starter den, som regel en innstilling i maskinens oppsett.",
+                "Something outside Windows' own switches starts it, usually a setting in the machine's firmware.",
             "Tilbakestilles om {0} sekunder.", "Reverting in {0} seconds.",
             "Frekvensen ble satt tilbake.", "The refresh rate was put back.",
             "{0} kjører nå på {1} Hz. Ser du dette, virker det.",
