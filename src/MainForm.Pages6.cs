@@ -220,6 +220,10 @@ namespace Brisk
             act.Width = 128; act.Height = 32;
             act.Font = Theme.FSmall;
             if (!g.Available) { act.Enabled = false; act.Visible = false; }
+            // Vet vi at siste utvei ikke virker heller, skal det ikke staa en
+            // knapp der. En knapp som ikke kan gjore jobben sin sender bare
+            // brukeren gjennom en omstart til ingen nytte.
+            else if (g.StuckOn && g.CannotForce) { act.Enabled = false; act.Visible = false; }
             else if (g.StuckOn) { act.Text = L.T("Tving av"); act.Warn(); }
             else if (g.Optimal || g.PendingReboot)
             {

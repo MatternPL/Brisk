@@ -169,13 +169,13 @@ by the name above — a checksum published next to the download cannot prove muc
 on its own, but a signature can. You can paste the same hash into VirusTotal to
 see what the engines say about the exact file you got:
 
-> **1.7.1 · BriskInstaller.exe**
-> `c3e8ea663bd2ded36d0e78e50f3c6a21bd0bd0d0f626a97b4a82be381f9a36d7`
-> · [look it up](https://www.virustotal.com/gui/file/c3e8ea663bd2ded36d0e78e50f3c6a21bd0bd0d0f626a97b4a82be381f9a36d7)
+> **1.7.2 · BriskInstaller.exe**
+> `8438751fb441d4ad888c1d290d24f9b152a92d05d316b762b49f858658bce66e`
+> · [look it up](https://www.virustotal.com/gui/file/8438751fb441d4ad888c1d290d24f9b152a92d05d316b762b49f858658bce66e)
 >
-> **1.7.1 · Brisk.exe**
-> `6b3b41d3c8c1eca9b15225f0bfdb46f899dbc67f2268c9be85a781069edd2721`
-> · [look it up](https://www.virustotal.com/gui/file/6b3b41d3c8c1eca9b15225f0bfdb46f899dbc67f2268c9be85a781069edd2721)
+> **1.7.2 · Brisk.exe**
+> `c88bc3b72ea069e32cda0b12c95fed609df4321613ba4bc32ae3ba7465b0ce23`
+> · [look it up](https://www.virustotal.com/gui/file/c88bc3b72ea069e32cda0b12c95fed609df4321613ba4bc32ae3ba7465b0ce23)
 
 ### If an antivirus flags it
 

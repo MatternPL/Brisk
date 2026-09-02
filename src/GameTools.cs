@@ -48,6 +48,11 @@ namespace Brisk
         // og Windows kjorer det likevel. Da er det noe annet som slaar det paa,
         // og brukeren skal faa vite det i stedet for aa vente forgjeves.
         public bool StuckOn;
+
+        // Sitter den fast, men vi vet at siste utvei ikke virker heller. Da
+        // skal knappen bort - en knapp som ikke kan gjore jobben sin er verre
+        // enn ingen knapp.
+        public bool CannotForce;
     }
 
     public static class GameTools
@@ -162,10 +167,12 @@ namespace Brisk
                 // omstart» en lovnad vi ikke kan holde. Da skal grunnen staa
                 // med en gang, ikke etter at brukeren har startet maskinen
                 // paa nytt til ingen nytte.
-                string blokkerer = KjentBlokkering();
+                bool nytteslost;
+                string blokkerer = KjentBlokkering(out nytteslost);
                 if (blokkerer != null || OmstartHarVaert())
                 {
                     g.Optimal = false;
+                    g.CannotForce = nytteslost;
                     g.State = "Kjører fortsatt";
                     g.Unavailable = blokkerer ??
                         L.T("Noe utenfor Windows sine egne brytere starter den, som regel en innstilling i maskinens oppsett.");
@@ -194,15 +201,27 @@ namespace Brisk
         // igjen var scenariet WindowsHello.
         // Returnerer null naar vi ikke finner noen kjent grunn. Da vet vi
         // ingenting, og skal ikke paastaa noe - bare at den fortsatt kjorer.
-        static string KjentBlokkering()
+        //
+        // nytteslost blir sant naar selv ForceHypervisor ikke kan hjelpe.
+        // Maalt paa en maskin med Windows Hello: hypervisorlaunchtype sto
+        // allerede Off, og VBS kjorte likevel. Da er «Tving av» en knapp som
+        // ikke kan gjore jobben sin, og den skal ikke staa der.
+        //
+        // Hyper-V og de andre funksjonene er ikke i samme baat: der virker
+        // hypervisorlaunchtype off, saa knappen faar staa.
+        static string KjentBlokkering(out bool nytteslost)
         {
+            nytteslost = false;
             try
             {
                 // Enhanced sign-in security kjorer den biometriske delen inne i
                 // VBS, og bryr seg ikke om noen av bryterne over.
                 object hello = HklmValue(DeviceGuard + @"\Scenarios\WindowsHello", "Enabled");
                 if (hello != null && Convert.ToInt32(hello) == 1)
+                {
+                    nytteslost = true;
                     return L.T("Windows Hello krever den. Den slås av under Innstillinger → Kontoer → Påloggingsalternativer.");
+                }
 
                 string f = Virtualiseringsfunksjoner();
                 if (f.Length > 0)
