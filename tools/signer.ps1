@@ -4,7 +4,7 @@
 # kloner repoet.
 #
 # Tidsstempling er ikke valgfritt i praksis: uten det blir alt du har signert
-# ugyldig den dagen sertifikatet gaar ut.
+# ugyldig den dagen sertifikatet gaar ut. Sertifikatet her varer ett aar.
 
 param([string]$Filer)
 
@@ -16,28 +16,58 @@ $ErrorActionPreference = "Stop"
 # og gikk videre uten aa signere noe som helst.
 $Liste = $Filer.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
 $Tidsstempel = "http://time.certum.pl"
-
-# -CodeSigningCert finnes bare i Windows PowerShell, ikke i PowerShell 7.
-# Bruksomraadet leses derfor rett av sertifikatet: 1.3.6.1.5.5.7.3.3 er
-# «Code Signing». Da virker skriptet uansett hvilken som kjorer det.
 $KodeSignering = "1.3.6.1.5.5.7.3.3"
-$sert = @(Get-ChildItem Cert:\CurrentUser\My -ErrorAction SilentlyContinue | Where-Object {
-    $_.NotAfter -gt (Get-Date) -and $_.HasPrivateKey -and
-    ($_.EnhancedKeyUsageList | Where-Object { $_.ObjectId -eq $KodeSignering })
-})
 
-if ($sert.Count -eq 0) {
+# ---------------------------------------------------------------------------
+# Sertifikatet hentes med X509Store, ikke gjennom Cert:-stasjonen.
+#
+# Cert: lages av modulen Microsoft.PowerShell.Security, og den lastes ikke
+# alltid. Startes skriptet fra bygg.cmd - altsa cmd.exe -> powershell.exe -File
+# - kaster «Cert:» DriveNotFoundException. Med -ErrorAction SilentlyContinue
+# ble den feilen slukt, skriptet konkluderte «ingen sertifikat i lageret», og
+# bygget la fra seg USIGNERTE filer uten aa si fra. Det var akkurat den stille
+# svikten som er verst: alt saa vellykket ut.
+#
+# X509Store er API-et provideren selv pakker inn, og det virker uansett hvordan
+# skriptet startes. Samme grunn til at bruksomraadet leses rett av utvidelsen i
+# stedet for gjennom EnhancedKeyUsageList, som ogsaa kommer fra den modulen.
+# ---------------------------------------------------------------------------
+function Finn-Sertifikat {
+    $naa = Get-Date
+    foreach ($sted in @("CurrentUser", "LocalMachine")) {
+        $lager = New-Object System.Security.Cryptography.X509Certificates.X509Store "My", $sted
+        try { $lager.Open("ReadOnly") } catch { continue }
+        try {
+            foreach ($c in $lager.Certificates) {
+                if (-not $c.HasPrivateKey) { continue }
+                if ($c.NotAfter -le $naa -or $c.NotBefore -gt $naa) { continue }
+                foreach ($u in $c.Extensions) {
+                    if ($u -isnot [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension]) { continue }
+                    foreach ($oid in $u.EnhancedKeyUsages) {
+                        if ($oid.Value -eq $KodeSignering) { return $c }
+                    }
+                }
+            }
+        }
+        finally { $lager.Close() }
+    }
+    return $null
+}
+
+$s = Finn-Sertifikat
+if ($null -eq $s) {
     Write-Host "  ingen sertifikat i lageret - hopper over signering"
     exit 0
 }
 
-$s = $sert[0]
 Write-Host "  signerer med: $($s.Subject)"
 Write-Host "  gyldig til  : $($s.NotAfter.ToString('yyyy-MM-dd'))"
 
-# signtool foerst naar den finnes: den er Microsofts eget verktoy og haandterer
-# flere tilfeller enn PowerShell-varianten. Uten Windows SDK finnes den ikke,
-# og da brukes Set-AuthenticodeSignature, som ligger i Windows fra for.
+# signtool er Microsofts eget verktoy og haandterer flere tilfeller enn
+# PowerShell-varianten. Uten Windows SDK finnes den ikke, og da brukes
+# Set-AuthenticodeSignature - men den ligger i samme modul som Cert:, saa den
+# er ikke alltid tilgjengelig heller. Mangler begge, er det en feil, ikke noe
+# aa hoppe stille over.
 $signtool = $null
 foreach ($rot in @("${env:ProgramFiles(x86)}\Windows Kits\10\bin", "$env:ProgramFiles\Windows Kits\10\bin")) {
     if (-not (Test-Path $rot)) { continue }
@@ -47,9 +77,15 @@ foreach ($rot in @("${env:ProgramFiles(x86)}\Windows Kits\10\bin", "$env:Program
     if ($funn) { $signtool = $funn.FullName; break }
 }
 
+$harCmdlet = $null -ne (Get-Command Set-AuthenticodeSignature -ErrorAction SilentlyContinue)
+if (-not $signtool -and -not $harCmdlet) {
+    Write-Host "  FANT VERKEN signtool.exe ELLER Set-AuthenticodeSignature - kan ikke signere"
+    exit 1
+}
+
 $feil = 0
 foreach ($f in $Liste) {
-    if (-not (Test-Path $f)) { Write-Host "  $f finnes ikke"; continue }
+    if (-not (Test-Path $f)) { Write-Host "  $f finnes ikke"; $feil++; continue }
 
     if ($signtool) {
         & $signtool sign /fd SHA256 /td SHA256 /tr $Tidsstempel /sha1 $s.Thumbprint $f | Out-Null
@@ -60,16 +96,21 @@ foreach ($f in $Liste) {
         $ok = $r.Status -eq "Valid"
     }
 
-    $status = (Get-AuthenticodeSignature $f).Status
-    Write-Host ("  {0,-22} {1}" -f (Split-Path $f -Leaf), $status)
-    if (-not $ok -or $status -ne "Valid") { $feil++ }
+    Write-Host ("  {0,-22} {1}" -f (Split-Path $f -Leaf), $(if ($ok) { "signert" } else { "FEILET" }))
+    if (-not $ok) { $feil++; continue }
 
-    # Get-AuthenticodeSignature sier bare at signaturen er gyldig paa DENNE
-    # maskinen, der mellomleddene ligger i sertifikatlageret fra for. Det som
-    # avgjor om den holder hos andre er om kjeden ble bakt inn i selve fila.
-    # signtool verify /pa skriver ut kjeden slik den ligger i fila.
+    # Det som avgjor om signaturen holder hos andre er om kjeden ble bakt inn i
+    # selve fila. Ligger den ikke der, maa mottakerens maskin hente mellomleddet
+    # over nett - og gaar ikke det, staar programmet som usignert hos dem selv
+    # om det er signert her. signtool verify /pa leser kjeden ut av fila.
     if ($signtool) {
         $v = & $signtool verify /pa /v $f 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "      ADVARSEL: verifiseringen gikk ikke gjennom"
+            $v | Select-Object -Last 4 | ForEach-Object { Write-Host "        $_" }
+            $feil++
+            continue
+        }
         $kjede = $v | Select-String -Pattern "^\s+Issued to:" | ForEach-Object { $_.Line.Trim() }
         if ($kjede) {
             Write-Host "      kjede i fila:"
