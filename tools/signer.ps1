@@ -63,6 +63,22 @@ foreach ($f in $Liste) {
     $status = (Get-AuthenticodeSignature $f).Status
     Write-Host ("  {0,-22} {1}" -f (Split-Path $f -Leaf), $status)
     if (-not $ok -or $status -ne "Valid") { $feil++ }
+
+    # Get-AuthenticodeSignature sier bare at signaturen er gyldig paa DENNE
+    # maskinen, der mellomleddene ligger i sertifikatlageret fra for. Det som
+    # avgjor om den holder hos andre er om kjeden ble bakt inn i selve fila.
+    # signtool verify /pa skriver ut kjeden slik den ligger i fila.
+    if ($signtool) {
+        $v = & $signtool verify /pa /v $f 2>&1
+        $kjede = $v | Select-String -Pattern "^\s+Issued to:" | ForEach-Object { $_.Line.Trim() }
+        if ($kjede) {
+            Write-Host "      kjede i fila:"
+            $kjede | ForEach-Object { Write-Host "        $_" }
+        } else {
+            Write-Host "      ADVARSEL: fant ingen kjede i fila - signaturen kan svikte paa maskiner"
+            Write-Host "      som ikke har Certum sine mellomledd installert fra for."
+        }
+    }
 }
 
 if ($feil -gt 0) {
