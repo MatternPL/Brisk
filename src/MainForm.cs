@@ -28,7 +28,13 @@ namespace Brisk
         public MainForm(string startPage, StartupScan scan)
         {
             Text = "Brisk";
-            StartPosition = FormStartPosition.CenterScreen;
+            // Plasseres for haand lenger nede. CenterScreen sentrerer paa
+            // hovedskjermen, mens storrelsen regnes ut fra skjermen musepekeren
+            // staar paa - og er de to forskjellige, blir vinduet regnet for én
+            // skjerm og lagt paa en annen. Maalt paa en maskin med en 5120-bred
+            // skjerm og en liten ved siden av: vinduet ble 1320 bredt og havnet
+            // paa en skjerm som var 1280.
+            StartPosition = FormStartPosition.Manual;
             // Aapnes stort nok til at all tekst faar plass i alle kort paa alle
             // sider. Spill-sida er den som krever mest hoyde, med seks kort i
             // to rader pluss omstartsvarselet.
@@ -55,6 +61,20 @@ namespace Brisk
             MinimumSize = new Size(
                 Math.Min(1120, plass.Width),
                 Math.Min(900 + TitleBar.H, plass.Height));
+
+            // Midt paa den samme skjermen som storrelsen ble regnet for.
+            //
+            // Storrelsen regnes ut her i stedet for aa leses av Width og
+            // Height: vindushaandtaket finnes ikke enda, saa de to har ikke
+            // faatt sine endelige verdier. Maalt: sentrering paa Width gav
+            // X=2139 i stedet for 1900 paa en 5120 bred skjerm, fordi Width
+            // fortsatt sto paa 842.
+            Size faktisk = new Size(
+                Math.Max(ClientSize.Width, MinimumSize.Width),
+                Math.Max(ClientSize.Height, MinimumSize.Height));
+            Location = new Point(
+                plass.Left + Math.Max(0, (plass.Width - faktisk.Width) / 2),
+                plass.Top + Math.Max(0, (plass.Height - faktisk.Height) / 2));
             BackColor = Theme.Bg;
             ForeColor = Theme.Text;
             Font = Theme.F;
