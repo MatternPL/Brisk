@@ -163,13 +163,19 @@ hashes will not prove anything. Reading the source and building your own copy
 will.
 
 **Scan it.** Every release publishes the sha256 of its installer in
-[`oppdatering.json`](oppdatering.json), and Brisk verifies that checksum before
-it runs anything it downloads. You can paste the same hash into VirusTotal to
+[`oppdatering.json`](oppdatering.json). Brisk checks that hash before it runs
+anything it downloads, and from 1.7.1 it also requires the file to be signed
+by the name above — a checksum published next to the download cannot prove much
+on its own, but a signature can. You can paste the same hash into VirusTotal to
 see what the engines say about the exact file you got:
 
-> **1.7.0 · BriskInstaller.exe**
-> `2569d6a845f1b4cd707d0d58493b9f027bfbbdfcc55a9395286ed902b314f646`
-> · [look it up](https://www.virustotal.com/gui/file/2569d6a845f1b4cd707d0d58493b9f027bfbbdfcc55a9395286ed902b314f646)
+> **1.7.1 · BriskInstaller.exe**
+> `37668a0aa51cf077e140741865c614757783732fc1e169b92991f02cd13a6e06`
+> · [look it up](https://www.virustotal.com/gui/file/37668a0aa51cf077e140741865c614757783732fc1e169b92991f02cd13a6e06)
+>
+> **1.7.1 · Brisk.exe**
+> `4639b287ce7725129ef445b517fd21e398ad3348566ec717e3779410d8598d48`
+> · [look it up](https://www.virustotal.com/gui/file/4639b287ce7725129ef445b517fd21e398ad3348566ec717e3779410d8598d48)
 
 ### If an antivirus flags it
 
