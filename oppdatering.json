@@ -1,7 +1,7 @@
 {
-  "versjon": "1.7.1",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.7.1/BriskInstaller.exe",
-  "sha256": "c3e8ea663bd2ded36d0e78e50f3c6a21bd0bd0d0f626a97b4a82be381f9a36d7",
-  "storrelse": 1373240,
-  "notat": "Nedtelling for skjermfrekvens, signaturkontroll, raskere oppstart"
+  "versjon": "1.7.2",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.7.2/BriskInstaller.exe",
+  "sha256": "8438751fb441d4ad888c1d290d24f9b152a92d05d316b762b49f858658bce66e",
+  "storrelse": 1378360,
+  "notat": "Riktig oppsett paa skalerte skjermer, VBS sier hvorfor"
 }
