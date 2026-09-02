@@ -1,7 +1,7 @@
 {
-  "versjon": "1.6.6",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.6.6/BriskInstaller.exe",
-  "sha256": "7de23c8ffaf00145e1d40e3caa43248187e23d67ad2bbba119a0a01ab6021fe7",
-  "storrelse": 744448,
-  "notat": "A new Screen page: every screen with its own name, size and year, what it runs at and the fastest it can, set with one button. Colour gives deeper blacks and more saturation, and Reset puts back exactly the curve you had. Games gains three NVIDIA settings - driver power management, shader cache and low latency - read and written through the driver's own settings, and hidden entirely on AMD. Virtualisation-based security no longer promises a restart that has already happened; where Windows starts it anyway, it can now be forced off. The front page fills before the window is drawn instead of after."
+  "versjon": "1.7.0",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.7.0/BriskInstaller.exe",
+  "sha256": "2569d6a845f1b4cd707d0d58493b9f027bfbbdfcc55a9395286ed902b314f646",
+  "storrelse": 1346616,
+  "notat": "Signert programvare, farge per skjerm, G-SYNC-visning, symbolfil for bedre feilrapporter"
 }
