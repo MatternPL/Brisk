@@ -164,6 +164,8 @@ namespace Brisk
             "G-SYNC / FreeSync: {0}–{1} Hz", "G-SYNC / FreeSync: {0}–{1} Hz",
             "Ingen G-SYNC / FreeSync oppgitt", "No G-SYNC / FreeSync reported",
             "Åpner Brisk …", "Opening Brisk …",
+            "Det som ble lastet ned var ikke et program. Leverandøren svarte med noe annet — prøv å laste ned driveren fra nettsiden deres.",
+                "What came down was not a program. The manufacturer answered with something else — try downloading the driver from their own site.",
             "Beholde denne innstillingen?", "Keep this setting?",
             "Windows Hello krever den. Den slås av under Innstillinger → Kontoer → Påloggingsalternativer.",
                 "Windows Hello needs it. Turn that off under Settings → Accounts → Sign-in options.",

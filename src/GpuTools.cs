@@ -462,6 +462,16 @@ namespace Brisk
                 HttpWebRequest req = (HttpWebRequest)WebRequest.Create(d.Url);
                 req.UserAgent = "Brisk/" + Updater.CurrentVersion;
                 req.Timeout = 30000;
+
+                // AMD sender den direkte lenka videre til en HTML-side som
+                // heter «Download Not Complete» hvis forespoerselen ikke kommer
+                // fra deres egen nedlastingsside. Da lastet Brisk ned den sida
+                // og lagret den som .exe - en fil som ikke lar seg kjore.
+                // Maalt: uten Referer kommer text/html, med Referer kommer
+                // application/octet-stream paa 47,8 MB som begynner med MZ.
+                // Det er ikke User-Agent-avhengig; en nettleser-UA fikk samme
+                // omdirigering.
+                if (Vert(d.Url, "amd.com")) req.Referer = AmdSide;
                 using (HttpWebResponse res = (HttpWebResponse)req.GetResponse())
                 using (Stream src = res.GetResponseStream())
                 using (FileStream dst = new FileStream(fil, FileMode.Create, FileAccess.Write))
@@ -486,8 +496,38 @@ namespace Brisk
                 return null;
             }
 
+            // Er det i det hele tatt et program? Alle Windows-programmer
+            // begynner med bokstavene MZ. Uten denne sjekken sa Brisk at
+            // driveren var lastet ned, mens fila i virkeligheten var en
+            // HTML-side lagret med .exe paa slutten - og brukeren fikk en fil
+            // som ikke gjorde noe naar han dobbeltklikket den.
+            //
+            // Sjekken staar her og ikke bare i AMD-delen: gaar en leverandor
+            // om paa samme maate i morgen, skal Brisk si fra i stedet for aa
+            // levere soppel med et fornoyd ansikt.
+            if (!ErProgram(fil))
+            {
+                error = L.T("Det som ble lastet ned var ikke et program. Leverandøren svarte med noe annet — prøv å laste ned driveren fra nettsiden deres.");
+                Util.Log("Driverfila var ikke et program, slettet: " + fil);
+                try { if (File.Exists(fil)) File.Delete(fil); }
+                catch (Exception) { }
+                return null;
+            }
+
             Util.Log(merke + "-driver " + d.Version + " lastet ned til " + fil);
             return fil;
+        }
+
+        // Alle Windows-programmer begynner med MZ. Er de to foerste bytene noe
+        // annet, er fila ikke et program uansett hva den heter.
+        static bool ErProgram(string fil)
+        {
+            try
+            {
+                using (FileStream fs = File.OpenRead(fil))
+                    return fs.ReadByte() == 'M' && fs.ReadByte() == 'Z';
+            }
+            catch (Exception) { return false; }
         }
 
         // Verten maa vaere domenet selv eller et underdomene - ikke bare
