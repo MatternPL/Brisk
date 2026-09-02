@@ -1,7 +1,7 @@
 {
-  "versjon": "1.7.2",
-  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.7.2/BriskInstaller.exe",
-  "sha256": "8438751fb441d4ad888c1d290d24f9b152a92d05d316b762b49f858658bce66e",
+  "versjon": "1.7.3",
+  "url": "https://github.com/MatternPL/Brisk/releases/download/v1.7.3/BriskInstaller.exe",
+  "sha256": "b3a95503caaab047a5d71a8d4788e7d6d9478edfb67a84c06266f6f67ac99e75",
   "storrelse": 1378360,
-  "notat": "Riktig oppsett paa skalerte skjermer, VBS sier hvorfor"
+  "notat": "Vinduet aapner paa skjermen det ble regnet for"
 }
