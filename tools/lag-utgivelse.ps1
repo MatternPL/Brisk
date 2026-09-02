@@ -15,6 +15,34 @@ $rot = Split-Path -Parent $PSScriptRoot
 if ($Versjon -notmatch '^\d+\.\d+\.\d+$') { throw "Versjon må være på formen 1.2.3" }
 if ($NedlastingsUrl -notlike 'https://*') { throw "Nedlastingsadressen må være https" }
 
+# ---------------------------------------------------------------------------
+# Notatet havner ordrett i oppdatering.json og vises i oppdateringsvinduet
+# akkurat slik det står. Det går ikke gjennom L.T(), for det er ikke en
+# grensesnittstreng - det er data som følger utgivelsen. Derfor MÅ det være
+# engelsk: appen er engelsk som standard, og norsk er et valg.
+#
+# Dette gikk galt i 1.7.1 til 1.7.3, der notatet ble stående på norsk i et
+# engelsk grensesnitt. Ingenting fanget det opp, fordi teksten bare ble kopiert
+# videre. Nå gjør denne sperren det.
+# ---------------------------------------------------------------------------
+if ($Notat.Length -gt 0) {
+    $norsk = @('paa', 'ikke', 'naar', 'vinduet', 'skjermen', 'maskinen', 'brukeren',
+               'oppdatering', 'innstilling', 'aapner', 'ogsaa', 'slaa', 'seg', 'som',
+               'det', 'den', 'blir', 'ble', 'kan', 'har')
+    $ord = [regex]::Matches($Notat.ToLower(), '[a-zæøå]+') | ForEach-Object { $_.Value }
+    $treff = @($ord | Where-Object { $norsk -contains $_ } | Select-Object -Unique)
+
+    if ($Notat -match '[æøåÆØÅ]') {
+        throw "Notatet inneholder æ, ø eller å. Det vises i oppdateringsvinduet og skal være på engelsk. Ingen utgivelse er laget."
+    }
+    if ($treff.Count -ge 2) {
+        throw "Notatet ser norsk ut (fant: $($treff -join ', ')). Det vises i oppdateringsvinduet og skal være på engelsk. Ingen utgivelse er laget."
+    }
+    if ($Notat.Length -lt 80) {
+        throw "Notatet er bare $($Notat.Length) tegn. Det er teksten brukeren leser før han oppdaterer - skriv hva han merker, ikke en stikkordsliste. Ingen utgivelse er laget."
+    }
+}
+
 Write-Host "== Setter versjon $Versjon ==" -ForegroundColor Cyan
 
 $ai = Join-Path $rot "src\AssemblyInfo.cs"

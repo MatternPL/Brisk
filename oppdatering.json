@@ -3,5 +3,5 @@
   "url": "https://github.com/MatternPL/Brisk/releases/download/v1.7.3/BriskInstaller.exe",
   "sha256": "b3a95503caaab047a5d71a8d4788e7d6d9478edfb67a84c06266f6f67ac99e75",
   "storrelse": 1378360,
-  "notat": "Vinduet aapner paa skjermen det ble regnet for"
+  "notat": "The window now opens on the screen it was measured for. Its size was worked out from the display the mouse pointer happened to be on, while it was centred on the main display. With a wide monitor next to a small laptop panel that meant the window could be measured for one screen and placed on the other, with its right-hand side off the edge."
 }
